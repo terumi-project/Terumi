@@ -8,7 +8,7 @@ def main():
 	parser = argparse.ArgumentParser(description='Python Terumi Compiler')
 
 	parser.add_argument('-v', '--version', action='store_true', help='Prints the version', default=False)
-	parser.add_argument('-o', '--output', nargs=1, help='The output directory', default='./output.py')
+	parser.add_argument('-o', '--output', nargs=1, help='The output directory', default='./output.ps1')
 	parser.add_argument('-l', '--language', help='The desired output language.', default='python3')
 
 	required_args = parser.add_argument_group('Required Arguments')
@@ -21,7 +21,7 @@ def main():
 	language = args.language
 
 	if input is None:
-		print("Input not specified.")
+		print("Input not specified. (-i file_name)")
 		return
 
 	if not Language.has_value(language):

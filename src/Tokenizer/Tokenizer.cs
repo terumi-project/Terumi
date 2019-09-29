@@ -8,6 +8,7 @@ namespace Terumi.Tokenizer
 	public class Tokenizer : IAstNotificationReceiver
 	{
 		private readonly IPattern<ParameterGroup> _parameterGroupPattern;
+		private readonly IPattern<Field> _fieldPattern;
 		private readonly IPattern<TerumiMember> _classMemberPattern;
 		private readonly IPattern<TypeDefinition> _classPattern;
 		private readonly IPattern<Method> _contractMethodPattern;
@@ -20,13 +21,14 @@ namespace Terumi.Tokenizer
 		public Tokenizer()
 		{
 			_parameterGroupPattern = new ParameterGroupPattern(this);
+			_fieldPattern = new FieldPattern(this);
 
-			_classMemberPattern = NoPattern<TerumiMember>.IInstance;
+			_classMemberPattern = new CoagulatedPattern<Field, Method, TerumiMember>(_fieldPattern, NoPattern<Method>.Instance);
 			_classPattern = new TypeDefinitionPattern(this, TypeDefinitionType.Class, _classMemberPattern);
 
 			_contractMethodPattern = new ContractMethodPattern(this, _parameterGroupPattern);
 
-			_contractMemberPattern = new CoagulatedPattern<Method, Field, TerumiMember>(_contractMethodPattern, NoPattern<Field>.Instance);
+			_contractMemberPattern = new CoagulatedPattern<Field, Method, TerumiMember>(_fieldPattern, _contractMethodPattern);
 			_contractPattern = new TypeDefinitionPattern(this, TypeDefinitionType.Contract, _contractMemberPattern);
 
 			_typeDefinitionPattern = new CoagulatedPattern<TypeDefinition, TypeDefinition, TypeDefinition>(_classPattern, _contractPattern);

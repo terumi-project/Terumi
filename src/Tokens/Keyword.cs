@@ -3,6 +3,8 @@
 	public enum Keyword
 	{
 		Contract,
-		Class
+		Class,
+		Readonly,
+		Ctor
 	}
 }

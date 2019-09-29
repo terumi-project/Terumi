@@ -18,6 +18,8 @@ namespace Terumi
 			{
 				KeyValuePair.Create("contract", Keyword.Contract),
 				KeyValuePair.Create("class", Keyword.Class),
+				KeyValuePair.Create("readonly", Keyword.Readonly),
+				KeyValuePair.Create("ctor", Keyword.Ctor),
 			});
 
 			yield return new CharacterPattern(';');
@@ -77,6 +79,8 @@ namespace Terumi
 				Console.WriteLine("Unable to compile");
 				return;
 			}
+
+			System.IO.File.WriteAllText("token.json", Newtonsoft.Json.JsonConvert.SerializeObject(compilationUnit, Newtonsoft.Json.Formatting.Indented));
 
 			return;
 		}

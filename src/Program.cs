@@ -4,6 +4,7 @@ using System.IO;
 
 using Terumi.Lexer;
 using Terumi.Tokens;
+using Terumi.Workspace;
 
 namespace Terumi
 {
@@ -67,10 +68,34 @@ namespace Terumi
 #if DEBUG
 			if (file == default)
 			{
-				file = "test.txt";
+				file = "sample_project";
 			}
 #endif
 
+			if (!Project.TryLoad(file, new System.IO.Abstractions.FileSystem(), out var project))
+			{
+				Console.WriteLine("Couldn't load project.");
+				return;
+			}
+
+			Console.WriteLine("Loaded project.");
+
+			foreach(var lib in project.Configuration.Libraries)
+			{
+				Console.WriteLine("using lib: " + lib.GitUrl);
+				Console.WriteLine(lib.CommitId);
+			}
+
+			foreach(var sourceFile in project.GetSources())
+			{
+
+			}
+
+			return;
+		}
+
+		private static void CompileFile(string file)
+		{
 			using var source = File.OpenRead(file);
 			var lexer = new StreamLexer(source, GetPatterns());
 			var tokens = DebugTokenInfo(lexer.ParseTokens());
@@ -84,8 +109,6 @@ namespace Terumi
 			}
 
 			System.IO.File.WriteAllText("token.json", Newtonsoft.Json.JsonConvert.SerializeObject(compilationUnit, Newtonsoft.Json.Formatting.Indented));
-
-			return;
 		}
 	}
 }

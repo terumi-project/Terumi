@@ -9,6 +9,8 @@ namespace Terumi.Tokenizer
 	{
 		private readonly IPattern<ParameterGroup> _parameterGroupPattern;
 		private readonly IPattern<Field> _fieldPattern;
+		private readonly IPattern<CodeBody> _codeBodyPattern;
+		private readonly IPattern<Method> _methodPattern;
 		private readonly IPattern<TerumiMember> _classMemberPattern;
 		private readonly IPattern<TypeDefinition> _classPattern;
 		private readonly IPattern<Method> _contractMethodPattern;
@@ -22,12 +24,13 @@ namespace Terumi.Tokenizer
 		{
 			_parameterGroupPattern = new ParameterGroupPattern(this);
 			_fieldPattern = new FieldPattern(this);
+			_codeBodyPattern = new CodeBodyPattern(this);
+			_methodPattern = new MethodPattern(this, _parameterGroupPattern, _codeBodyPattern);
 
-			_classMemberPattern = new CoagulatedPattern<Field, Method, TerumiMember>(_fieldPattern, NoPattern<Method>.Instance);
+			_classMemberPattern = new CoagulatedPattern<Field, Method, TerumiMember>(_fieldPattern, _methodPattern);
 			_classPattern = new TypeDefinitionPattern(this, TypeDefinitionType.Class, _classMemberPattern);
 
-			_contractMethodPattern = new ContractMethodPattern(this, _parameterGroupPattern);
-
+			_contractMethodPattern = new MethodPattern(this, _parameterGroupPattern, null);
 			_contractMemberPattern = new CoagulatedPattern<Field, Method, TerumiMember>(_fieldPattern, _contractMethodPattern);
 			_contractPattern = new TypeDefinitionPattern(this, TypeDefinitionType.Contract, _contractMemberPattern);
 

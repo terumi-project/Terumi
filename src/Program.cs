@@ -19,7 +19,6 @@ namespace Terumi
 				KeyValuePair.Create("contract", Keyword.Contract),
 				KeyValuePair.Create("class", Keyword.Class),
 				KeyValuePair.Create("readonly", Keyword.Readonly),
-				KeyValuePair.Create("ctor", Keyword.Ctor),
 			});
 
 			yield return new CharacterPattern(';');
@@ -48,7 +47,7 @@ namespace Terumi
 
 		private static IEnumerable<Token> DebugTokenInfo(IEnumerable<Token> tokens)
 		{
-			foreach(var token in tokens)
+			foreach (var token in tokens)
 			{
 				// Console.WriteLine(token.ToString());
 				yield return token;

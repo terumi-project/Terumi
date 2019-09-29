@@ -3,19 +3,22 @@ using Terumi.Tokens;
 
 namespace Terumi.Tokenizer
 {
-	public class ContractMethodPattern : IPattern<Method>
+	public class MethodPattern : IPattern<Method>
 	{
 		private readonly IAstNotificationReceiver _astNotificationReceiver;
 		private readonly IPattern<ParameterGroup> _parameterPattern;
+		private readonly IPattern<CodeBody>? _codeBodyPattern;
 
-		public ContractMethodPattern
+		public MethodPattern
 		(
 			IAstNotificationReceiver astNotificationReceiver,
-			IPattern<ParameterGroup> parameterPattern
+			IPattern<ParameterGroup> parameterPattern,
+			IPattern<CodeBody>? codeBodyPattern
 		)
 		{
 			_astNotificationReceiver = astNotificationReceiver;
 			_parameterPattern = parameterPattern;
+			_codeBodyPattern = codeBodyPattern;
 		}
 
 		public bool TryParse(ReaderFork<Token> source, out Method item)
@@ -76,17 +79,32 @@ namespace Terumi.Tokenizer
 				return false;
 			}
 
-			if (!(source.TryNextNonPredicate(tkn => tkn is WhitespaceToken, out var tkn)
-				&& tkn.IsNewline()))
+			CodeBody? body = null;
+
+			if (_codeBodyPattern == null)
 			{
-				// TODO: throw exception
-				// you must have a newline to end contract method
-				item = default;
-				return false;
+				if (!(source.TryNextNonPredicate(tkn => tkn is WhitespaceToken, out var tkn)
+					&& tkn.IsNewline()))
+				{
+					// TODO: throw exception
+					// you must have a newline to end contract method
+					item = default;
+					return false;
+				}
+			}
+			else
+			{
+				if (!_codeBodyPattern.TryParse(source, out var codeBody))
+				{
+					// TODO: exception - expected a valid code body
+					item = default;
+					return false;
+				}
+
+				body = codeBody;
 			}
 
-			// contracts never have method bodies
-			item = new Method(type, name, parameterGroup, null);
+			item = new Method(type, name, parameterGroup, body);
 			_astNotificationReceiver.AstCreated(source, item);
 			return true;
 		}

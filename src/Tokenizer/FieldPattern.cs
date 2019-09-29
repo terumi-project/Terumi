@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
+
 using Terumi.Ast;
 using Terumi.Tokens;
 
@@ -56,7 +55,7 @@ namespace Terumi.Tokenizer
 			// let's make sure the keywords make sense
 			bool isReadonly = false;
 
-			foreach(var keyword in keywords)
+			foreach (var keyword in keywords)
 			{
 				if (keyword.Keyword == Keyword.Readonly)
 				{

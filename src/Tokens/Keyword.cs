@@ -4,7 +4,6 @@
 	{
 		Contract,
 		Class,
-		Readonly,
-		Ctor
+		Readonly
 	}
 }

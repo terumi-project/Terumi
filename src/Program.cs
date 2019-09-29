@@ -71,8 +71,9 @@ namespace Terumi
 				file = "sample_project";
 			}
 #endif
+			var fs = new System.IO.Abstractions.FileSystem();
 
-			if (!Project.TryLoad(file, new System.IO.Abstractions.FileSystem(), out var project))
+			if (!Project.TryLoad(file, fs, out var project))
 			{
 				Console.WriteLine("Couldn't load project.");
 				return;
@@ -82,16 +83,31 @@ namespace Terumi
 
 			foreach(var lib in project.Configuration.Libraries)
 			{
-				Console.WriteLine("using lib: " + lib.GitUrl);
+				Console.WriteLine("using lib: @ " + lib.GitUrl);
 				Console.WriteLine(lib.CommitId);
 			}
 
-			foreach(var sourceFile in project.GetSources())
-			{
-
-			}
+			TreeDependencies(project);
 
 			return;
+		}
+
+		private static void TreeDependencies(Project project, int spacing = 0)
+		{
+			var prefix = new string(' ', spacing);
+			Console.WriteLine($"{prefix}Treeing project '{project.Name}':");
+
+			foreach (var source in project.GetSources())
+			{
+				Console.WriteLine($"{prefix}Has source: " + source.PackageLevel.Levels[0]);
+			}
+
+			foreach (var dependency in project.GetDependencies())
+			{
+				Console.WriteLine($"{prefix}Treeing dependency '{dependency.Name}'");
+
+				TreeDependencies(dependency, spacing + 1);
+			}
 		}
 
 		private static void CompileFile(string file)

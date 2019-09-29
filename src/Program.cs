@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-
+using Terumi.Ast;
 using Terumi.Lexer;
+using Terumi.Tokenizer;
 using Terumi.Tokens;
 
 namespace Terumi
@@ -55,11 +56,17 @@ namespace Terumi
 
 			using var source = File.OpenRead(file);
 			var lexer = new StreamLexer(source, GetPatterns());
+			var tokens = lexer.ParseTokens();
 
-			foreach (var token in lexer.ParseTokens())
+			var tokenizer = new Tokenizer.Tokenizer();
+
+			if (!tokenizer.TryParse(tokens, out var compilationUnit))
 			{
-				Console.WriteLine("Token: " + token.GetType().FullName);
+				Console.WriteLine("Unable to compile");
+				return;
 			}
+
+			return;
 		}
 	}
 }

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Terumi.Ast;
-using Terumi.Tokens;
+﻿using Terumi.Tokens;
 
 namespace Terumi.Tokenizer
 {

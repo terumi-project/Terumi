@@ -7,8 +7,10 @@ namespace Terumi.Tokenizer
 {
 	public class Tokenizer : IAstNotificationReceiver
 	{
+		private readonly IPattern<ParameterGroup> _parameterGroupPattern;
 		private readonly IPattern<TerumiMember> _classMemberPattern;
 		private readonly IPattern<TypeDefinition> _classPattern;
+		private readonly IPattern<Method> _contractMethodPattern;
 		private readonly IPattern<TerumiMember> _contractMemberPattern;
 		private readonly IPattern<TypeDefinition> _contractPattern;
 		private readonly IPattern<TypeDefinition> _typeDefinitionPattern;
@@ -17,10 +19,14 @@ namespace Terumi.Tokenizer
 
 		public Tokenizer()
 		{
+			_parameterGroupPattern = new ParameterGroupPattern(this);
+
 			_classMemberPattern = NoPattern<TerumiMember>.IInstance;
 			_classPattern = new TypeDefinitionPattern(this, TypeDefinitionType.Class, _classMemberPattern);
 
-			_contractMemberPattern = NoPattern<TerumiMember>.IInstance;
+			_contractMethodPattern = new ContractMethodPattern(this, _parameterGroupPattern);
+
+			_contractMemberPattern = new CoagulatedPattern<Method, Field, TerumiMember>(_contractMethodPattern, NoPattern<Field>.Instance);
 			_contractPattern = new TypeDefinitionPattern(this, TypeDefinitionType.Contract, _contractMemberPattern);
 
 			_typeDefinitionPattern = new CoagulatedPattern<TypeDefinition, TypeDefinition, TypeDefinition>(_classPattern, _contractPattern);
@@ -32,6 +38,18 @@ namespace Terumi.Tokenizer
 		public void AstCreated<T>(ReaderFork<Token> fork, T ast)
 		{
 			System.Console.WriteLine("ast: " + ast.GetType().FullName);
+		}
+
+		public void DebugPrint(ReaderFork<Token> fork)
+		{
+#if DEBUG
+			using var tmp = fork.Fork();
+			for (var i = 0; i < 5 && tmp.TryNext(out var tkn); i++)
+			{
+				System.Console.WriteLine("debug print - tkn " + tkn.GetType().FullName + " - " + tkn.ToString());
+				int c = 1; // for debug breakpoint
+			}
+#endif
 		}
 
 		public bool TryParse(IEnumerable<Token> tokens, out CompilerUnit compilerUnit)

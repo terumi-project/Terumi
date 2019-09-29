@@ -16,5 +16,7 @@
 
 		public string Identifier { get; }
 		public IdentifierCase IdentifierCase { get; }
+
+		public override string ToString() => $"IdentifierToken - \"{Identifier}\", in {IdentifierCase}";
 	}
 }

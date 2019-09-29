@@ -6,8 +6,11 @@
 			=> token is WhitespaceToken
 			|| token.IsNewline();
 
+		public static bool IsChar(this Token token, char chr)
+			=> token is CharacterToken characterToken && characterToken.Character == chr;
+
 		public static bool IsNewline(this Token token)
-			=> token is CharacterToken characterToken && characterToken.Character == '\n';
+			=> token.IsChar('\n');
 
 		public static bool IsIdentifier(this Token token, IdentifierCase @case, out IdentifierToken identifierToken)
 		{

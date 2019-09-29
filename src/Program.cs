@@ -24,6 +24,7 @@ namespace Terumi
 			yield return new CharacterPattern('@');
 
 			yield return new CharacterPattern('=');
+			yield return new CharacterPattern(',');
 
 			yield return new CharacterPattern('(');
 			yield return new CharacterPattern(')');
@@ -43,6 +44,15 @@ namespace Terumi
 			yield return new IdentifierPattern(IdentifierCase.PascalCase);
 		}
 
+		private static IEnumerable<Token> DebugTokenInfo(IEnumerable<Token> tokens)
+		{
+			foreach(var token in tokens)
+			{
+				// Console.WriteLine(token.ToString());
+				yield return token;
+			}
+		}
+
 		/// <summary>
 		/// Terumi application - WIP
 		/// </summary>
@@ -58,7 +68,7 @@ namespace Terumi
 
 			using var source = File.OpenRead(file);
 			var lexer = new StreamLexer(source, GetPatterns());
-			var tokens = lexer.ParseTokens();
+			var tokens = DebugTokenInfo(lexer.ParseTokens());
 
 			var tokenizer = new Tokenizer.Tokenizer();
 

@@ -74,7 +74,7 @@ namespace Terumi
 
 		public bool TryPeek(out T value, int ahead = 1)
 		{
-			var (next, valueDeconstructed) = _next(_position + ahead);
+			var (next, valueDeconstructed) = _next(_position + ahead - 1);
 			value = valueDeconstructed;
 			return next;
 		}

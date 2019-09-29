@@ -1,4 +1,4 @@
-﻿using Terumi.Tokenizer;
+﻿using Terumi.Tokens;
 
 namespace Terumi.Lexer
 {
@@ -9,7 +9,7 @@ namespace Terumi.Lexer
 		public CharacterPattern(char character)
 			=> _character = character;
 
-		public bool TryParse(ReaderFork source, out Token token)
+		public bool TryParse(ReaderFork<byte> source, out Token token)
 		{
 			var position = source.Position;
 

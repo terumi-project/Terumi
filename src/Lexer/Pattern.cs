@@ -1,4 +1,4 @@
-﻿using Terumi.Tokenizer;
+﻿using Terumi.Tokens;
 
 namespace Terumi.Lexer
 {

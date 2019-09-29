@@ -1,4 +1,6 @@
-﻿namespace Terumi.Tokenizer
+﻿using Terumi.Tokens;
+
+namespace Terumi.Tokenizer
 {
 	public interface IPattern<T>
 	{

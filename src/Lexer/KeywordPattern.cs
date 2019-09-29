@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-using Terumi.Tokenizer;
+using Terumi.Tokens;
 
 namespace Terumi.Lexer
 {
@@ -37,7 +37,7 @@ namespace Terumi.Lexer
 			}
 		}
 
-		public bool TryParse(ReaderFork source, out Token token)
+		public bool TryParse(ReaderFork<byte> source, out Token token)
 		{
 			Span<byte> buffer = stackalloc byte[_maxSize];
 

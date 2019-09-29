@@ -1,4 +1,4 @@
-﻿namespace Terumi.Tokenizer
+﻿namespace Terumi.Tokens
 {
 	public class WhitespaceToken : Token
 	{

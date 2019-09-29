@@ -1,12 +1,12 @@
 ﻿using System.Runtime.CompilerServices;
 
-using Terumi.Tokenizer;
+using Terumi.Tokens;
 
 namespace Terumi.Lexer
 {
 	public class WhitespacePattern : IPattern
 	{
-		public bool TryParse(ReaderFork source, out Token token)
+		public bool TryParse(ReaderFork<byte> source, out Token token)
 		{
 			if (!source.TryNext(out var value)
 			|| !IsWhitespace(value))

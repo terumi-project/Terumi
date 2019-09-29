@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-using Terumi.Tokenizer;
+using Terumi.Tokens;
 
 namespace Terumi.Lexer
 {

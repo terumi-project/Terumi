@@ -2,11 +2,11 @@
 {
 	public class CompilerUnit
 	{
-		public CompilerUnit(TerumiType[] terumiTypes)
+		public CompilerUnit(CompilerUnitItem[] compilerUnitItem)
 		{
-			TerumiTypes = terumiTypes;
+			CompilerUnitItem = compilerUnitItem;
 		}
 
-		public TerumiType[] TerumiTypes { get; }
+		public CompilerUnitItem[] CompilerUnitItem { get; }
 	}
 }

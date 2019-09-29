@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 
 using Terumi.Lexer;
-using Terumi.Tokenizer;
+using Terumi.Tokens;
 
 namespace Terumi
 {

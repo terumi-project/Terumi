@@ -39,15 +39,16 @@ namespace Terumi.Workspace
 		{
 			var name = Hash(reference.GitUrl + "." + reference.Branch + "." + reference.CommitId);
 			var libHome = _fileSystem.Path.Combine(_libraryPath, name);
+			var libExists = _fileSystem.Directory.Exists(libHome);
 
-			if (forcePull || !_fileSystem.Directory.Exists(libHome))
+			if (forcePull || !libExists)
 			{
-				_git.Clone(reference.GitUrl, reference.Branch, reference.CommitId, libHome);
-
-				if (!Project.TryLoad(_libraryPath, name, _libraryPath, this, _fileSystem, out var project))
+				if (_fileSystem.Directory.Exists(libHome))
 				{
-					throw new Exception("Couldn't pull dependency '" + reference.GitUrl + "'.");
+					_fileSystem.Directory.Delete(libHome, true);
 				}
+
+				_git.Clone(reference.GitUrl, reference.Branch, reference.CommitId, libHome);
 			}
 
 			var projects = new Project[reference.Projects.Length];

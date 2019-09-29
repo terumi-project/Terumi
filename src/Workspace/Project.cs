@@ -82,7 +82,7 @@ namespace Terumi.Workspace
 			_fileSystem = fileSystem;
 			_files = files;
 			LibraryPath = libraryPath;
-			_basePath = basePath;
+			_basePath = _fileSystem.Path.GetFullPath(basePath);
 			Name = name;
 			_puller = puller;
 		}
@@ -95,8 +95,21 @@ namespace Terumi.Workspace
 		{
 			foreach (var file in _files)
 			{
+				var fullFile = _fileSystem.Path.GetFullPath(file);
+
+				if (!fullFile.StartsWith(_basePath))
+				{
+					// uhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
+					// should never happen :)
+					throw new System.Exception("Source file must have a base folder... am i bad programmer?");
+				}
+
+				var subPath = fullFile.Substring(_basePath.Length);
+				var levelsWithFile = subPath.Split(_fileSystem.Path.DirectorySeparatorChar);
+				var levels = levelsWithFile.Take(levelsWithFile.Length - 1).Where(str => !string.IsNullOrWhiteSpace(str)).ToArray();
+
 				using var stream = _fileSystem.File.OpenRead(_fileSystem.Path.Combine(_basePath, file));
-				using var sourceFile = new SourceFile(stream, new Ast.PackageLevel(Ast.PackageAction.Namespace, new string[1] { file }));
+				using var sourceFile = new SourceFile(stream, new Ast.PackageLevel(Ast.PackageAction.Namespace, levels));
 
 				yield return sourceFile;
 			}

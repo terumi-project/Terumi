@@ -5,7 +5,7 @@ namespace Terumi
 {
 	public interface IGit
 	{
-		/// <returns>The folder name of the git repo cloned</returns>
+		/// <returns>The folder name pointing to the .git folder location</returns>
 		string Clone(string gitUrl, string branch, string commitHash, string destinationPath);
 	}
 

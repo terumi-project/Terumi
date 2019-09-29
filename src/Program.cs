@@ -106,7 +106,7 @@ namespace Terumi
 			{
 				if (dependency == null)
 				{
-					Console.WriteLine("Null dependency.");
+					Console.WriteLine($"{prefix}Null dependency.");
 					continue;
 				}
 

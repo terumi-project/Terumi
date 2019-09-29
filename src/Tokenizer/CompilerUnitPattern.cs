@@ -26,7 +26,7 @@ namespace Terumi.Tokenizer
 			var items = new List<CompilerUnitItem>();
 
 			// EOF
-			if (!source.TryPeek(out _))
+			if (!source.TryPeekNonWhitespace(out _, out _))
 			{
 				compilerUnit = new CompilerUnit(Array.Empty<CompilerUnitItem>());
 				_astNotificationReceiver.AstCreated(source, compilerUnit);
@@ -38,8 +38,10 @@ namespace Terumi.Tokenizer
 				items.Add(item);
 
 				// EOF
-				if (!source.TryPeek(out _))
+				if (!source.TryPeekNonWhitespace(out _, out var peeked))
 				{
+					source.Advance(peeked);
+
 					compilerUnit = new CompilerUnit(items.ToArray());
 					_astNotificationReceiver.AstCreated(source, compilerUnit);
 					return true;

@@ -10,6 +10,10 @@
 	{
 		public IdentifierToken(string identifier, IdentifierCase identifierCase)
 		{
+			if (identifier == "h")
+			{
+				System.Console.WriteLine("h?");
+			}
 			Identifier = identifier;
 			IdentifierCase = identifierCase;
 		}

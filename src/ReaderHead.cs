@@ -47,6 +47,16 @@ namespace Terumi
 				(commitPos) =>
 				{
 					var needToRemove = commitPos - _position;
+
+					if (needToRemove > _buffer.Count)
+					{
+						// TODO: there's an off by one error somewhere, and there's a hacky workaround in SpecificReaderForkExtensions.cs
+						// for peeking and stuff (as well as in ReaderFork)
+						// so this needs to be fixed
+						Console.WriteLine("off by one error in reader fork");
+						needToRemove = _buffer.Count;
+					}
+
 					_buffer.RemoveRange(0, needToRemove);
 					_position = commitPos;
 				}

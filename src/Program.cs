@@ -13,6 +13,7 @@ namespace Terumi
 		{
 			yield return new CharacterPattern('\n');
 			yield return new WhitespacePattern();
+			yield return new CommentPattern();
 
 			yield return new KeywordPattern(new KeyValuePair<string, Keyword>[]
 			{
@@ -52,7 +53,7 @@ namespace Terumi
 		{
 			foreach (var token in tokens)
 			{
-				// Console.WriteLine(token.ToString());
+				Console.WriteLine(token.ToString());
 				yield return token;
 			}
 		}

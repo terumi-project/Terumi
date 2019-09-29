@@ -24,13 +24,14 @@ namespace Terumi.Workspace
 
 	public class LibraryReference
 	{
-		// TODO: NOT PERMANENT
-		// shouldn't need this in the final form
-		[TomlMember(Key = "name")]
-		public string Name { get; set; }
+		[TomlMember(Key = "projects")]
+		public string[] Projects { get; set; }
 
 		[TomlMember(Key = "git_url")]
 		public string GitUrl { get; set; }
+
+		[TomlMember(Key = "branch")]
+		public string Branch { get; set; }
 
 		[TomlMember(Key = "commit")]
 		public string CommitId { get; set; }

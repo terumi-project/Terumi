@@ -73,7 +73,7 @@ namespace Terumi
 #endif
 			var fs = new System.IO.Abstractions.FileSystem();
 
-			if (!Project.TryLoad(file, fs, out var project))
+			if (!Project.TryLoad(file, fs, Git.Instance, out var project))
 			{
 				Console.WriteLine("Couldn't load project.");
 				return;
@@ -104,6 +104,12 @@ namespace Terumi
 
 			foreach (var dependency in project.GetDependencies())
 			{
+				if (dependency == null)
+				{
+					Console.WriteLine("Null dependency.");
+					continue;
+				}
+
 				Console.WriteLine($"{prefix}Treeing dependency '{dependency.Name}'");
 
 				TreeDependencies(dependency, spacing + 1);

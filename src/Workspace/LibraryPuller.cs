@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO.Abstractions;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Terumi.Workspace
 {
@@ -7,23 +9,63 @@ namespace Terumi.Workspace
 	{
 		private readonly IFileSystem _fileSystem;
 		private readonly string _libraryPath;
+		private readonly IGit _git;
 
-		public LibraryPuller(IFileSystem fileSystem, string libraryPath)
+		public LibraryPuller(IFileSystem fileSystem, string libraryPath, IGit git)
 		{
 			_fileSystem = fileSystem;
 			_libraryPath = libraryPath;
+			_git = git;
 		}
 
-		public Project Pull(LibraryReference reference, bool forcePull = false)
+		private static string Hash(string input)
 		{
-			// TODO: replace with a git-based implementation
-
-			if (!Project.TryLoad(_libraryPath, reference.Name, _libraryPath, this, _fileSystem, out var project))
+			using (var managed = new SHA256Managed())
 			{
-				throw new Exception("Couldn't pull dependency '" + reference.Name + "'.");
+				var computedBytes = managed.ComputeHash(Encoding.UTF8.GetBytes(input));
+
+				var strb = new StringBuilder(computedBytes.Length * 2);
+
+				foreach(var computedByte in computedBytes)
+				{
+					strb.AppendFormat("{0:x2}", computedByte);
+				}
+
+				return strb.ToString();
+			}
+		}
+
+		public Project[] Pull(LibraryReference reference, bool forcePull = false)
+		{
+			var name = Hash(reference.GitUrl + "." + reference.Branch + "." + reference.CommitId);
+			var libHome = _fileSystem.Path.Combine(_libraryPath, name);
+
+			if (forcePull || !_fileSystem.Directory.Exists(libHome))
+			{
+				_git.Clone(reference.GitUrl, reference.Branch, reference.CommitId, libHome);
+
+				if (!Project.TryLoad(_libraryPath, name, _libraryPath, this, _fileSystem, out var project))
+				{
+					throw new Exception("Couldn't pull dependency '" + reference.GitUrl + "'.");
+				}
 			}
 
-			return project;
+			var projects = new Project[reference.Projects.Length];
+
+			for(var i = 0; i < projects.Length; i++)
+			{
+				var projectName = reference.Projects[i];
+
+				if (!Project.TryLoad(libHome, projectName, _libraryPath, this, _fileSystem, out var project))
+				{
+					// TODO: exception on loading project
+					Console.WriteLine("Couldn't load " + projectName);
+				}
+
+				projects[i] = project;
+			}
+
+			return projects;
 		}
 	}
 }

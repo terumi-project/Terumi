@@ -11,14 +11,14 @@ namespace Terumi.Workspace
 
 	public class Project
 	{
-		public static bool TryLoad(string name, IFileSystem fileSystem, out Project project)
+		public static bool TryLoad(string name, IFileSystem fileSystem, IGit git, out Project project)
 		{
 			var fullName = fileSystem.Path.GetFullPath(name);
 
 			var basePath = fileSystem.Path.Combine(fullName, "..");
 			var libraryPath = fileSystem.Path.Combine(fullName, ".libs");
 
-			return Project.TryLoad(basePath, name, libraryPath, new LibraryPuller(fileSystem, libraryPath), fileSystem, out project);
+			return Project.TryLoad(basePath, name, libraryPath, new LibraryPuller(fileSystem, libraryPath, git), fileSystem, out project);
 		}
 
 		public static bool TryLoad(string name, LibraryPuller puller, IFileSystem fileSystem, out Project project)
@@ -106,8 +106,10 @@ namespace Terumi.Workspace
 		{
 			foreach (var library in Configuration.Libraries)
 			{
-				var dependency = _puller.Pull(library);
-				yield return dependency;
+				foreach (var dependency in _puller.Pull(library))
+				{
+					yield return dependency;
+				}
 			}
 		}
 	}

@@ -5,29 +5,22 @@ namespace Terumi.Tokenizer
 {
 	public class CompilerUnitItemPattern : IPattern<CompilerUnitItem>
 	{
-		private readonly IPattern<TypeDefinition> _typedefPattern;
+		private readonly IPattern<CompilerUnitItem> _coagulation;
 
 		public CompilerUnitItemPattern
 		(
-			IPattern<TypeDefinition> typeDefinitionPattern
+			IPattern<TypeDefinition> typeDefinitionPattern,
+			IPattern<PackageLevel> packagePattern
 		)
 		{
-			_typedefPattern = typeDefinitionPattern;
+			_coagulation = new CoagulatedPattern<TypeDefinition, PackageLevel, CompilerUnitItem>
+			(
+				typeDefinitionPattern,
+				packagePattern
+			);
 		}
 
 		public bool TryParse(ReaderFork<Token> source, out CompilerUnitItem item)
-		{
-			using var fork = source.Fork();
-
-			if (_typedefPattern.TryParse(fork, out var typedef))
-			{
-				fork.Commit = true;
-				item = typedef;
-				return true;
-			}
-
-			item = default;
-			return false;
-		}
+			=> _coagulation.TryParse(source, out item);
 	}
 }

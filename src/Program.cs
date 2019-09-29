@@ -19,6 +19,8 @@ namespace Terumi
 				KeyValuePair.Create("contract", Keyword.Contract),
 				KeyValuePair.Create("class", Keyword.Class),
 				KeyValuePair.Create("readonly", Keyword.Readonly),
+				KeyValuePair.Create("namespace", Keyword.Namespace),
+				KeyValuePair.Create("using", Keyword.Using),
 			});
 
 			yield return new CharacterPattern(';');
@@ -26,6 +28,7 @@ namespace Terumi
 
 			yield return new CharacterPattern('=');
 			yield return new CharacterPattern(',');
+			yield return new CharacterPattern('.');
 
 			yield return new CharacterPattern('(');
 			yield return new CharacterPattern(')');

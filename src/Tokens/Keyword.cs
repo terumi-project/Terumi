@@ -4,6 +4,8 @@
 	{
 		Contract,
 		Class,
-		Readonly
+		Readonly,
+		Using,
+		Namespace
 	}
 }

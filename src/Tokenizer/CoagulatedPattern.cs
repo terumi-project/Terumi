@@ -23,13 +23,18 @@ namespace Terumi.Tokenizer
 
 		public bool TryParse(ReaderFork<Token> source, out T3 item)
 		{
-			if (_pattern1.TryParse(source.Fork(), out var t1))
+			using var fork1 = source.Fork();
+			using var fork2 = source.Fork();
+
+			if (_pattern1.TryParse(fork1, out var t1))
 			{
+				fork1.Commit = true;
 				item = t1;
 				return true;
 			}
-			else if (_pattern2.TryParse(source.Fork(), out var t2))
+			else if (_pattern2.TryParse(fork2, out var t2))
 			{
+				fork2.Commit = true;
 				item = t2;
 				return true;
 			}

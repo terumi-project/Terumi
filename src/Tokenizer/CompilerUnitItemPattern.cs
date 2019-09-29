@@ -17,8 +17,11 @@ namespace Terumi.Tokenizer
 
 		public bool TryParse(ReaderFork<Token> source, out CompilerUnitItem item)
 		{
-			if (_typedefPattern.TryParse(source.Fork(), out var typedef))
+			using var fork = source.Fork();
+
+			if (_typedefPattern.TryParse(fork, out var typedef))
 			{
+				fork.Commit = true;
 				item = typedef;
 				return true;
 			}

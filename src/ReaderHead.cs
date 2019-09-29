@@ -70,7 +70,7 @@ namespace Terumi
 		}
 
 		public ReaderFork<T> Fork()
-			=> new ReaderFork<T>(_position, _next, _commit);
+			=> new ReaderFork<T>(_position, _next, pos => _position = pos);
 
 		public bool TryPeek(out T value, int ahead = 1)
 		{

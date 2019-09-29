@@ -7,7 +7,6 @@ namespace Terumi.Tokenizer
 {
 	public class Tokenizer
 	{
-		private readonly IPattern<string> _identifierPattern;
 		private readonly IPattern<TerumiMember> _classMemberPattern;
 		private readonly IPattern<TypeDefinition> _classPattern;
 		private readonly IPattern<TerumiMember> _contractMemberPattern;
@@ -18,13 +17,11 @@ namespace Terumi.Tokenizer
 
 		public Tokenizer()
 		{
-			_identifierPattern = default(IPattern<string>);
+			_classMemberPattern = NoPattern<TerumiMember>.IInstance;
+			_classPattern = new TypeDefinitionPattern(TypeDefinitionType.Class, _classMemberPattern);
 
-			_classMemberPattern = default(IPattern<TerumiMember>);
-			_classPattern = new TypeDefinitionPattern(Ast.TypeDefinitionType.Class, _identifierPattern, _classMemberPattern);
-
-			_contractMemberPattern = default(IPattern<TerumiMember>);
-			_contractPattern = new TypeDefinitionPattern(Ast.TypeDefinitionType.Contract, _identifierPattern, _contractMemberPattern);
+			_contractMemberPattern = NoPattern<TerumiMember>.IInstance;
+			_contractPattern = new TypeDefinitionPattern(TypeDefinitionType.Contract, _contractMemberPattern);
 
 			_typeDefinitionPattern = new CoagulatedPattern<TypeDefinition, TypeDefinition, TypeDefinition>(_classPattern, _contractPattern);
 
@@ -48,7 +45,9 @@ namespace Terumi.Tokenizer
 				return result.ToArray();
 			});
 
-			return _compilerUnit.TryParse(head.Fork(), out compilerUnit);
+			using var fork = head.Fork();
+			fork.Commit = true;
+			return _compilerUnit.TryParse(fork, out compilerUnit);
 		}
 	}
 }

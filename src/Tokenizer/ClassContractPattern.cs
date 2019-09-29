@@ -9,7 +9,6 @@ namespace Terumi.Tokenizer
 	// TODO: make code not copy and pasted
 	public class TypeDefinitionPattern : IPattern<TypeDefinition>
 	{
-		private readonly IPattern<string> _identifierPattern;
 		private readonly IPattern<TerumiMember> _memberPattern;
 		private readonly TypeDefinitionType _type;
 		private readonly Keyword _keyword;
@@ -17,11 +16,9 @@ namespace Terumi.Tokenizer
 		public TypeDefinitionPattern
 		(
 			TypeDefinitionType type,
-			IPattern<string> identifierPattern,
 			IPattern<TerumiMember> memberPattern
 		)
 		{
-			_identifierPattern = identifierPattern;
 			_memberPattern = memberPattern;
 			_type = type;
 			_keyword = type.ToKeyword();
@@ -31,7 +28,9 @@ namespace Terumi.Tokenizer
 		{
 			if (!(source.TryNextNonWhitespace<KeywordToken>(out var keywordToken)
 			&& keywordToken.Keyword == _keyword
-			&& _identifierPattern.TryParse(source, out var identifier)
+			// TODO: ensure there's whitespace after `class`/`contract`
+			&& source.TryNextNonWhitespace<IdentifierToken>(out var identifierToken)
+			&& identifierToken.IdentifierCase == IdentifierCase.PascalCase
 			&& source.TryNextNonWhitespace<CharacterToken>(out var characterToken)
 			&& characterToken.Character == '{'))
 			{
@@ -42,8 +41,8 @@ namespace Terumi.Tokenizer
 			// EOF
 			if (!source.TryPeek(out _))
 			{
-				item = new TypeDefinition(identifier, _type, Array.Empty<TerumiMember>());
-				return true;
+				item = default;
+				return false;
 			}
 
 			var members = new List<TerumiMember>();
@@ -58,14 +57,14 @@ namespace Terumi.Tokenizer
 					item = default;
 					return false;
 				}
+			}
 
-				if (source.TryPeekNonWhitespace<CharacterToken>(out var lastToken, out var peeked)
-				&& lastToken.Character == '}')
-				{
-					source.Advance(peeked);
-					item = new TypeDefinition(identifier, _type, members.ToArray());
-					return true;
-				}
+			if (source.TryPeekNonWhitespace<CharacterToken>(out var lastToken, out var peeked)
+			&& lastToken.Character == '}')
+			{
+				source.Advance(peeked);
+				item = new TypeDefinition(identifierToken.Identifier, _type, members.ToArray());
+				return true;
 			}
 
 			item = default;

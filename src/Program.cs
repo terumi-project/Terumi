@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using Terumi.Ast;
+
 using Terumi.Lexer;
-using Terumi.Tokenizer;
 using Terumi.Tokens;
 
 namespace Terumi
@@ -39,6 +38,9 @@ namespace Terumi
 			yield return new CharacterPattern('-');
 			yield return new CharacterPattern('/');
 			yield return new CharacterPattern('*');
+
+			yield return new IdentifierPattern(IdentifierCase.SnakeCase);
+			yield return new IdentifierPattern(IdentifierCase.PascalCase);
 		}
 
 		/// <summary>

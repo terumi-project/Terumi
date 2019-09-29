@@ -69,6 +69,16 @@ namespace Terumi
 			_commit = commit;
 		}
 
+		public ReaderFork<T> Fork()
+			=> new ReaderFork<T>(_position, _next, _commit);
+
+		public bool TryPeek(out T value, int ahead = 1)
+		{
+			var (next, valueDeconstructed) = _next(_position + ahead);
+			value = valueDeconstructed;
+			return next;
+		}
+
 		public int Position => _position;
 
 		public bool TryNext(out T value)
@@ -76,6 +86,15 @@ namespace Terumi
 			var (next, valueDeconstructed) = _next(_position++);
 			value = valueDeconstructed;
 			return next;
+		}
+
+		public int Advance(int forward)
+		{
+			var i = 0;
+
+			for (; i < forward && TryNext(out _); i++) ;
+
+			return i;
 		}
 
 		public int Back(int back)

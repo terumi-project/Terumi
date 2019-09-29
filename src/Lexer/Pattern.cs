@@ -4,6 +4,6 @@ namespace Terumi.Lexer
 {
 	public interface IPattern
 	{
-		bool TryParse(ReaderFork source, out Token token);
+		bool TryParse(ReaderFork<byte> source, out Token token);
 	}
 }

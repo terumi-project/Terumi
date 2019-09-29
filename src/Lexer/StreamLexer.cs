@@ -23,7 +23,7 @@ namespace Terumi.Lexer
 		{
 			using var reader = new BinaryReader(_source, Encoding.UTF8, true);
 
-			var readerHead = new ReaderHead(reader);
+			var readerHead = new ReaderHead<byte>(reader.ReadBytes);
 
 			while (true)
 			{

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+
 using Terumi.Tokenizer;
 
 namespace Terumi.Lexer
@@ -21,7 +22,7 @@ namespace Terumi.Lexer
 			_keywords = new Keyword[keywords.Length];
 
 			var i = 0;
-			foreach(var (pattern, keyword) in keywords)
+			foreach (var (pattern, keyword) in keywords)
 			{
 				var bytes = Encoding.UTF8.GetBytes(pattern);
 				_patterns[i] = bytes;
@@ -46,7 +47,7 @@ namespace Terumi.Lexer
 			{
 				buffer[i++] = value;
 
-				for(var patternIndex = 0; patternIndex < _keywords.Length; patternIndex++)
+				for (var patternIndex = 0; patternIndex < _keywords.Length; patternIndex++)
 				{
 					Span<byte> pattern = _patterns[patternIndex];
 					var keyword = _keywords[patternIndex];

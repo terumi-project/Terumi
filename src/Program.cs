@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+
 using Terumi.Lexer;
 using Terumi.Tokenizer;
 
@@ -8,7 +9,7 @@ namespace Terumi
 {
 	internal class Program
 	{
-		static IEnumerable<IPattern> GetPatterns()
+		private static IEnumerable<IPattern> GetPatterns()
 		{
 			yield return new CharacterPattern('\n');
 			yield return new WhitespacePattern();
@@ -42,7 +43,7 @@ namespace Terumi
 		/// <summary>
 		/// Terumi application - WIP
 		/// </summary>
-		static void Main(string[] args)
+		private static void Main(string[] args)
 		{
 			string file = default;
 #if DEBUG

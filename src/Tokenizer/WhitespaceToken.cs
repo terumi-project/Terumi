@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Terumi.Tokenizer
+﻿namespace Terumi.Tokenizer
 {
 	public class WhitespaceToken : Token
 	{

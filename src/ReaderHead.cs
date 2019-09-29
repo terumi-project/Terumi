@@ -1,27 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 
-namespace Terumi.Lexer
+namespace Terumi
 {
-	public class ReaderHead
+	public class ReaderHead<T>
 	{
-		private readonly BinaryReader _reader;
-		private readonly List<byte> _buffer;
+		private readonly Func<int, T[]> _readAmount;
+		private readonly List<T> _buffer;
 		private int _position;
 
-		public ReaderHead(BinaryReader reader)
+		public ReaderHead(Func<int, T[]> reader)
 		{
-			_reader = reader;
-			_buffer = new List<byte>();
+			_readAmount = reader;
+			_buffer = new List<T>();
 			_position = 0;
 		}
 
 		public int Position => _position;
 
-		public ReaderFork Fork()
+		public ReaderFork<T> Fork()
 		{
-			return new ReaderFork
+			return new ReaderFork<T>
 			(
 				_position,
 				(pos) =>
@@ -32,7 +31,7 @@ namespace Terumi.Lexer
 					if (!inBuffer)
 					{
 						var needToRead = positionOffset - _buffer.Count + 1;
-						var bytes = _reader.ReadBytes(needToRead);
+						var bytes = _readAmount(needToRead);
 
 						_buffer.AddRange(bytes);
 
@@ -55,14 +54,14 @@ namespace Terumi.Lexer
 		}
 	}
 
-	public class ReaderFork : IDisposable
+	public class ReaderFork<T> : IDisposable
 	{
 		private int _position;
 		private readonly int _initPos;
-		private readonly Func<int, (bool, byte)> _next;
+		private readonly Func<int, (bool, T)> _next;
 		private readonly Action<int> _commit;
 
-		public ReaderFork(int position, Func<int, (bool, byte)> next, Action<int> commit)
+		public ReaderFork(int position, Func<int, (bool, T)> next, Action<int> commit)
 		{
 			_initPos = position;
 			_position = position;
@@ -72,7 +71,7 @@ namespace Terumi.Lexer
 
 		public int Position => _position;
 
-		public bool TryNext(out byte value)
+		public bool TryNext(out T value)
 		{
 			var (next, valueDeconstructed) = _next(_position++);
 			value = valueDeconstructed;

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Terumi.Tokenizer;
+﻿using Terumi.Tokenizer;
 
 namespace Terumi.Lexer
 {

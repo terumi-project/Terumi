@@ -12,9 +12,11 @@ namespace Terumi.Tokenizer
 		private readonly IPattern<TerumiMember> _memberPattern;
 		private readonly TypeDefinitionType _type;
 		private readonly Keyword _keyword;
+		private readonly IAstNotificationReceiver _astNotificationReceiver;
 
 		public TypeDefinitionPattern
 		(
+			IAstNotificationReceiver astNotificationReceiver,
 			TypeDefinitionType type,
 			IPattern<TerumiMember> memberPattern
 		)
@@ -22,6 +24,7 @@ namespace Terumi.Tokenizer
 			_memberPattern = memberPattern;
 			_type = type;
 			_keyword = type.ToKeyword();
+			_astNotificationReceiver = astNotificationReceiver;
 		}
 
 		public bool TryParse(ReaderFork<Token> source, out TypeDefinition item)
@@ -59,11 +62,11 @@ namespace Terumi.Tokenizer
 				}
 			}
 
-			if (source.TryPeekNonWhitespace<CharacterToken>(out var lastToken, out var peeked)
+			if (source.TryNextNonWhitespace<CharacterToken>(out var lastToken)
 			&& lastToken.Character == '}')
 			{
-				source.Advance(peeked);
 				item = new TypeDefinition(identifierToken.Identifier, _type, members.ToArray());
+				_astNotificationReceiver.AstCreated(source, item);
 				return true;
 			}
 

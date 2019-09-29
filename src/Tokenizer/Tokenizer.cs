@@ -5,7 +5,7 @@ using Terumi.Tokens;
 
 namespace Terumi.Tokenizer
 {
-	public class Tokenizer
+	public class Tokenizer : IAstNotificationReceiver
 	{
 		private readonly IPattern<TerumiMember> _classMemberPattern;
 		private readonly IPattern<TypeDefinition> _classPattern;
@@ -18,15 +18,20 @@ namespace Terumi.Tokenizer
 		public Tokenizer()
 		{
 			_classMemberPattern = NoPattern<TerumiMember>.IInstance;
-			_classPattern = new TypeDefinitionPattern(TypeDefinitionType.Class, _classMemberPattern);
+			_classPattern = new TypeDefinitionPattern(this, TypeDefinitionType.Class, _classMemberPattern);
 
 			_contractMemberPattern = NoPattern<TerumiMember>.IInstance;
-			_contractPattern = new TypeDefinitionPattern(TypeDefinitionType.Contract, _contractMemberPattern);
+			_contractPattern = new TypeDefinitionPattern(this, TypeDefinitionType.Contract, _contractMemberPattern);
 
 			_typeDefinitionPattern = new CoagulatedPattern<TypeDefinition, TypeDefinition, TypeDefinition>(_classPattern, _contractPattern);
 
 			_compilerUnitItem = new CompilerUnitItemPattern(_typeDefinitionPattern);
-			_compilerUnit = new CompilerUnitPattern(_compilerUnitItem);
+			_compilerUnit = new CompilerUnitPattern(this, _compilerUnitItem);
+		}
+
+		public void AstCreated<T>(ReaderFork<Token> fork, T ast)
+		{
+			System.Console.WriteLine("ast: " + ast.GetType().FullName);
 		}
 
 		public bool TryParse(IEnumerable<Token> tokens, out CompilerUnit compilerUnit)

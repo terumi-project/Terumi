@@ -108,8 +108,11 @@ namespace Terumi.Workspace
 				var levelsWithFile = subPath.Split(_fileSystem.Path.DirectorySeparatorChar);
 				var levels = levelsWithFile.Take(levelsWithFile.Length - 1).Where(str => !string.IsNullOrWhiteSpace(str)).ToArray();
 
-				using var stream = _fileSystem.File.OpenRead(_fileSystem.Path.Combine(_basePath, file));
-				using var sourceFile = new SourceFile(stream, new Ast.PackageLevel(Ast.PackageAction.Namespace, levels));
+				var location = _fileSystem.Path.Combine(_basePath, file);
+
+				// hope the user disposes it
+				var stream = _fileSystem.File.OpenRead(location);
+				var sourceFile = new SourceFile(stream, new Ast.PackageLevel(Ast.PackageAction.Namespace, levels), location);
 
 				yield return sourceFile;
 			}

@@ -1,4 +1,6 @@
-﻿namespace Terumi.Ast
+﻿using System.Linq;
+
+namespace Terumi.Ast
 {
 	public enum PackageAction
 	{
@@ -6,7 +8,7 @@
 		Using
 	}
 
-	public class PackageLevel : CompilerUnitItem
+	public class PackageLevel : CompilerUnitItem, System.IEquatable<PackageLevel>
 	{
 		public PackageLevel(PackageAction action, string[] levels)
 		{
@@ -16,5 +18,9 @@
 
 		public PackageAction Action { get; }
 		public string[] Levels { get; }
+
+		public bool Equals(PackageLevel other)
+			=> Action == other.Action
+			&& Levels.SequenceEqual(Levels);
 	}
 }

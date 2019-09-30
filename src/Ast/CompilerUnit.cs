@@ -4,9 +4,9 @@
 	{
 		public CompilerUnit(CompilerUnitItem[] compilerUnitItem)
 		{
-			CompilerUnitItem = compilerUnitItem;
+			CompilerUnitItems = compilerUnitItem;
 		}
 
-		public CompilerUnitItem[] CompilerUnitItem { get; }
+		public CompilerUnitItem[] CompilerUnitItems { get; }
 	}
 }

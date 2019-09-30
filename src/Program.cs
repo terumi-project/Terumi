@@ -81,13 +81,10 @@ namespace Terumi
 
 			Console.WriteLine("Loaded project.");
 
-			foreach(var lib in project.Configuration.Libraries)
-			{
-				Console.WriteLine("using lib: @ " + lib.GitUrl);
-				Console.WriteLine(lib.CommitId);
-			}
+			var lexer = new StreamLexer(GetPatterns());
+			var tokenizer = new Tokenizer.Tokenizer();
 
-			TreeDependencies(project);
+			var environment = project.ToEnvironment(lexer, tokenizer);
 
 			return;
 		}
@@ -119,8 +116,8 @@ namespace Terumi
 		private static void CompileFile(string file)
 		{
 			using var source = File.OpenRead(file);
-			var lexer = new StreamLexer(source, GetPatterns());
-			var tokens = DebugTokenInfo(lexer.ParseTokens());
+			var lexer = new StreamLexer(GetPatterns());
+			var tokens = DebugTokenInfo(lexer.ParseTokens(source));
 
 			var tokenizer = new Tokenizer.Tokenizer();
 

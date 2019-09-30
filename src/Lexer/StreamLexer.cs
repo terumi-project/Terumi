@@ -10,18 +10,16 @@ namespace Terumi.Lexer
 {
 	public class StreamLexer
 	{
-		private readonly Stream _source;
 		private readonly IPattern[] _patterns;
 
-		public StreamLexer(Stream source, IEnumerable<IPattern> patterns)
+		public StreamLexer(IEnumerable<IPattern> patterns)
 		{
-			_source = source;
 			_patterns = patterns.ToArray();
 		}
 
-		public IEnumerable<Token> ParseTokens()
+		public IEnumerable<Token> ParseTokens(Stream source)
 		{
-			using var reader = new BinaryReader(_source, Encoding.UTF8, true);
+			using var reader = new BinaryReader(source, Encoding.UTF8, true);
 
 			var readerHead = new ReaderHead<byte>(reader.ReadBytes);
 

@@ -9,10 +9,11 @@ namespace Terumi.Workspace
 	{
 		private bool _disposed;
 
-		public SourceFile(Stream source, PackageLevel packageLevel)
+		public SourceFile(Stream source, PackageLevel packageLevel, string location)
 		{
 			_source = source;
 			_packageLevel = packageLevel;
+			Location = location;
 		}
 
 		private readonly Stream _source;
@@ -44,6 +45,8 @@ namespace Terumi.Workspace
 				return _packageLevel;
 			}
 		}
+
+		public string Location { get; }
 
 		public void Dispose()
 		{

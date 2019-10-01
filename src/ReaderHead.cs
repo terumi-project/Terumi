@@ -53,7 +53,7 @@ namespace Terumi
 						// TODO: there's an off by one error somewhere, and there's a hacky workaround in SpecificReaderForkExtensions.cs
 						// for peeking and stuff (as well as in ReaderFork)
 						// so this needs to be fixed
-						Console.WriteLine("off by one error in reader fork");
+						// Console.WriteLine("off by one error in reader fork");
 						needToRemove = _buffer.Count;
 					}
 

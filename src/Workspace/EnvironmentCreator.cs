@@ -10,6 +10,52 @@ namespace Terumi.Workspace
 {
 	public static class EnvironmentCreator
 	{
+		public static IEnumerable<KeyValuePair<PackageLevel, UsingDescriptor<CompilerUnitItem>>>
+			OrderByLeastDependencies(this Environment environment)
+		{
+			var dictCopy = environment.Code.ToDictionary(kvp => kvp.Key, kvp => new List<UsingDescriptor<CompilerUnitItem>>(kvp.Value));
+			var solved = new List<(PackageLevel, UsingDescriptor<CompilerUnitItem>)>();
+
+			// while there are items
+			while (dictCopy.Any((kvp) => kvp.Value.Count > 0))
+			{
+				// first, look at every package level
+				foreach (var (level, descriptors) in dictCopy)
+				{
+					var remove = new List<UsingDescriptor<CompilerUnitItem>>();
+
+					// then look at every descriptor
+					foreach (var descriptor in descriptors)
+					{
+						// if all the usings of this descriptor is satisfied by what we've already solved
+						if (descriptor.Usings.All(HasAll))
+						{
+							// we can yield it off to be compiled
+							yield return KeyValuePair.Create(level, descriptor);
+
+							solved.Add((level, descriptor));
+							remove.Add(descriptor);
+						}
+					}
+
+					foreach(var i in remove)
+					{
+						descriptors.Remove(i);
+					}
+				}
+			}
+
+			System.Console.WriteLine("end");
+
+			bool HasAll(PackageLevel level)
+			{
+				// i can't say i've fully satisfied a package level
+				// unless all the level items in that package level have been satisfied
+
+				return dictCopy.Any((kvp) => kvp.Key.LevelEquals(level) && kvp.Value.Count == 0);
+			}
+		}
+
 		public static Environment ToEnvironment(this Project mainProject, StreamLexer lexer, Tokenizer.Tokenizer tokenizer)
 		{
 			var environment = new Environment();

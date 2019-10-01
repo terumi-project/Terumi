@@ -45,7 +45,7 @@ namespace Terumi.Tokenizer
 
 		public void AstCreated<T>(ReaderFork<Token> fork, T ast)
 		{
-			System.Console.WriteLine("ast: " + ast.GetType().FullName);
+			// System.Console.WriteLine("ast: " + ast.GetType().FullName);
 		}
 
 		public void DebugPrint(ReaderFork<Token> fork)

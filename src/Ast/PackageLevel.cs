@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 
 namespace Terumi.Ast
 {
@@ -8,7 +9,7 @@ namespace Terumi.Ast
 		Using
 	}
 
-	public class PackageLevel : CompilerUnitItem, System.IEquatable<PackageLevel>
+	public class PackageLevel : CompilerUnitItem, IEquatable<PackageLevel>
 	{
 		public PackageLevel(PackageAction action, string[] levels)
 		{
@@ -21,6 +22,18 @@ namespace Terumi.Ast
 
 		public bool Equals(PackageLevel other)
 			=> Action == other.Action
-			&& Levels.SequenceEqual(Levels);
+			&& LevelEquals(other);
+
+		public static bool operator ==(PackageLevel a, PackageLevel b)
+			=> a.Equals(b);
+
+		public static bool operator !=(PackageLevel a, PackageLevel b)
+			=> !(a == b);
+
+		public override string ToString()
+			=> Levels.Aggregate((a, b) => $"{a}.{b}");
+
+		internal bool LevelEquals(PackageLevel level)
+			=> Levels.SequenceEqual(level.Levels);
 	}
 }

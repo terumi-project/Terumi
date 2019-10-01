@@ -30,5 +30,8 @@
 		public string Identifier { get; }
 
 		public TerumiMember[] Members { get; }
+
+		public override string ToString()
+			=> $"{Type} {Identifier}";
 	}
 }

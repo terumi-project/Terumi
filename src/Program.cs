@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 
 using Terumi.Lexer;
@@ -85,6 +86,11 @@ namespace Terumi
 			var tokenizer = new Tokenizer.Tokenizer();
 
 			var environment = project.ToEnvironment(lexer, tokenizer);
+
+			foreach(var item in environment.OrderByLeastDependencies())
+			{
+				Console.WriteLine("Would compile item on '" + item.Key.ToString() + "': " + item.Value.Item.ToString());
+			}
 
 			return;
 		}

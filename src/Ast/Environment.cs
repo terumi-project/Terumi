@@ -22,8 +22,7 @@ namespace Terumi.Ast
 		private readonly object _lock = new object();
 		private readonly Dictionary<PackageLevel, List<UsingDescriptor<CompilerUnitItem>>> _code;
 
-		public IReadOnlyDictionary<PackageLevel, IReadOnlyList<UsingDescriptor<CompilerUnitItem>>> Code
-			=> (IReadOnlyDictionary<PackageLevel, IReadOnlyList<UsingDescriptor<CompilerUnitItem>>>)_code;
+		public Dictionary<PackageLevel, List<UsingDescriptor<CompilerUnitItem>>> Code => _code;
 
 		public void Put(PackageLevel @namespace, IEnumerable<PackageLevel> usings, CompilerUnitItem item)
 		{

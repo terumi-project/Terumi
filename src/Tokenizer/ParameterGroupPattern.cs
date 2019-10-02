@@ -9,17 +9,23 @@ namespace Terumi.Tokenizer
 	public class ParameterGroupPattern : IPattern<ParameterGroup>
 	{
 		private readonly IAstNotificationReceiver _astNotificationReceiver;
+		private readonly IPattern<ParameterType> _parameterTypePattern;
 
-		public ParameterGroupPattern(IAstNotificationReceiver astNotificationReceiver)
+		public ParameterGroupPattern
+		(
+			IAstNotificationReceiver astNotificationReceiver,
+			IPattern<ParameterType> parameterTypePattern
+		)
 		{
 			_astNotificationReceiver = astNotificationReceiver;
+			_parameterTypePattern = parameterTypePattern;
 		}
 
 		public bool TryParse(ReaderFork<Token> source, out ParameterGroup item)
 		{
 			var parameters = new List<Parameter>();
 
-			if (!source.TryPeekNonWhitespace<IdentifierToken>(out _, out _))
+			if (!_parameterTypePattern.TryParse(source, out var parameterType))
 			{
 				// if there's no identifier token, we're done
 				item = new ParameterGroup(Array.Empty<Parameter>());
@@ -27,31 +33,38 @@ namespace Terumi.Tokenizer
 				return true;
 			}
 
-			do
+			if (!source.TryNextNonWhitespace<IdentifierToken>(out var parameterName))
 			{
-				if (!source.TryNextNonWhitespace<IdentifierToken>(out var type))
-				{
-					item = new ParameterGroup(parameters.ToArray());
-					_astNotificationReceiver.AstCreated(source, item);
-					return true;
-				}
+				// TODO: exception - expected parameter
+				item = default;
+				return false;
+			}
 
-				if (!source.TryNextNonWhitespace<IdentifierToken>(out var name))
+			AddParameter();
+
+			while (NeedsMore(source))
+			{
+				if (!_parameterTypePattern.TryParse(source, out parameterType)
+				|| !source.TryNextNonWhitespace<IdentifierToken>(out parameterName))
 				{
-					// TODO: exception, must specify name of token
+					// TODO: exception - expected param type/identifier
 					item = default;
 					return false;
 				}
 
-				var parameter = new Parameter(type, name);
-				_astNotificationReceiver.AstCreated(source, parameter);
-				parameters.Add(parameter);
+				AddParameter();
 			}
-			while (NeedsMore(source));
 
 			item = new ParameterGroup(parameters.ToArray());
 			_astNotificationReceiver.AstCreated(source, item);
 			return true;
+
+			void AddParameter()
+			{
+				var parameter = new Parameter(parameterType, parameterName);
+				_astNotificationReceiver.AstCreated(source, parameter);
+				parameters.Add(parameter);
+			}
 		}
 
 		private bool NeedsMore(ReaderFork<Token> source)

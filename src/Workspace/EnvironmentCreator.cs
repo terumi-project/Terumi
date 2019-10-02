@@ -16,6 +16,29 @@ namespace Terumi.Workspace
 			var dictCopy = environment.Code.ToDictionary(kvp => kvp.Key, kvp => new List<UsingDescriptor<CompilerUnitItem>>(kvp.Value));
 			var solved = new List<(PackageLevel, UsingDescriptor<CompilerUnitItem>)>();
 
+			{
+				var solvedLevels = new List<PackageLevel>();
+
+				// first, iterate over all the items where something uses another package level that doesn't have anything
+				foreach (var (level, descriptors) in dictCopy)
+				{
+					// if any `using` in the descriptor is NOT found anywhere in the dictionary
+					foreach (var @using in descriptors.SelectMany(descriptor => descriptor.Usings))
+					{
+						if (!dictCopy.Any((kvp) => kvp.Key == @using))
+						{
+							// the using isn't in the dictionary, we'll claim it's solved
+							solvedLevels.Add(@using);
+						}
+					}
+				}
+
+				foreach(var level in solvedLevels)
+				{
+					dictCopy[level] = new List<UsingDescriptor<CompilerUnitItem>>();
+				}
+			}
+
 			// while there are items
 			while (dictCopy.Any((kvp) => kvp.Value.Count > 0))
 			{
@@ -60,7 +83,7 @@ namespace Terumi.Workspace
 		{
 			var environment = new Environment();
 
-			foreach(var project in mainProject.TraverseAllDependencies())
+			foreach(var project in mainProject.TraverseAllDependencies().Prepend(mainProject))
 			{
 				foreach(var sourceFile in project.GetSources())
 				{
@@ -71,6 +94,7 @@ namespace Terumi.Workspace
 						{
 							// TODO: exception
 							System.Console.WriteLine("Couldn't compile source at '" + sourceFile.Location + "'.");
+							continue;
 						}
 
 						environment.AddToEnvironment(sourceFile.PackageLevel, compilerUnit);

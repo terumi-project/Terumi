@@ -28,9 +28,7 @@ namespace Terumi.Tokenizer
 			// EOF
 			if (!source.TryPeekNonWhitespace(out _, out _))
 			{
-				compilerUnit = new CompilerUnit(Array.Empty<CompilerUnitItem>());
-				_astNotificationReceiver.AstCreated(source, compilerUnit);
-				return true;
+				goto NOTHING_NOTEWORTHY;
 			}
 
 			while (_pattern.TryParse(source, out var item))
@@ -48,9 +46,12 @@ namespace Terumi.Tokenizer
 				}
 			}
 
-			// pattern couldn't parse
-			compilerUnit = default;
-			return false;
+			// maybe we didn't have anything
+
+			NOTHING_NOTEWORTHY:
+			compilerUnit = new CompilerUnit(Array.Empty<CompilerUnitItem>());
+			_astNotificationReceiver.AstCreated(source, compilerUnit);
+			return true;
 		}
 	}
 }

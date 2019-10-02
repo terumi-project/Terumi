@@ -7,7 +7,8 @@ namespace Terumi.Tokenizer
 {
 	public class Tokenizer : IAstNotificationReceiver
 	{
-		private readonly PackageLevelPattern _packageLevelPattern;
+		private readonly IPattern<PackageLevel> _packageLevelPattern;
+		private readonly IPattern<ParameterType> _parameterTypePattern;
 		private readonly IPattern<ParameterGroup> _parameterGroupPattern;
 		private readonly IPattern<Field> _fieldPattern;
 		private readonly IPattern<CodeBody> _codeBodyPattern;
@@ -25,7 +26,8 @@ namespace Terumi.Tokenizer
 		{
 			_packageLevelPattern = new PackageLevelPattern(this);
 
-			_parameterGroupPattern = new ParameterGroupPattern(this);
+			_parameterTypePattern = new ParameterTypePattern(this);
+			_parameterGroupPattern = new ParameterGroupPattern(this, _parameterTypePattern);
 			_fieldPattern = new FieldPattern(this);
 			_codeBodyPattern = new CodeBodyPattern(this);
 			_methodPattern = new MethodPattern(this, _parameterGroupPattern, _codeBodyPattern);

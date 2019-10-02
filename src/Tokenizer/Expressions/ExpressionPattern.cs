@@ -6,13 +6,16 @@ namespace Terumi.Tokenizer.Expressions
 	public class ExpressionPattern : IPattern<Expression>
 	{
 		private readonly IPattern<MethodCall> _methodCallPattern;
+		private readonly IPattern<ReturnExpression> _returnPattern;
 
 		public ExpressionPattern
 		(
-			IPattern<MethodCall> methodCallPattern
+			IPattern<MethodCall> methodCallPattern,
+			IPattern<ReturnExpression> returnPattern
 		)
 		{
 			_methodCallPattern = methodCallPattern;
+			_returnPattern = returnPattern;
 		}
 
 		public bool TryParse(ReaderFork<Token> source, out Expression item)
@@ -27,6 +30,14 @@ namespace Terumi.Tokenizer.Expressions
 			}
 
 			using var fork2 = source.Fork();
+
+			if (_returnPattern.TryParse(fork2, out var returnExpression))
+			{
+				fork2.Commit = true;
+				item = returnExpression;
+				return true;
+			}
+
 			item = default;
 			return false;
 		}

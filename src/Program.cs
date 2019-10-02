@@ -24,6 +24,7 @@ namespace Terumi
 				KeyValuePair.Create("readonly", Keyword.Readonly),
 				KeyValuePair.Create("namespace", Keyword.Namespace),
 				KeyValuePair.Create("using", Keyword.Using),
+				KeyValuePair.Create("return", Keyword.Return),
 			});
 
 			yield return new CharacterPattern(';');

@@ -11,6 +11,7 @@ namespace Terumi.Tokenizer
 	{
 		private readonly MethodCallParameterGroupPattern _methodCallParameterGroupPattern;
 		private readonly MethodCallPattern _methodCallPattern;
+		private readonly ReturnExpressionPattern _returnPattern;
 		private readonly ExpressionPattern _expressionPattern;
 
 		private readonly IPattern<PackageLevel> _packageLevelPattern;
@@ -33,9 +34,11 @@ namespace Terumi.Tokenizer
 			// expressions oh no
 			_methodCallParameterGroupPattern = new MethodCallParameterGroupPattern(this);
 			_methodCallPattern = new MethodCallPattern(this, _methodCallParameterGroupPattern);
-			_expressionPattern = new ExpressionPattern(_methodCallPattern);
+			_returnPattern = new ReturnExpressionPattern(this);
+			_expressionPattern = new ExpressionPattern(_methodCallPattern, _returnPattern);
 
 			_methodCallParameterGroupPattern.ExpressionPattern = _expressionPattern;
+			_returnPattern.ExpressionPattern = _expressionPattern;
 
 			// then other code stuff
 

@@ -6,6 +6,7 @@
 		Class,
 		Readonly,
 		Using,
-		Namespace
+		Namespace,
+		Return,
 	}
 }

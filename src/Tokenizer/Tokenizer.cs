@@ -1,12 +1,18 @@
 ﻿using System.Collections.Generic;
 
 using Terumi.Ast;
+using Terumi.Ast.Expressions;
+using Terumi.Tokenizer.Expressions;
 using Terumi.Tokens;
 
 namespace Terumi.Tokenizer
 {
 	public class Tokenizer : IAstNotificationReceiver
 	{
+		private readonly MethodCallParameterGroupPattern _methodCallParameterGroupPattern;
+		private readonly MethodCallPattern _methodCallPattern;
+		private readonly ExpressionPattern _expressionPattern;
+
 		private readonly IPattern<PackageLevel> _packageLevelPattern;
 		private readonly IPattern<ParameterType> _parameterTypePattern;
 		private readonly IPattern<ParameterGroup> _parameterGroupPattern;
@@ -24,12 +30,21 @@ namespace Terumi.Tokenizer
 
 		public Tokenizer()
 		{
+			// expressions oh no
+			_methodCallParameterGroupPattern = new MethodCallParameterGroupPattern(this);
+			_methodCallPattern = new MethodCallPattern(this, _methodCallParameterGroupPattern);
+			_expressionPattern = new ExpressionPattern(_methodCallPattern);
+
+			_methodCallParameterGroupPattern.ExpressionPattern = _expressionPattern;
+
+			// then other code stuff
+
 			_packageLevelPattern = new PackageLevelPattern(this);
 
 			_parameterTypePattern = new ParameterTypePattern(this);
 			_parameterGroupPattern = new ParameterGroupPattern(this, _parameterTypePattern);
 			_fieldPattern = new FieldPattern(this);
-			_codeBodyPattern = new CodeBodyPattern(this);
+			_codeBodyPattern = new CodeBodyPattern(this, _expressionPattern);
 			_methodPattern = new MethodPattern(this, _parameterGroupPattern, _codeBodyPattern);
 
 			_classMemberPattern = new CoagulatedPattern<Field, Method, TerumiMember>(_fieldPattern, _methodPattern);
@@ -47,7 +62,7 @@ namespace Terumi.Tokenizer
 
 		public void AstCreated<T>(ReaderFork<Token> fork, T ast)
 		{
-			// System.Console.WriteLine("ast: " + ast.GetType().FullName);
+			System.Console.WriteLine("ast: " + ast.GetType().FullName);
 		}
 
 		public void DebugPrint(ReaderFork<Token> fork)
@@ -60,6 +75,11 @@ namespace Terumi.Tokenizer
 				int c = 1; // for debug breakpoint
 			}
 #endif
+		}
+
+		public void Throw(string message)
+		{
+			System.Console.WriteLine("AST got 'Throw': " + message);
 		}
 
 		public bool TryParse(IEnumerable<Token> tokens, out CompilerUnit compilerUnit)

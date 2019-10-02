@@ -6,6 +6,15 @@ namespace Terumi
 {
 	public static class SpecificReaderForkExtensions
 	{
+		public static bool TryNextNewline(this ReaderFork<Token> fork)
+			=> fork.TryNextNonPredicate(tkn => tkn is WhitespaceToken, out var tkn)
+			&& tkn is CharacterToken characterToken
+			&& characterToken.Character == '\n';
+
+		public static bool TryNextCharacter(this ReaderFork<Token> fork, char character)
+			=> fork.TryNextNonWhitespace<CharacterToken>(out var characterToken)
+			&& characterToken.Character == character;
+
 		public static bool TryNextNonWhitespace<T>(this ReaderFork<Token> fork, out T token)
 		where T : Token
 		{
@@ -43,6 +52,10 @@ namespace Terumi
 			token = default;
 			return false;
 		}
+
+		public static bool TryPeekCharacter(this ReaderFork<Token> fork, char character, out int peeked)
+			=> fork.TryPeekNonWhitespace<CharacterToken>(out var characterToken, out peeked)
+			&& characterToken.Character == character;
 
 		public static bool TryPeekNonWhitespace<T>(this ReaderFork<Token> fork, out T token, out int peeked)
 		where T : Token

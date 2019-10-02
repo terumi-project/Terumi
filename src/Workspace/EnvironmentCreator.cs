@@ -68,8 +68,6 @@ namespace Terumi.Workspace
 				}
 			}
 
-			System.Console.WriteLine("end");
-
 			bool HasAll(PackageLevel level)
 			{
 				// i can't say i've fully satisfied a package level

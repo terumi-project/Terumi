@@ -7,5 +7,7 @@ namespace Terumi.Tokenizer
 		void AstCreated<T>(ReaderFork<Token> fork, T ast);
 
 		void DebugPrint(ReaderFork<Token> fork);
+
+		void Throw(string msg);
 	}
 }

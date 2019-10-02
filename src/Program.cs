@@ -92,6 +92,11 @@ namespace Terumi
 				Console.WriteLine("Would compile item on '" + item.Key.ToString() + "': " + item.Value.Item.ToString());
 			}
 
+#if DEBUG
+			var jsonSerialized = Newtonsoft.Json.JsonConvert.SerializeObject(environment, Newtonsoft.Json.Formatting.Indented);
+			File.WriteAllText("tokens.json", jsonSerialized);
+#endif
+
 			return;
 		}
 

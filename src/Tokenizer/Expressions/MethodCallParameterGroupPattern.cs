@@ -25,18 +25,29 @@ namespace Terumi.Tokenizer.Expressions
 			}
 
 			var expressions = new List<Expression>();
+			bool couldParse;
 
-			while (ExpressionPattern.TryParse(source, out var expression))
+			do
 			{
-				expressions.Add(expression);
+				using var fork = source.Fork();
 
-				if (!source.TryPeekCharacter(',', out var peeked))
+				couldParse = ExpressionPattern.TryParse(fork, out var expression);
+
+				if (couldParse)
 				{
-					break;
-				}
+					fork.Commit = true;
 
-				source.Advance(peeked);
+					expressions.Add(expression);
+
+					if (!fork.TryPeekCharacter(',', out var peeked))
+					{
+						break;
+					}
+
+					fork.Advance(peeked);
+				}
 			}
+			while (couldParse);
 
 			item = new MethodCallParameterGroup(expressions.ToArray());
 			_astNotificationReceiver.AstCreated(source, item);

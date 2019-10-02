@@ -7,38 +7,75 @@ namespace Terumi.Tokenizer.Expressions
 	{
 		private readonly IPattern<MethodCall> _methodCallPattern;
 		private readonly IPattern<ReturnExpression> _returnPattern;
+		private readonly IPattern<AccessExpression> _accessPattern;
 
 		public ExpressionPattern
 		(
 			IPattern<MethodCall> methodCallPattern,
-			IPattern<ReturnExpression> returnPattern
+			IPattern<ReturnExpression> returnPattern,
+			IPattern<AccessExpression> accessPattern
 		)
 		{
 			_methodCallPattern = methodCallPattern;
 			_returnPattern = returnPattern;
+			_accessPattern = accessPattern;
 		}
 
 		public bool TryParse(ReaderFork<Token> source, out Expression item)
+			=> TryParse(source, _methodCallPattern, out item)
+			|| TryParse(source, _returnPattern, out item);
+			// || TryParse(source, _accessPattern, out item);
+
+		private Expression TryDeeperExpressionParse
+		(
+			ReaderFork<Token> source,
+			Expression start
+		)
 		{
-			using var fork1 = source.Fork();
-
-			if (_methodCallPattern.TryParse(fork1, out var methodCall))
+			if (TryParseToTExpression(source, _accessPattern, out var accessExpression))
 			{
-				fork1.Commit = true;
-				item = methodCall;
+				accessExpression.Predecessor = start;
+				return TryDeeperExpressionParse(source, accessExpression);
+			}
+
+			return start;
+		}
+
+		private bool TryParse<TExpresion>
+		(
+			ReaderFork<Token> source,
+			IPattern<TExpresion> pattern,
+			out Expression expression
+		)
+			where TExpresion : Expression
+		{
+			if (TryParseToTExpression(source, pattern, out var tExpr))
+			{
+				expression = TryDeeperExpressionParse(source, tExpr);
 				return true;
 			}
 
-			using var fork2 = source.Fork();
+			expression = default;
+			return false;
+		}
 
-			if (_returnPattern.TryParse(fork2, out var returnExpression))
+		private static bool TryParseToTExpression<TExpression>
+		(
+			ReaderFork<Token> source,
+			IPattern<TExpression> pattern,
+			out TExpression expression
+		)
+			where TExpression : Expression
+		{
+			using var fork = source.Fork();
+
+			if (pattern.TryParse(fork, out expression))
 			{
-				fork2.Commit = true;
-				item = returnExpression;
+				fork.Commit = true;
 				return true;
 			}
 
-			item = default;
+			expression = default;
 			return false;
 		}
 	}

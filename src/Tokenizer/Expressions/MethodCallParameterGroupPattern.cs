@@ -30,10 +30,12 @@ namespace Terumi.Tokenizer.Expressions
 			{
 				expressions.Add(expression);
 
-				if (!source.TryNextCharacter(','))
+				if (!source.TryPeekCharacter(',', out var peeked))
 				{
 					break;
 				}
+
+				source.Advance(peeked);
 			}
 
 			item = new MethodCallParameterGroup(expressions.ToArray());

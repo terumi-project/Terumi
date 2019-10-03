@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Terumi.Ast;
+using Terumi.SyntaxTree;
 using Terumi.Lexer;
 
 namespace Terumi.Workspace
@@ -77,7 +77,7 @@ namespace Terumi.Workspace
 			}
 		}
 
-		public static Environment ToEnvironment(this Project mainProject, StreamLexer lexer, Tokenizer.Tokenizer tokenizer)
+		public static Environment ToEnvironment(this Project mainProject, StreamLexer lexer, Parser.StreamParser tokenizer)
 		{
 			var environment = new Environment();
 

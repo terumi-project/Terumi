@@ -1,6 +1,6 @@
 ﻿using Terumi.Tokens;
 
-namespace Terumi.Ast
+namespace Terumi.SyntaxTree
 {
 	public class ParameterType
 	{

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Terumi.Ast.Expressions
+namespace Terumi.SyntaxTree.Expressions
 {
 	public class MethodCallParameterGroup
 	{

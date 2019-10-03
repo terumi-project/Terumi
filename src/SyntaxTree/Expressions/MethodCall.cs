@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Terumi.Tokens;
 
-namespace Terumi.Ast.Expressions
+namespace Terumi.SyntaxTree.Expressions
 {
 	public class MethodCall : Expression
 	{

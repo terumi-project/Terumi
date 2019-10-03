@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace Terumi.Ast
+namespace Terumi.SyntaxTree
 {
 	public enum PackageAction
 	{

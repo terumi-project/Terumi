@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-using Terumi.Ast;
+using Terumi.SyntaxTree;
 
 namespace Terumi.Workspace
 {

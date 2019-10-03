@@ -1,6 +1,6 @@
 ﻿using Terumi.Tokens;
 
-namespace Terumi.Tokenizer
+namespace Terumi.Parser
 {
 	public interface IPattern<T>
 	{

@@ -84,7 +84,7 @@ namespace Terumi
 			Console.WriteLine("Loaded project.");
 
 			var lexer = new StreamLexer(GetPatterns());
-			var tokenizer = new Tokenizer.Tokenizer();
+			var tokenizer = new Parser.StreamParser();
 
 			var environment = project.ToEnvironment(lexer, tokenizer);
 
@@ -131,7 +131,7 @@ namespace Terumi
 			var lexer = new StreamLexer(GetPatterns());
 			var tokens = DebugTokenInfo(lexer.ParseTokens(source));
 
-			var tokenizer = new Tokenizer.Tokenizer();
+			var tokenizer = new Parser.StreamParser();
 
 			if (!tokenizer.TryParse(tokens, out var compilationUnit))
 			{

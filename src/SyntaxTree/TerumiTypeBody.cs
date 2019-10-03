@@ -1,4 +1,4 @@
-﻿namespace Terumi.Ast
+﻿namespace Terumi.SyntaxTree
 {
 	public class TerumiTypeBody
 	{

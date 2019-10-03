@@ -1,7 +1,7 @@
-﻿using Terumi.Ast;
+﻿using Terumi.SyntaxTree;
 using Terumi.Tokens;
 
-namespace Terumi.Tokenizer
+namespace Terumi.Parser
 {
 	public class CompilerUnitItemPattern : IPattern<CompilerUnitItem>
 	{

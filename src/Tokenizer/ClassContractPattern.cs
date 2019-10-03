@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 
-using Terumi.Ast;
+using Terumi.SyntaxTree;
 using Terumi.Tokens;
 
-namespace Terumi.Tokenizer
+namespace Terumi.Parser
 {
 	// TODO: make code not copy and pasted
 	public class TypeDefinitionPattern : IPattern<TypeDefinition>

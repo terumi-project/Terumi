@@ -1,4 +1,4 @@
-﻿namespace Terumi.Ast.Expressions
+﻿namespace Terumi.SyntaxTree.Expressions
 {
 	public class AccessExpression : Expression
 	{

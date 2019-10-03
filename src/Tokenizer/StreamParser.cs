@@ -1,13 +1,13 @@
 ﻿using System.Collections.Generic;
 
-using Terumi.Ast;
-using Terumi.Ast.Expressions;
-using Terumi.Tokenizer.Expressions;
+using Terumi.SyntaxTree;
+using Terumi.SyntaxTree.Expressions;
+using Terumi.Parser.Expressions;
 using Terumi.Tokens;
 
-namespace Terumi.Tokenizer
+namespace Terumi.Parser
 {
-	public class Tokenizer : IAstNotificationReceiver
+	public class StreamParser : IAstNotificationReceiver
 	{
 		private readonly MethodCallParameterGroupPattern _methodCallParameterGroupPattern;
 		private readonly MethodCallPattern _methodCallPattern;
@@ -30,7 +30,7 @@ namespace Terumi.Tokenizer
 		private readonly IPattern<CompilerUnitItem> _compilerUnitItem;
 		private readonly IPattern<CompilerUnit> _compilerUnit;
 
-		public Tokenizer()
+		public StreamParser()
 		{
 			// expressions oh no
 			_methodCallParameterGroupPattern = new MethodCallParameterGroupPattern(this);

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Terumi.Ast
+namespace Terumi.SyntaxTree
 {
 	/// <summary>
 	/// An environment encompassess every dependency's source files

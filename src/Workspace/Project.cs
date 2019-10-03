@@ -112,7 +112,7 @@ namespace Terumi.Workspace
 
 				// hope the user disposes it
 				var stream = _fileSystem.File.OpenRead(location);
-				var sourceFile = new SourceFile(stream, new Ast.PackageLevel(Ast.PackageAction.Namespace, levels), location);
+				var sourceFile = new SourceFile(stream, new SyntaxTree.PackageLevel(SyntaxTree.PackageAction.Namespace, levels), location);
 
 				yield return sourceFile;
 			}

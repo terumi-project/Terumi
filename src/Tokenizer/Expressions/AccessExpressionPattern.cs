@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Terumi.Ast.Expressions;
+using Terumi.SyntaxTree.Expressions;
 using Terumi.Tokens;
 
-namespace Terumi.Tokenizer.Expressions
+namespace Terumi.Parser.Expressions
 {
 	public class AccessExpressionPattern : IPattern<AccessExpression>
 	{

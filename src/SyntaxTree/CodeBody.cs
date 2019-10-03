@@ -1,6 +1,6 @@
-﻿using Terumi.Ast.Expressions;
+﻿using Terumi.SyntaxTree.Expressions;
 
-namespace Terumi.Ast
+namespace Terumi.SyntaxTree
 {
 	public class CodeBody
 	{

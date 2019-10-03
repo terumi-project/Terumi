@@ -1,6 +1,6 @@
 ﻿using Terumi.Tokens;
 
-namespace Terumi.Tokenizer
+namespace Terumi.Parser
 {
 	// TODO: dunno if this is needed but eh, leaving it entirely generics for luls
 	// is only actually used for TerumiMember, field and method

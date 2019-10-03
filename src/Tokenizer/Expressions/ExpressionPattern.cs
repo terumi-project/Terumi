@@ -1,7 +1,7 @@
-﻿using Terumi.Ast.Expressions;
+﻿using Terumi.SyntaxTree.Expressions;
 using Terumi.Tokens;
 
-namespace Terumi.Tokenizer.Expressions
+namespace Terumi.Parser.Expressions
 {
 	public class ExpressionPattern : IPattern<Expression>
 	{

@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
-using Terumi.Ast;
-using Terumi.Ast.Expressions;
+using Terumi.SyntaxTree;
+using Terumi.SyntaxTree.Expressions;
 using Terumi.Tokens;
 
-namespace Terumi.Tokenizer
+namespace Terumi.Parser
 {
 	public class CodeBodyPattern : IPattern<CodeBody>
 	{

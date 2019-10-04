@@ -10,6 +10,31 @@ namespace Terumi.Workspace
 {
 	public static class EnvironmentCreator
 	{
+		public static IEnumerable<CompilerUnitItem> ToCompilerUnitItems(this IEnumerable<KeyValuePair<PackageLevel, UsingDescriptor<CompilerUnitItem>>> environment)
+		{
+			foreach(var (level, descriptor) in environment)
+			{
+				if (level.Action != PackageAction.Namespace)
+				{
+					throw new System.Exception("err");
+				}
+
+				yield return level;
+
+				foreach(var @using in descriptor.Usings)
+				{
+					if (@using.Action != PackageAction.Using)
+					{
+						throw new System.Exception("err");
+					}
+
+					yield return @using;
+				}
+
+				yield return descriptor.Item;
+			}
+		}
+
 		public static IEnumerable<KeyValuePair<PackageLevel, UsingDescriptor<CompilerUnitItem>>>
 			OrderByLeastDependencies(this Environment environment)
 		{

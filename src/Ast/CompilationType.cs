@@ -2,5 +2,6 @@
 {
 	public interface ICompilationType
 	{
+		string CompilationTypeName { get; }
 	}
 }

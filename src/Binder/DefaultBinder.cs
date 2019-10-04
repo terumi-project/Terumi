@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Terumi.Ast;
+﻿using Terumi.Ast;
 using Terumi.SyntaxTree;
 
 namespace Terumi.Binder
 {
-	public class DefaultBinder
+	public static class DefaultBinder
 	{
-		public static CompilationUnit Compile(CompilerUnit syntaxTree)
+		public static CompilationUnit BindToAst(CompilerUnit compilerUnit)
 		{
-			return default;
+			var binder = new CompilationUnitBinder(compilerUnit);
+
+			return binder.Bind();
 		}
 	}
 }

@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-
+using System.Linq;
+using Terumi.Binder;
 using Terumi.Lexer;
 using Terumi.Tokens;
 using Terumi.Workspace;
@@ -93,9 +94,16 @@ namespace Terumi
 				Console.WriteLine("Would compile item on '" + item.Key.ToString() + "': " + item.Value.Item.ToString());
 			}
 
+			var asUnit = new SyntaxTree.CompilerUnit(environment.OrderByLeastDependencies().ToCompilerUnitItems().ToArray());
+
+			var compilationUnit = DefaultBinder.BindToAst(asUnit);
+
 #if DEBUG
 			var jsonSerialized = Newtonsoft.Json.JsonConvert.SerializeObject(environment, Newtonsoft.Json.Formatting.Indented);
 			File.WriteAllText("tokens.json", jsonSerialized);
+
+			jsonSerialized = Newtonsoft.Json.JsonConvert.SerializeObject(compilationUnit, Newtonsoft.Json.Formatting.Indented);
+			File.WriteAllText("ast.json", jsonSerialized);
 #endif
 
 			return;

@@ -14,5 +14,7 @@ namespace Terumi.Ast
 		public Namespace Namespace { get; }
 		public string Name { get; }
 		public IReadOnlyCollection<Member> Members { get; }
+
+		public string CompilationTypeName => Name;
 	}
 }

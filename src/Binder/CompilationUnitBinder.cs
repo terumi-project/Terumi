@@ -17,7 +17,40 @@ namespace Terumi.Binder
 
 		public CompilationUnit Bind()
 		{
-			foreach(var item in _compilerUnit.CompilerUnitItems)
+			var promisedItems = new List<PromisedCompilationNode>();
+
+			{
+				List<PackageLevel> usings = null;
+				PackageLevel ns = null;
+				foreach (var item in _compilerUnit.CompilerUnitItems)
+				{
+					switch(item)
+					{
+						case PackageLevel packageLevel:
+						{
+							if (packageLevel.Action == PackageAction.Namespace)
+							{
+								usings = new List<PackageLevel>();
+								ns = packageLevel;
+							}
+							else
+							{
+								usings.Add(packageLevel);
+							}
+						}
+						break;
+
+						case TypeDefinition typeDefinition:
+						{
+							promisedItems.Add(new PromisedCompilationNode(typeDefinition, ns, usings.ToArray()));
+						}
+						break;
+					}
+				}
+			}
+
+			var i = 0;
+			foreach (var item in _compilerUnit.CompilerUnitItems)
 			{
 				switch(item)
 				{
@@ -25,7 +58,7 @@ namespace Terumi.Binder
 					{
 						if (packageLevel.Action == PackageAction.Namespace)
 						{
-							_nsBinder = new NamespaceBinder(new Namespace(packageLevel.Levels));
+							_nsBinder = new NamespaceBinder(new Namespace(packageLevel.Levels), _nodes, promisedItems);
 						}
 						else
 						{
@@ -36,8 +69,13 @@ namespace Terumi.Binder
 
 					case TypeDefinition typeDefinition:
 					{
-						 var node = _nsBinder.Bind(typeDefinition, _nodes);
+						 var node = _nsBinder.Bind(typeDefinition);
 						_nodes.Add(node);
+
+						var promised = promisedItems[i];
+						promised.RealNode = node;
+						promisedItems[i] = promised;
+						i++;
 					}
 					break;
 				}

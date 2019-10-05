@@ -10,10 +10,14 @@ namespace Terumi.Binder
 	public class NamespaceBinder
 	{
 		private readonly List<Namespace> _usings = new List<Namespace>();
+		private readonly IEnumerable<CompilationNode> _allNodes;
+		private readonly ICollection<PromisedCompilationNode> _promisedNodes;
 
-		public NamespaceBinder(Namespace coreNamespace)
+		public NamespaceBinder(Namespace coreNamespace, IEnumerable<CompilationNode> allNodes, ICollection<PromisedCompilationNode> promisedNodes)
 		{
 			CoreNamespace = coreNamespace;
+			_allNodes = allNodes;
+			_promisedNodes = promisedNodes;
 		}
 
 		public Namespace CoreNamespace { get; }
@@ -24,10 +28,19 @@ namespace Terumi.Binder
 			_usings.Add(@using);
 		}
 
-		public CompilationNode Bind(TypeDefinition item, IEnumerable<CompilationNode> allNodes)
+		public CompilationNode Bind(TypeDefinition item)
 		{
+			var promisedResources = _promisedNodes
+				.Where(x =>
+				{
+					return new[] { CoreNamespace }
+						.Concat(Usings)
+						.Any(@using => @using.Equals(x.Namespace));
+				})
+				.ToList();
+
 			// compute everything we can access
-			var resources = allNodes
+			var accessibleResources = _allNodes
 				.Where(x =>
 				{
 					if (x is Class @class)
@@ -47,6 +60,14 @@ namespace Terumi.Binder
 						throw new ArgumentException(">?");
 					}
 				})
+				.Cast<ICompilationType>();
+
+			var resources = accessibleResources
+				.Concat
+				(
+					promisedResources
+					.Where(promised => !accessibleResources.Any(accessible => accessible.CompilationTypeName == promised.CompilationTypeName))
+				)
 				.ToList();
 
 			// first, deal with fields
@@ -66,6 +87,7 @@ namespace Terumi.Binder
 			if (anyMethodHasBody)
 			{
 				// dealign with a class
+
 				// TODO: implement
 				return default;
 			}

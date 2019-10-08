@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using Terumi.Binder;
 using Terumi.Lexer;
+using Terumi.Targets;
+using Terumi.Targets.Python;
 using Terumi.Tokens;
 using Terumi.Workspace;
 
@@ -98,7 +100,11 @@ namespace Terumi
 
 			var compilationUnit = DefaultBinder.BindToAst(asUnit);
 
-#if DEBUG
+			using var outfs = File.OpenWrite("out.py");
+			ILanguageTarget target = new PythonTarget();
+			target.Write(outfs, compilationUnit);
+
+#if FALSE && DEBUG
 			var jsonSerialized = Newtonsoft.Json.JsonConvert.SerializeObject(environment, Newtonsoft.Json.Formatting.Indented);
 			File.WriteAllText("tokens.json", jsonSerialized);
 

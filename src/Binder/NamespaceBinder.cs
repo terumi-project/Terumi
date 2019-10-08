@@ -89,7 +89,28 @@ namespace Terumi.Binder
 				// dealign with a class
 
 				// TODO: implement
-				return default;
+
+				// for now, fake a contract
+
+				var methodMaps = item.Members
+					.OfType<SyntaxTree.Method>()
+					.Select(method =>
+					{
+						var returnType = GetCompilationType(method.Type.Identifier);
+						var parameters = method.Parameters.Parameters.Select(x => GetParameterType(x.Type)).ToList();
+
+						var methodBinder = new ClassMethodBinder(new MethodDefinition(method.Identifier.Identifier, returnType, parameters.AsReadOnly()));
+
+						return methodBinder.Bind(method.Body);
+					});
+
+				var memberDefinitions = fields.Cast<Member>()
+					.Concat(methodMaps)
+					.ToList()
+					.AsReadOnly();
+
+				return new Class(item.Identifier, memberDefinitions, CoreNamespace);
+				// return default;
 			}
 			else
 			{

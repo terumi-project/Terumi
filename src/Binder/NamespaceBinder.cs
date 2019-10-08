@@ -99,7 +99,7 @@ namespace Terumi.Binder
 						var returnType = GetCompilationType(method.Type.Identifier);
 						var parameters = method.Parameters.Parameters.Select(x => GetParameterType(x.Type)).ToList();
 
-						var methodBinder = new ClassMethodBinder(new MethodDefinition(method.Identifier.Identifier, returnType, parameters.AsReadOnly()));
+						var methodBinder = new ClassMethodBinder(item, new MethodDefinition(method.Identifier.Identifier, returnType, parameters.AsReadOnly()));
 
 						return methodBinder.Bind(method.Body);
 					});

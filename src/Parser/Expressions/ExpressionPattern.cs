@@ -8,22 +8,26 @@ namespace Terumi.Parser.Expressions
 		private readonly IPattern<MethodCall> _methodCallPattern;
 		private readonly IPattern<ReturnExpression> _returnPattern;
 		private readonly IPattern<AccessExpression> _accessPattern;
+		private readonly IPattern<NumericLiteralExpression> _numericPattern;
 
 		public ExpressionPattern
 		(
 			IPattern<MethodCall> methodCallPattern,
 			IPattern<ReturnExpression> returnPattern,
-			IPattern<AccessExpression> accessPattern
+			IPattern<AccessExpression> accessPattern,
+			IPattern<NumericLiteralExpression> numericPattern
 		)
 		{
 			_methodCallPattern = methodCallPattern;
 			_returnPattern = returnPattern;
 			_accessPattern = accessPattern;
+			_numericPattern = numericPattern;
 		}
 
 		public bool TryParse(ReaderFork<Token> source, out Expression item)
 			=> TryParse(source, _methodCallPattern, out item)
-			|| TryParse(source, _returnPattern, out item);
+			|| TryParse(source, _returnPattern, out item)
+			|| TryParse(source, _numericPattern, out item);
 			// || TryParse(source, _accessPattern, out item);
 
 		private Expression TryDeeperExpressionParse

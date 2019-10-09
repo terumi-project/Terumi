@@ -54,6 +54,7 @@ namespace Terumi
 
 			yield return new IdentifierPattern(IdentifierCase.SnakeCase);
 			yield return new IdentifierPattern(IdentifierCase.PascalCase);
+			yield return new NumericPattern();
 		}
 
 		private static IEnumerable<Token> DebugTokenInfo(IEnumerable<Token> tokens)
@@ -100,7 +101,8 @@ namespace Terumi
 #if DEBUG
 			var jsonSerialized = Newtonsoft.Json.JsonConvert.SerializeObject(binder.TypeInformation, Newtonsoft.Json.Formatting.Indented, new Newtonsoft.Json.JsonSerializerSettings
 			{
-				ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
+				ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Serialize,
+				PreserveReferencesHandling = Newtonsoft.Json.PreserveReferencesHandling.Objects
 			});
 			File.WriteAllText("binder_info.json", jsonSerialized);
 #endif

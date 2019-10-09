@@ -14,12 +14,14 @@ namespace Terumi.Parser
 
 		public bool TryParse(ReaderFork<Token> source, out ParameterType item)
 		{
-			if (!source.TryNextNonWhitespace<IdentifierToken>(out var identifier)
+			if (!source.TryPeekNonWhitespace<IdentifierToken>(out var identifier, out var peeked)
 				|| identifier.IdentifierCase != IdentifierCase.PascalCase)
 			{
 				item = default;
 				return false;
 			}
+
+			source.Advance(peeked);
 
 			if (HasBrackets(source))
 			{

@@ -9,6 +9,7 @@ using Terumi.Targets;
 using Terumi.Targets.Python;
 using Terumi.Tokens;
 using Terumi.Workspace;
+using Terumi.Workspace.TypePasser;
 
 namespace Terumi
 {
@@ -87,9 +88,24 @@ namespace Terumi
 			Console.WriteLine("Loaded project.");
 
 			var lexer = new StreamLexer(GetPatterns());
-			var tokenizer = new Parser.StreamParser();
+			var parser = new Parser.StreamParser();
 
-			var environment = project.ToEnvironment(lexer, tokenizer);
+			var parsedSourceFiles = project.ParseAllSourceFiles(lexer, parser).ToList();
+
+			var binder = new BinderEnvironment(parsedSourceFiles);
+
+			binder.PassOverTypeDeclarations();
+			binder.PassOverMembers();
+
+#if DEBUG
+			var jsonSerialized = Newtonsoft.Json.JsonConvert.SerializeObject(binder.TypeInformation, Newtonsoft.Json.Formatting.Indented, new Newtonsoft.Json.JsonSerializerSettings
+			{
+				ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
+			});
+			File.WriteAllText("binder_info.json", jsonSerialized);
+#endif
+			/*
+			var environment = project.ToEnvironment(lexer, parser);
 
 			foreach(var item in environment.OrderByLeastDependencies())
 			{
@@ -103,7 +119,7 @@ namespace Terumi
 			using var outfs = File.OpenWrite("out.py");
 			ILanguageTarget target = new PythonTarget();
 			target.Write(outfs, compilationUnit);
-
+			*/
 #if FALSE && DEBUG
 			var jsonSerialized = Newtonsoft.Json.JsonConvert.SerializeObject(environment, Newtonsoft.Json.Formatting.Indented);
 			File.WriteAllText("tokens.json", jsonSerialized);

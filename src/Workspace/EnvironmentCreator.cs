@@ -5,11 +5,23 @@ using System.Text;
 using System.Threading.Tasks;
 using Terumi.SyntaxTree;
 using Terumi.Lexer;
+using Terumi.Parser;
 
 namespace Terumi.Workspace
 {
 	public static class EnvironmentCreator
 	{
+		public static IEnumerable<ParsedSourceFile> ParseAllSourceFiles(this Project mainProject, StreamLexer lexer, StreamParser parser)
+		{
+			foreach(var dependency in mainProject.TraverseAllDependencies().Prepend(mainProject))
+			{
+				foreach(var source in dependency.GetSources())
+				{
+					yield return source.Parse(lexer, parser);
+				}
+			}
+		}
+
 		public static IEnumerable<CompilerUnitItem> ToCompilerUnitItems(this IEnumerable<KeyValuePair<PackageLevel, UsingDescriptor<CompilerUnitItem>>> environment)
 		{
 			foreach(var (level, descriptor) in environment)

@@ -72,7 +72,9 @@ namespace Terumi.Workspace.TypePasser
 			{
 				foreach (var item in file.TypeDefinitions)
 				{
-					var infoItem = TypeInformation.InfoItems.ElementAt(i++);
+					// 4 - amt of compielr items
+					// TODO: not hack job
+					var infoItem = TypeInformation.InfoItems.Skip(4).ElementAt(i++);
 
 					foreach(var member in item.Members)
 					{
@@ -102,7 +104,7 @@ namespace Terumi.Workspace.TypePasser
 
 							case SyntaxTree.Field field:
 							{
-								if (TypeInformation.TryGetItem(infoItem, field.Type.Identifier, out var fieldType))
+								if (!TypeInformation.TryGetItem(infoItem, field.Type.Identifier, out var fieldType))
 								{
 									throw new Exception($"Couldn't find field type '{field.Type.Identifier}'");
 								}

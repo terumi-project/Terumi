@@ -9,6 +9,34 @@ namespace Terumi.Workspace.TypePasser
 
 	public class TypeInformation
 	{
+		public TypeInformation()
+		{
+			// add built in types
+			InfoItems.Add(new InfoItem
+			{
+				IsCompilerDefined = true,
+				Name = "void"
+			});
+
+			InfoItems.Add(new InfoItem
+			{
+				IsCompilerDefined = true,
+				Name = "string"
+			});
+
+			InfoItems.Add(new InfoItem
+			{
+				IsCompilerDefined = true,
+				Name = "number"
+			});
+
+			InfoItems.Add(new InfoItem
+			{
+				IsCompilerDefined = true,
+				Name = "bool"
+			});
+		}
+
 		public ICollection<InfoItem> InfoItems { get; set; } = new List<InfoItem>();
 
 		public IEnumerable<InfoItem> AllReferenceableTypes(InfoItem mainType)
@@ -18,6 +46,11 @@ namespace Terumi.Workspace.TypePasser
 
 			foreach (var item in InfoItems)
 			{
+				if (item.IsCompilerDefined)
+				{
+					yield return item;
+				}
+
 				if (!namespaces.Contains(item.Namespace, SequenceEqualsEqualityComparer<string>.Instance))
 				{
 					continue;

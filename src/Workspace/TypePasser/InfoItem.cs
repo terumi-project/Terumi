@@ -23,11 +23,15 @@ namespace Terumi.Workspace.TypePasser
 
 		public ICollection<Method> Methods { get; set; } = new List<Method>(10);
 
+		public SyntaxTree.TypeDefinition TerumiBacking { get; set; }
+
 		public class Field
 		{
 			public InfoItem Type { get; set; }
 
 			public string Name { get; set; }
+
+			public SyntaxTree.Field TerumiBacking { get; set; }
 		}
 
 		public class Method
@@ -38,11 +42,17 @@ namespace Terumi.Workspace.TypePasser
 
 			public ICollection<Parameter> Parameters { get; set; }
 
+			public ICollection<Ast.Code.CodeStatement> Statements { get; set; }
+
+			public SyntaxTree.Method TerumiBacking { get; set; }
+
 			public class Parameter
 			{
 				public InfoItem Type { get; set; }
 
 				public string Name { get; set; }
+
+				public SyntaxTree.Parameter TerumiBacking { get; set; }
 			}
 		}
 	}

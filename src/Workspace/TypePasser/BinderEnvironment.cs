@@ -31,7 +31,8 @@ namespace Terumi.Workspace.TypePasser
 						IsCompilerDefined = false, // explicit for readability
 						Namespace = file.Namespace.Levels,
 						Name = item.Identifier,
-						NamespaceReferences = file.Usings.Select(x => (ICollection<string>)x.Levels).ToList()
+						NamespaceReferences = file.Usings.Select(x => (ICollection<string>)x.Levels).ToList(),
+						TerumiBacking = item,
 					};
 
 					// check if anything similar already exists
@@ -97,7 +98,8 @@ namespace Terumi.Workspace.TypePasser
 										Type = TypeInformation.TryGetItem(infoItem, x.Type.TypeName.Identifier, out var paramType)
 											? paramType
 											: throw new Exception($"Couldn't find paramter type '{x.Type.TypeName.Identifier}'")
-									}).ToList()
+									}).ToList(),
+									TerumiBacking = method
 								});
 							}
 							break;
@@ -112,12 +114,26 @@ namespace Terumi.Workspace.TypePasser
 								infoItem.Fields.Add(new InfoItem.Field
 								{
 									Name = field.Name.Identifier,
-									Type = fieldType
+									Type = fieldType,
+									TerumiBacking = field
 								});
 							}
 							break;
 						}
 					}
+				}
+			}
+		}
+
+		public void PassOverMethodBodies()
+		{
+			foreach(var infoItem in TypeInformation.InfoItems)
+			{
+				var examiner = new ExpressionBinder(TypeInformation, infoItem);
+
+				foreach (var method in infoItem.Methods)
+				{
+					examiner.Bind(method);
 				}
 			}
 		}

@@ -98,6 +98,8 @@ namespace Terumi
 			binder.PassOverTypeDeclarations();
 			binder.PassOverMembers();
 
+			// now we should be able to infer every type in every code body
+
 #if DEBUG
 			var jsonSerialized = Newtonsoft.Json.JsonConvert.SerializeObject(binder.TypeInformation, Newtonsoft.Json.Formatting.Indented, new Newtonsoft.Json.JsonSerializerSettings
 			{

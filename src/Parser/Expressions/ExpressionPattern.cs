@@ -1,4 +1,6 @@
-﻿using Terumi.SyntaxTree.Expressions;
+﻿using System.Collections.Generic;
+using System.Linq;
+using Terumi.SyntaxTree.Expressions;
 using Terumi.Tokens;
 
 namespace Terumi.Parser.Expressions
@@ -30,19 +32,48 @@ namespace Terumi.Parser.Expressions
 			|| TryParse(source, _numericPattern, out item);
 			// || TryParse(source, _accessPattern, out item);
 
+		// this will give me a structure that looks like this
+		//
+		// expr().expr().expr().expr().expr()
+		// |___________|      |      |      |
+		//       |____________|      |      |
+		//              |____________|      |
+		//                     |____________|
+		//
+		// which will be elegant for figuring out
+		// stuff about type safety
 		private Expression TryDeeperExpressionParse
 		(
 			ReaderFork<Token> source,
 			Expression start
 		)
 		{
-			if (TryParseToTExpression(source, _accessPattern, out var accessExpression))
+			var totalExpression = start;
+
+			foreach(var expression in ContinueParseDeeper(source))
 			{
-				accessExpression.Predecessor = start;
-				return TryDeeperExpressionParse(source, accessExpression);
+				totalExpression = new AccessExpression
+				{
+					// Access = expression
+					// Predecessor = totalExpression
+
+					// because we parse "in reverse" (expression -> deeper -> access expression -> ...
+					//     so the results come in reverse)
+					// these two are reversed
+					Predecessor = expression,
+					Access = totalExpression
+				};
 			}
 
-			return start;
+			return totalExpression;
+		}
+
+		private IEnumerable<Expression> ContinueParseDeeper(ReaderFork<Token> source)
+		{
+			while (TryParseToTExpression(source, _accessPattern, out var expr))
+			{
+				yield return expr.Access;
+			}
 		}
 
 		private bool TryParse<TExpresion>

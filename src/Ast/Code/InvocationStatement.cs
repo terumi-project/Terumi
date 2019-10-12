@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Terumi.Workspace.TypePasser;
 
 namespace Terumi.Ast.Code
 {
@@ -14,5 +15,6 @@ namespace Terumi.Ast.Code
 
 		public ICodeExpression Primary { get; }
 		public ICodeExpression Action { get; }
+		public InfoItem Type => Action.Type;
 	}
 }

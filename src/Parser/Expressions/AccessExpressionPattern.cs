@@ -41,7 +41,7 @@ namespace Terumi.Parser.Expressions
 				return false;
 			}
 
-			item = new AccessExpression(accessExpression);
+			item = new AccessExpression { Access = accessExpression };
 			_astNotificationReceiver.AstCreated(source, item);
 			return true;
 		}

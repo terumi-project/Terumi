@@ -56,12 +56,14 @@ namespace Terumi.Workspace.TypePasser
 					continue;
 				}
 
+				/*
+				TODO: figure out why this was put here
 				// if the type is itself, skip it
-
 				if (item.Equals(mainType))
 				{
 					continue;
 				}
+				*/
 
 				yield return item;
 			}

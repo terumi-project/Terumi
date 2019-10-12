@@ -2,12 +2,6 @@
 {
 	public class AccessExpression : Expression
 	{
-		public AccessExpression(Expression access)
-		{
-			Access = access;
-		}
-
-
 		/// <summary>
 		/// The expression to evaluate after accessing.
 		/// <para>
@@ -30,6 +24,6 @@
 		/// The access is `some_more_code()`
 		/// </para>
 		/// </summary>
-		public Expression Access { get; }
+		public Expression Access { get; set; }
 	}
 }

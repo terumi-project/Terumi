@@ -27,6 +27,7 @@ namespace Terumi.Binder
 
 			var statements = new List<CodeStatement>();
 
+			/*
 			var translator = new ExpressionBinder(_methodDefinition, _typeDefinition);
 
 			foreach(var expression in codeBody.Expressions)
@@ -35,6 +36,8 @@ namespace Terumi.Binder
 			}
 
 			return new Method(_methodDefinition, new CodeBlock(statements.AsReadOnly()));
+			*/
+			return default;
 		}
 	}
 }

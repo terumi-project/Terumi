@@ -22,21 +22,19 @@ namespace Terumi.Workspace.TypePasser
 
 		public void Bind(InfoItem.Method method)
 		{
-			var statements = new List<ICodeExpression>();
-
-			foreach(var expression in method.TerumiBacking.Body.Expressions)
+			foreach (var expression in method.TerumiBacking.Body.Expressions)
 			{
-				switch(expression)
+				switch (expression)
 				{
 					case ReturnExpression returnExpression:
 					{
-
+						method.Statements.Add(new ReturnStatement(TopLevelBind(returnExpression.Expression)));
 					}
 					break;
 
 					case MethodCall methodCall:
 					{
-						statements.Add(TopLevelBind(methodCall));
+						method.Statements.Add((MethodCallExpression)TopLevelBind(methodCall));
 					}
 					break;
 
@@ -48,16 +46,21 @@ namespace Terumi.Workspace.TypePasser
 			}
 		}
 
-		public Ast.Code.ICodeExpression TopLevelBind(Expression expression)
+		public ICodeExpression TopLevelBind(Expression expression, ICodeExpression entityReference = null)
 		{
-			switch(expression)
+			switch (expression)
 			{
 				case MethodCall methodCall:
 				{
-					// if it's a lonely method call, we must assume it's referring to this
-					return HandleThisMethodCall(expression, methodCall);
+					return HandleMethodCall(methodCall, entityReference);
 				}
-				break;
+
+				case AccessExpression accessExpression:
+				{
+					var predecessor = TopLevelBind(accessExpression.Predecessor);
+
+					return TopLevelBind(accessExpression.Access, predecessor);
+				}
 
 				default:
 				{
@@ -66,49 +69,64 @@ namespace Terumi.Workspace.TypePasser
 			}
 		}
 
-		private ICodeExpression HandleThisMethodCall(Expression expression, MethodCall methodCall)
+		private ICodeExpression HandleMethodCall(MethodCall methodCall, ICodeExpression entity = null)
 		{
+			entity ??= _thisExpression;
+
+			var expressions = ParseMethodCallExpressions(methodCall);
+
 			foreach (var referencedItem in _type.Methods)
 			{
 				if (referencedItem.Name == methodCall.MethodName.Identifier
-					&& ParametersMatch(referencedItem.Parameters, methodCall.Parameters.Expressions, out var parameters))
+					&& ParametersMatch(referencedItem.Parameters, expressions, out var parameters))
 				{
-					return new MethodCallExpression(_thisExpression, referencedItem, parameters.AsReadOnly());
+					return new MethodCallExpression(entity, referencedItem, parameters.AsReadOnly());
 				}
 			}
 
 			throw new InvalidOperationException("Couldn't parse MethodCallExpression");
+		}
 
-			bool ParametersMatch
-			(
-				ICollection<InfoItem.Method.Parameter> parametersDefinition,
-				Expression[] passedExpressions,
-				out List<ICodeExpression> parameters
-			)
+		private ICollection<ICodeExpression> ParseMethodCallExpressions(MethodCall methodCall)
+		{
+			var expressions = new List<ICodeExpression>();
+
+			foreach(var expression in methodCall.Parameters.Expressions)
 			{
-				if (parametersDefinition.Count != passedExpressions.Length)
+				expressions.Add(TopLevelBind(expression));
+			}
+
+			return expressions;
+		}
+		
+		private bool ParametersMatch
+		(
+			ICollection<InfoItem.Method.Parameter> parametersDefinition,
+			ICollection<ICodeExpression> passedExpressions,
+			out List<ICodeExpression> parameters
+		)
+		{
+			if (parametersDefinition.Count != passedExpressions.Count)
+			{
+				parameters = default;
+				return false;
+			}
+
+			parameters = new List<ICodeExpression>();
+
+			for (var i = 0; i < passedExpressions.Count; i++)
+			{
+				var parameter = passedExpressions.ElementAt(i);
+
+				parameters.Add(parameter);
+
+				if (parameter.Type != parametersDefinition.ElementAt(i).Type)
 				{
-					parameters = default;
 					return false;
 				}
-
-				parameters = new List<ICodeExpression>();
-
-				for (var i = 0; i < passedExpressions.Length; i++)
-				{
-					var passedExpression = passedExpressions[i];
-					var parameter = TopLevelBind(passedExpression);
-
-					parameters.Add(parameter);
-
-					if (parameter.Type != parametersDefinition.ElementAt(i).Type)
-					{
-						return false;
-					}
-				}
-
-				return true;
 			}
+
+			return true;
 		}
 	}
 }

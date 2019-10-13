@@ -5,7 +5,7 @@ using Terumi.Workspace.TypePasser;
 
 namespace Terumi.Ast.Code
 {
-	public class MethodCallExpression : ICodeExpression
+	public class MethodCallExpression : CodeStatement, ICodeExpression
 	{
 		public MethodCallExpression(ICodeExpression entity, InfoItem.Method callingMethod, IReadOnlyCollection<ICodeExpression> parameters)
 		{

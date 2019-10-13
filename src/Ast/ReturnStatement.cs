@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Terumi.Ast.Code
+﻿namespace Terumi.Ast
 {
 	public class ReturnStatement : CodeStatement
 	{

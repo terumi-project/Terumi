@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text;
 
-namespace Terumi.Workspace.TypePasser
+using Terumi.Workspace;
+
+namespace Terumi.Binder
 {
 	public class BinderEnvironment
 	{
@@ -22,6 +22,9 @@ namespace Terumi.Workspace.TypePasser
 
 		public void PassOverTypeDeclarations()
 		{
+			// first, do a rough pass over all the type declarations in the source files
+			// we want to grab if it's a contract/class, its name, its namespace, and the namespaces it references
+
 			foreach (var file in _sourceFiles)
 			{
 				foreach (var item in file.TypeDefinitions)
@@ -46,9 +49,10 @@ namespace Terumi.Workspace.TypePasser
 				}
 			}
 
-			// now, we pass over what we've done to ensure that a given type can't reference two or more things that are similar
+			// now, we ensure that every type we parsed can't reference 2+ of the same named type
+			// eg. if there was `Parser` in dep_a and `Parser` in dep_b, we wouldn't want anything to be using dep_a and using dep_b
 
-			foreach(var definition in TypeInformation.InfoItems)
+			foreach (var definition in TypeInformation.InfoItems)
 			{
 				var namespaces = new List<ICollection<string>>(definition.NamespaceReferences)
 				{
@@ -69,6 +73,10 @@ namespace Terumi.Workspace.TypePasser
 
 		public void PassOverMembers()
 		{
+			// so now we want to pass over every field/method
+			// we want to consume in the type declarations of them
+			// we can also refer to all the types we declared in the previous step
+
 			var i = 0;
 			foreach (var file in _sourceFiles)
 			{
@@ -78,9 +86,9 @@ namespace Terumi.Workspace.TypePasser
 					// TODO: not hack job
 					var infoItem = TypeInformation.InfoItems.Skip(4).ElementAt(i++);
 
-					foreach(var member in item.Members)
+					foreach (var member in item.Members)
 					{
-						switch(member)
+						switch (member)
 						{
 							case SyntaxTree.Method method:
 							{
@@ -126,11 +134,13 @@ namespace Terumi.Workspace.TypePasser
 			}
 		}
 
+		// now that we've passed over both the type declarations, method declarations,
+		// we can start to parse the method bodies themselves.
 		public void PassOverMethodBodies()
 		{
-			foreach(var infoItem in TypeInformation.InfoItems)
+			foreach (var infoItem in TypeInformation.InfoItems)
 			{
-				var examiner = new ExpressionBinder(TypeInformation, infoItem);
+				var examiner = new ExpressionBinder(infoItem);
 
 				foreach (var method in infoItem.Methods)
 				{

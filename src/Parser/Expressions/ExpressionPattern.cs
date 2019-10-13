@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
+
 using Terumi.SyntaxTree.Expressions;
 using Terumi.Tokens;
 
@@ -34,7 +34,8 @@ namespace Terumi.Parser.Expressions
 			|| TryParse(source, _returnPattern, out item)
 			|| TryParse(source, _numericPattern, out item)
 			|| TryParse(source, _thisPattern, out item);
-			// || TryParse(source, _accessPattern, out item);
+
+		// || TryParse(source, _accessPattern, out item);
 
 		// this will give me a structure that looks like this
 		//
@@ -54,7 +55,7 @@ namespace Terumi.Parser.Expressions
 		{
 			var totalExpression = start;
 
-			foreach(var expression in ContinueParseDeeper(source))
+			foreach (var expression in ContinueParseDeeper(source))
 			{
 				totalExpression = new AccessExpression
 				{

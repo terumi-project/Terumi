@@ -2,23 +2,21 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Text;
-using Terumi.Ast.Code;
+
+using Terumi.Ast;
 using Terumi.SyntaxTree.Expressions;
 
-namespace Terumi.Workspace.TypePasser
+namespace Terumi.Binder
 {
 	public class ExpressionBinder
 	{
-		private readonly TypeInformation _typeInformation;
 		private readonly InfoItem _type;
-		private readonly Ast.Code.ThisExpression _thisExpression;
+		private readonly Ast.ThisExpression _thisExpression;
 
-		public ExpressionBinder(TypeInformation typeInformation, InfoItem type)
+		public ExpressionBinder(InfoItem type)
 		{
-			_typeInformation = typeInformation;
 			_type = type;
-			_thisExpression = new Ast.Code.ThisExpression(_type);
+			_thisExpression = new Ast.ThisExpression(_type);
 		}
 
 		public void Bind(InfoItem.Method method)
@@ -40,7 +38,7 @@ namespace Terumi.Workspace.TypePasser
 				// TODO: verify that for each branch there is a way to exit.
 
 				// make sure it returns the proper type
-				foreach(var statement in method.Statements)
+				foreach (var statement in method.Statements)
 				{
 					if (statement is ReturnStatement returnStatement)
 					{
@@ -81,7 +79,7 @@ namespace Terumi.Workspace.TypePasser
 
 						var action = TopLevelBind(accessExpression.Access, predecessor);
 
-						switch(action)
+						switch (action)
 						{
 							case MethodCallExpression methodCallExpression:
 							{
@@ -128,7 +126,7 @@ namespace Terumi.Workspace.TypePasser
 
 				case SyntaxTree.Expressions.ThisExpression _:
 				{
-					return new Ast.Code.ThisExpression(_type);
+					return new Ast.ThisExpression(_type);
 				}
 
 				default:
@@ -160,14 +158,14 @@ namespace Terumi.Workspace.TypePasser
 		{
 			var expressions = new List<ICodeExpression>();
 
-			foreach(var expression in methodCall.Parameters.Expressions)
+			foreach (var expression in methodCall.Parameters.Expressions)
 			{
 				expressions.Add(TopLevelBind(expression));
 			}
 
 			return expressions;
 		}
-		
+
 		private bool ParametersMatch
 		(
 			ICollection<InfoItem.Method.Parameter> parametersDefinition,

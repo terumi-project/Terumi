@@ -16,7 +16,7 @@ namespace Terumi.Parser
 		{
 			if (!source.TryPeekNonWhitespace<IdentifierToken>(out var identifier, out var peeked)
 				) // || identifier.IdentifierCase != IdentifierCase.PascalCase)
-				// we don't want to specifically test for PascalCase because SnakeCase counts as type (number, string, etc)
+				  // we don't want to specifically test for PascalCase because SnakeCase counts as type (number, string, etc)
 			{
 				item = default;
 				return false;

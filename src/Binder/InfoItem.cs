@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 
-namespace Terumi.Workspace.TypePasser
+namespace Terumi.Binder
 {
 	public class InfoItem
 	{
@@ -44,7 +40,7 @@ namespace Terumi.Workspace.TypePasser
 
 			public ICollection<Parameter> Parameters { get; set; }
 
-			public ICollection<Ast.Code.CodeStatement> Statements { get; set; } = new List<Ast.Code.CodeStatement>();
+			public ICollection<Ast.CodeStatement> Statements { get; set; } = new List<Ast.CodeStatement>();
 
 			public SyntaxTree.Method TerumiBacking { get; set; }
 

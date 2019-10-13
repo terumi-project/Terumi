@@ -1,8 +1,7 @@
 ﻿using System.Collections.Generic;
 
-using Terumi.SyntaxTree;
-using Terumi.SyntaxTree.Expressions;
 using Terumi.Parser.Expressions;
+using Terumi.SyntaxTree;
 using Terumi.Tokens;
 
 namespace Terumi.Parser

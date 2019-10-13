@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text;
 
-namespace Terumi.Workspace.TypePasser
+namespace Terumi.Binder
 {
-
 	public class TypeInformation
 	{
 		public static InfoItem Void { get; } = new InfoItem
@@ -21,13 +18,13 @@ namespace Terumi.Workspace.TypePasser
 			Name = "string"
 		};
 
-		public static InfoItem Number{ get; } = new InfoItem
+		public static InfoItem Number { get; } = new InfoItem
 		{
 			IsCompilerDefined = true,
 			Name = "number"
 		};
 
-		public static InfoItem Boolean{ get; } = new InfoItem
+		public static InfoItem Boolean { get; } = new InfoItem
 		{
 			IsCompilerDefined = true,
 			Name = "bool"
@@ -76,7 +73,7 @@ namespace Terumi.Workspace.TypePasser
 
 		public bool TryGetItem(InfoItem mainType, string typeName, out InfoItem type)
 		{
-			foreach(var item in AllReferenceableTypes(mainType))
+			foreach (var item in AllReferenceableTypes(mainType))
 			{
 				if (item.Name == typeName)
 				{

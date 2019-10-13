@@ -1,9 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Terumi.Workspace.TypePasser;
+﻿using System.Collections.Generic;
 
-namespace Terumi.Ast.Code
+using Terumi.Binder;
+
+namespace Terumi.Ast
 {
 	public class MethodCallExpression : CodeStatement, ICodeExpression
 	{

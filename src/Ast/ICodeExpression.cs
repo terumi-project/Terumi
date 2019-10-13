@@ -1,6 +1,6 @@
-﻿using Terumi.Workspace.TypePasser;
+﻿using Terumi.Binder;
 
-namespace Terumi.Ast.Code
+namespace Terumi.Ast
 {
 	public interface ICodeExpression
 	{

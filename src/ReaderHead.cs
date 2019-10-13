@@ -7,25 +7,24 @@ namespace Terumi
 	{
 		private readonly Func<int, T[]> _readAmount;
 		private readonly List<T> _buffer;
-		private int _position;
 
 		public ReaderHead(Func<int, T[]> reader)
 		{
 			_readAmount = reader;
 			_buffer = new List<T>();
-			_position = 0;
+			Position = 0;
 		}
 
-		public int Position => _position;
+		public int Position { get; private set; }
 
 		public ReaderFork<T> Fork()
 		{
 			return new ReaderFork<T>
 			(
-				_position,
+				Position,
 				(pos) =>
 				{
-					var positionOffset = pos - _position;
+					var positionOffset = pos - Position;
 					var inBuffer = positionOffset < _buffer.Count;
 
 					if (!inBuffer)
@@ -46,7 +45,7 @@ namespace Terumi
 				},
 				(commitPos) =>
 				{
-					var needToRemove = commitPos - _position;
+					var needToRemove = commitPos - Position;
 
 					if (needToRemove > _buffer.Count)
 					{
@@ -58,7 +57,7 @@ namespace Terumi
 					}
 
 					_buffer.RemoveRange(0, needToRemove);
-					_position = commitPos;
+					Position = commitPos;
 				}
 			);
 		}

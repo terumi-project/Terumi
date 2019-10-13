@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+
 using Terumi.Lexer;
 using Terumi.Parser;
 using Terumi.SyntaxTree;
@@ -22,9 +22,9 @@ namespace Terumi.Workspace
 			var references = new List<PackageLevel>();
 			var defs = new List<TypeDefinition>();
 
-			foreach(var item in compilerUnit.CompilerUnitItems)
+			foreach (var item in compilerUnit.CompilerUnitItems)
 			{
-				switch(item)
+				switch (item)
 				{
 					case PackageLevel packageLevel:
 					{

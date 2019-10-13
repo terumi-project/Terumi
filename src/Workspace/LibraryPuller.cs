@@ -26,7 +26,7 @@ namespace Terumi.Workspace
 
 				var strb = new StringBuilder(computedBytes.Length * 2);
 
-				foreach(var computedByte in computedBytes)
+				foreach (var computedByte in computedBytes)
 				{
 					strb.AppendFormat("{0:x2}", computedByte);
 				}
@@ -53,7 +53,7 @@ namespace Terumi.Workspace
 
 			var projects = new Project[reference.Projects.Length];
 
-			for(var i = 0; i < projects.Length; i++)
+			for (var i = 0; i < projects.Length; i++)
 			{
 				var projectName = reference.Projects[i];
 

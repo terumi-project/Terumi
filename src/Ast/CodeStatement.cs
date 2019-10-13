@@ -1,4 +1,4 @@
-﻿namespace Terumi.Ast.Code
+﻿namespace Terumi.Ast
 {
 	public abstract class CodeStatement
 	{

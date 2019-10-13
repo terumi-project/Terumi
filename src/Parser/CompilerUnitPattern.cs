@@ -46,9 +46,9 @@ namespace Terumi.Parser
 				}
 			}
 
-			// maybe we didn't have anything
+		// maybe we didn't have anything
 
-			NOTHING_NOTEWORTHY:
+		NOTHING_NOTEWORTHY:
 			compilerUnit = new CompilerUnit(Array.Empty<CompilerUnitItem>());
 			_astNotificationReceiver.AstCreated(source, compilerUnit);
 			return true;

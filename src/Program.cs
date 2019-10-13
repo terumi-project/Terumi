@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
+
 using Terumi.Binder;
 using Terumi.Lexer;
-using Terumi.Targets;
-using Terumi.Targets.Python;
 using Terumi.Tokens;
 using Terumi.Workspace;
-using Terumi.Workspace.TypePasser;
 
 namespace Terumi
 {
@@ -110,72 +107,6 @@ namespace Terumi
 			});
 			File.WriteAllText("binder_info.json", jsonSerialized);
 #endif
-			/*
-			var environment = project.ToEnvironment(lexer, parser);
-
-			foreach(var item in environment.OrderByLeastDependencies())
-			{
-				Console.WriteLine("Would compile item on '" + item.Key.ToString() + "': " + item.Value.Item.ToString());
-			}
-
-			var asUnit = new SyntaxTree.CompilerUnit(environment.OrderByLeastDependencies().ToCompilerUnitItems().ToArray());
-
-			var compilationUnit = DefaultBinder.BindToAst(asUnit);
-
-			using var outfs = File.OpenWrite("out.py");
-			ILanguageTarget target = new PythonTarget();
-			target.Write(outfs, compilationUnit);
-			*/
-#if FALSE && DEBUG
-			var jsonSerialized = Newtonsoft.Json.JsonConvert.SerializeObject(environment, Newtonsoft.Json.Formatting.Indented);
-			File.WriteAllText("tokens.json", jsonSerialized);
-
-			jsonSerialized = Newtonsoft.Json.JsonConvert.SerializeObject(compilationUnit, Newtonsoft.Json.Formatting.Indented);
-			File.WriteAllText("ast.json", jsonSerialized);
-#endif
-
-			return;
-		}
-
-		private static void TreeDependencies(Project project, int spacing = 0)
-		{
-			var prefix = new string(' ', spacing);
-			Console.WriteLine($"{prefix}Treeing project '{project.Name}':");
-
-			foreach (var source in project.GetSources())
-			{
-				Console.WriteLine($"{prefix}Has source: " + source.PackageLevel.Levels[0]);
-			}
-
-			foreach (var dependency in project.GetDependencies())
-			{
-				if (dependency == null)
-				{
-					Console.WriteLine($"{prefix}Null dependency.");
-					continue;
-				}
-
-				Console.WriteLine($"{prefix}Treeing dependency '{dependency.Name}'");
-
-				TreeDependencies(dependency, spacing + 1);
-			}
-		}
-
-		private static void CompileFile(string file)
-		{
-			using var source = File.OpenRead(file);
-			var lexer = new StreamLexer(GetPatterns());
-			var tokens = DebugTokenInfo(lexer.ParseTokens(source));
-
-			var tokenizer = new Parser.StreamParser();
-
-			if (!tokenizer.TryParse(tokens, out var compilationUnit))
-			{
-				Console.WriteLine("Unable to compile");
-				return;
-			}
-
-			System.IO.File.WriteAllText("token.json", Newtonsoft.Json.JsonConvert.SerializeObject(compilationUnit, Newtonsoft.Json.Formatting.Indented));
 		}
 	}
 }

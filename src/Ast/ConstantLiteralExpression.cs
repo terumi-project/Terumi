@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Numerics;
-using System.Text;
-using Terumi.Workspace.TypePasser;
+﻿using System.Numerics;
 
-namespace Terumi.Ast.Code
+using Terumi.Binder;
+
+namespace Terumi.Ast
 {
 	public class ConstantLiteralExpression<T> : ICodeExpression
 	{
@@ -12,7 +10,7 @@ namespace Terumi.Ast.Code
 		{
 			Literal = value;
 
-			switch(value)
+			switch (value)
 			{
 				case string _:
 					Type = TypeInformation.String;

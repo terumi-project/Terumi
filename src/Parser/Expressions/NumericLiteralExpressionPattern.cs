@@ -8,9 +8,7 @@ namespace Terumi.Parser.Expressions
 		private readonly IAstNotificationReceiver _astNotificationReceiver;
 
 		public NumericLiteralExpressionPattern(IAstNotificationReceiver astNotificationReceiver)
-		{
-			_astNotificationReceiver = astNotificationReceiver;
-		}
+			=> _astNotificationReceiver = astNotificationReceiver;
 
 		public bool TryParse(ReaderFork<Token> source, out NumericLiteralExpression item)
 		{

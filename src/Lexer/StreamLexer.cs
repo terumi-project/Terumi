@@ -13,9 +13,7 @@ namespace Terumi.Lexer
 		private readonly IPattern[] _patterns;
 
 		public StreamLexer(IEnumerable<IPattern> patterns)
-		{
-			_patterns = patterns.ToArray();
-		}
+			=> _patterns = patterns.ToArray();
 
 		public IEnumerable<Token> ParseTokens(Stream source)
 		{

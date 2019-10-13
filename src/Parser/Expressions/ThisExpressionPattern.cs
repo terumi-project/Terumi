@@ -11,9 +11,7 @@ namespace Terumi.Parser.Expressions
 		(
 			IAstNotificationReceiver astNotificationReceiver
 		)
-		{
-			_astNotificationReceiver = astNotificationReceiver;
-		}
+			=> _astNotificationReceiver = astNotificationReceiver;
 
 		public bool TryParse(ReaderFork<Token> source, out ThisExpression item)
 		{

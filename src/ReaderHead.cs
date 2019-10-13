@@ -65,7 +65,6 @@ namespace Terumi
 
 	public class ReaderFork<T> : IDisposable
 	{
-		private int _position;
 		private readonly int _initPos;
 		private readonly Func<int, (bool, T)> _next;
 		private readonly Action<int> _commit;
@@ -73,26 +72,26 @@ namespace Terumi
 		public ReaderFork(int position, Func<int, (bool, T)> next, Action<int> commit)
 		{
 			_initPos = position;
-			_position = position;
+			Position = position;
 			_next = next;
 			_commit = commit;
 		}
 
 		public ReaderFork<T> Fork()
-			=> new ReaderFork<T>(_position, _next, pos => _position = pos);
+			=> new ReaderFork<T>(Position, _next, pos => Position = pos);
 
 		public bool TryPeek(out T value, int ahead = 1)
 		{
-			var (next, valueDeconstructed) = _next(_position + ahead - 1);
+			var (next, valueDeconstructed) = _next(Position + ahead - 1);
 			value = valueDeconstructed;
 			return next;
 		}
 
-		public int Position => _position;
+		public int Position { get; private set; }
 
 		public bool TryNext(out T value)
 		{
-			var (next, valueDeconstructed) = _next(_position++);
+			var (next, valueDeconstructed) = _next(Position++);
 			value = valueDeconstructed;
 			return next;
 		}
@@ -108,10 +107,10 @@ namespace Terumi
 
 		public int Back(int back)
 		{
-			var newPosition = Math.Max(_position - back, _initPos);
-			var wentBack = _position - newPosition;
+			var newPosition = Math.Max(Position - back, _initPos);
+			var wentBack = Position - newPosition;
 
-			_position = newPosition;
+			Position = newPosition;
 
 			return wentBack;
 		}
@@ -122,7 +121,7 @@ namespace Terumi
 		{
 			if (Commit)
 			{
-				_commit(_position);
+				_commit(Position);
 			}
 		}
 	}

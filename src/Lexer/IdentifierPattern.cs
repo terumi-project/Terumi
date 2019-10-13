@@ -11,9 +11,7 @@ namespace Terumi.Lexer
 		private readonly IdentifierCase _case;
 
 		public IdentifierPattern(IdentifierCase @case)
-		{
-			_case = @case;
-		}
+			=> _case = @case;
 
 		public bool TryParse(ReaderFork<byte> source, out Token token)
 		{

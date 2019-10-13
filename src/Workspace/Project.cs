@@ -21,16 +21,6 @@ namespace Terumi.Workspace
 			return Project.TryLoad(basePath, name, libraryPath, new LibraryPuller(fileSystem, libraryPath, git), fileSystem, out project);
 		}
 
-		public static bool TryLoad(string name, LibraryPuller puller, IFileSystem fileSystem, out Project project)
-		{
-			var fullName = fileSystem.Path.GetFullPath(name);
-
-			var basePath = fileSystem.Path.Combine(fullName, "..");
-			var libraryPath = fileSystem.Path.Combine(fullName, ".libs");
-
-			return Project.TryLoad(basePath, name, libraryPath, puller, fileSystem, out project);
-		}
-
 		public static bool TryLoad(string basePath, string name, string libraryPath, LibraryPuller puller, IFileSystem fileSystem, out Project project)
 		{
 			var namePath = fileSystem.Path.Combine(basePath, name);

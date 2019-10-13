@@ -13,9 +13,7 @@ namespace Terumi.Parser.Expressions
 		(
 			IAstNotificationReceiver astNotificationReceiver
 		)
-		{
-			_astNotificationReceiver = astNotificationReceiver;
-		}
+			=> _astNotificationReceiver = astNotificationReceiver;
 
 		public IPattern<Expression> ExpressionPattern { get; set; }
 

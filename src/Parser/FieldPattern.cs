@@ -10,9 +10,7 @@ namespace Terumi.Parser
 		private readonly IAstNotificationReceiver _astNotificationReceiver;
 
 		public FieldPattern(IAstNotificationReceiver astNotificationReceiver)
-		{
-			_astNotificationReceiver = astNotificationReceiver;
-		}
+			=> _astNotificationReceiver = astNotificationReceiver;
 
 		public bool TryParse(ReaderFork<Token> source, out Field item)
 		{

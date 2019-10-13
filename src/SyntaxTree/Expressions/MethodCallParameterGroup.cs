@@ -3,9 +3,7 @@
 	public class MethodCallParameterGroup
 	{
 		public MethodCallParameterGroup(Expression[] expressions)
-		{
-			Expressions = expressions;
-		}
+			=> Expressions = expressions;
 
 		public Expression[] Expressions { get; }
 	}

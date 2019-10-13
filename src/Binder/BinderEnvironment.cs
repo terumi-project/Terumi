@@ -16,9 +16,7 @@ namespace Terumi.Binder
 		(
 			IReadOnlyCollection<ParsedSourceFile> sourceFiles
 		)
-		{
-			_sourceFiles = sourceFiles;
-		}
+			=> _sourceFiles = sourceFiles;
 
 		public void PassOverTypeDeclarations()
 		{

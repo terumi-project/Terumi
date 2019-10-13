@@ -33,6 +33,7 @@ namespace Terumi.Workspace.TypePasser
 						Name = item.Identifier,
 						NamespaceReferences = file.Usings.Select(x => (ICollection<string>)x.Levels).ToList(),
 						TerumiBacking = item,
+						IsContract = item.Type == SyntaxTree.TypeDefinitionType.Contract
 					};
 
 					// check if anything similar already exists

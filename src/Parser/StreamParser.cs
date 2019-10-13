@@ -15,6 +15,7 @@ namespace Terumi.Parser
 		private readonly AccessExpressionPattern _accessPattern;
 		private readonly NumericLiteralExpressionPattern _numericPattern;
 		private readonly ExpressionPattern _expressionPattern;
+		private readonly ThisExpressionPattern _thisPattern;
 
 		private readonly IPattern<PackageLevel> _packageLevelPattern;
 		private readonly IPattern<ParameterType> _parameterTypePattern;
@@ -39,7 +40,16 @@ namespace Terumi.Parser
 			_returnPattern = new ReturnExpressionPattern(this);
 			_accessPattern = new AccessExpressionPattern(this);
 			_numericPattern = new NumericLiteralExpressionPattern(this);
-			_expressionPattern = new ExpressionPattern(_methodCallPattern, _returnPattern, _accessPattern, _numericPattern);
+			_thisPattern = new ThisExpressionPattern(this);
+
+			_expressionPattern = new ExpressionPattern
+			(
+				_methodCallPattern,
+				_returnPattern,
+				_accessPattern,
+				_numericPattern,
+				_thisPattern
+			);
 
 			_methodCallParameterGroupPattern.ExpressionPattern = _expressionPattern;
 			_returnPattern.ExpressionPattern = _expressionPattern;

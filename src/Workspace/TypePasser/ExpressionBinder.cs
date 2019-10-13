@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using Terumi.Ast.Code;
 using Terumi.SyntaxTree.Expressions;
@@ -11,18 +12,54 @@ namespace Terumi.Workspace.TypePasser
 	{
 		private readonly TypeInformation _typeInformation;
 		private readonly InfoItem _type;
-		private readonly ThisExpression _thisExpression;
+		private readonly Ast.Code.ThisExpression _thisExpression;
 
 		public ExpressionBinder(TypeInformation typeInformation, InfoItem type)
 		{
 			_typeInformation = typeInformation;
 			_type = type;
-			_thisExpression = new ThisExpression(_type);
+			_thisExpression = new Ast.Code.ThisExpression(_type);
 		}
 
 		public void Bind(InfoItem.Method method)
 		{
+			if (_type.IsContract)
+			{
+				return;
+			}
+
 			foreach (var expression in method.TerumiBacking.Body.Expressions)
+			{
+				HandleExpression(expression);
+			}
+
+			if (method.ReturnType != TypeInformation.Void)
+			{
+				var isReturn = false;
+
+				// TODO: verify that for each branch there is a way to exit.
+
+				// make sure it returns the proper type
+				foreach(var statement in method.Statements)
+				{
+					if (statement is ReturnStatement returnStatement)
+					{
+						isReturn = true;
+
+						if (returnStatement.ReturnOn.Type != method.ReturnType)
+						{
+							throw new Exception($"Returning on a '{returnStatement.ReturnOn.Type.Name}' - suppose to return on a '{method.ReturnType.Name}'.");
+						}
+					}
+				}
+
+				if (!isReturn)
+				{
+					throw new Exception($"Method {method.Name} expected to return a {method.ReturnType.Name}, but doesn't return anything at all.");
+				}
+			}
+
+			void HandleExpression(Expression expression)
 			{
 				switch (expression)
 				{
@@ -35,6 +72,28 @@ namespace Terumi.Workspace.TypePasser
 					case MethodCall methodCall:
 					{
 						method.Statements.Add((MethodCallExpression)TopLevelBind(methodCall));
+					}
+					break;
+
+					case AccessExpression accessExpression:
+					{
+						var predecessor = TopLevelBind(accessExpression.Predecessor);
+
+						var action = TopLevelBind(accessExpression.Access, predecessor);
+
+						switch(action)
+						{
+							case MethodCallExpression methodCallExpression:
+							{
+								method.Statements.Add(methodCallExpression);
+							}
+							break;
+
+							default:
+							{
+								throw new Exception("Invalid access expression in code body: " + action.GetType().FullName);
+							}
+						}
 					}
 					break;
 
@@ -60,6 +119,16 @@ namespace Terumi.Workspace.TypePasser
 					var predecessor = TopLevelBind(accessExpression.Predecessor);
 
 					return TopLevelBind(accessExpression.Access, predecessor);
+				}
+
+				case NumericLiteralExpression numericLiteralExpression:
+				{
+					return new ConstantLiteralExpression<BigInteger>(numericLiteralExpression.LiteralValue);
+				}
+
+				case SyntaxTree.Expressions.ThisExpression _:
+				{
+					return new Ast.Code.ThisExpression(_type);
 				}
 
 				default:

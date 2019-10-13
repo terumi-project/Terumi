@@ -8,5 +8,6 @@
 		Using,
 		Namespace,
 		Return,
+		This,
 	}
 }

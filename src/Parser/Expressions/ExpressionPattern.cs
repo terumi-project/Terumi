@@ -11,25 +11,29 @@ namespace Terumi.Parser.Expressions
 		private readonly IPattern<ReturnExpression> _returnPattern;
 		private readonly IPattern<AccessExpression> _accessPattern;
 		private readonly IPattern<NumericLiteralExpression> _numericPattern;
+		private readonly IPattern<ThisExpression> _thisPattern;
 
 		public ExpressionPattern
 		(
 			IPattern<MethodCall> methodCallPattern,
 			IPattern<ReturnExpression> returnPattern,
 			IPattern<AccessExpression> accessPattern,
-			IPattern<NumericLiteralExpression> numericPattern
+			IPattern<NumericLiteralExpression> numericPattern,
+			IPattern<ThisExpression> thisPattern
 		)
 		{
 			_methodCallPattern = methodCallPattern;
 			_returnPattern = returnPattern;
 			_accessPattern = accessPattern;
 			_numericPattern = numericPattern;
+			_thisPattern = thisPattern;
 		}
 
 		public bool TryParse(ReaderFork<Token> source, out Expression item)
 			=> TryParse(source, _methodCallPattern, out item)
 			|| TryParse(source, _returnPattern, out item)
-			|| TryParse(source, _numericPattern, out item);
+			|| TryParse(source, _numericPattern, out item)
+			|| TryParse(source, _thisPattern, out item);
 			// || TryParse(source, _accessPattern, out item);
 
 		// this will give me a structure that looks like this

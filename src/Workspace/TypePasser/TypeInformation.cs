@@ -9,32 +9,37 @@ namespace Terumi.Workspace.TypePasser
 
 	public class TypeInformation
 	{
+		public static InfoItem Void { get; } = new InfoItem
+		{
+			IsCompilerDefined = true,
+			Name = "void"
+		};
+
+		public static InfoItem String { get; } = new InfoItem
+		{
+			IsCompilerDefined = true,
+			Name = "string"
+		};
+
+		public static InfoItem Number{ get; } = new InfoItem
+		{
+			IsCompilerDefined = true,
+			Name = "number"
+		};
+
+		public static InfoItem Boolean{ get; } = new InfoItem
+		{
+			IsCompilerDefined = true,
+			Name = "bool"
+		};
+
 		public TypeInformation()
 		{
 			// add built in types
-			InfoItems.Add(new InfoItem
-			{
-				IsCompilerDefined = true,
-				Name = "void"
-			});
-
-			InfoItems.Add(new InfoItem
-			{
-				IsCompilerDefined = true,
-				Name = "string"
-			});
-
-			InfoItems.Add(new InfoItem
-			{
-				IsCompilerDefined = true,
-				Name = "number"
-			});
-
-			InfoItems.Add(new InfoItem
-			{
-				IsCompilerDefined = true,
-				Name = "bool"
-			});
+			InfoItems.Add(Void);
+			InfoItems.Add(String);
+			InfoItems.Add(Number);
+			InfoItems.Add(Boolean);
 		}
 
 		public ICollection<InfoItem> InfoItems { get; set; } = new List<InfoItem>();

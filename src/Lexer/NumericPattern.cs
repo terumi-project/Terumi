@@ -23,7 +23,7 @@ namespace Terumi.Lexer
 				consumedNumber = true;
 
 				number *= 10;
-				number += '9' - (int)value;
+				number += (int)value - '0';
 
 				source.Advance(1);
 			}

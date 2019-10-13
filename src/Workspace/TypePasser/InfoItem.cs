@@ -25,6 +25,8 @@ namespace Terumi.Workspace.TypePasser
 
 		public SyntaxTree.TypeDefinition TerumiBacking { get; set; }
 
+		public bool IsContract { get; set; }
+
 		public class Field
 		{
 			public InfoItem Type { get; set; }
@@ -42,7 +44,7 @@ namespace Terumi.Workspace.TypePasser
 
 			public ICollection<Parameter> Parameters { get; set; }
 
-			public ICollection<Ast.Code.CodeStatement> Statements { get; set; }
+			public ICollection<Ast.Code.CodeStatement> Statements { get; set; } = new List<Ast.Code.CodeStatement>();
 
 			public SyntaxTree.Method TerumiBacking { get; set; }
 

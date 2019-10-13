@@ -29,6 +29,7 @@ namespace Terumi
 				KeyValuePair.Create("namespace", Keyword.Namespace),
 				KeyValuePair.Create("using", Keyword.Using),
 				KeyValuePair.Create("return", Keyword.Return),
+				KeyValuePair.Create("this", Keyword.This),
 			});
 
 			yield return new CharacterPattern(';');
@@ -97,6 +98,7 @@ namespace Terumi
 
 			binder.PassOverTypeDeclarations();
 			binder.PassOverMembers();
+			binder.PassOverMethodBodies();
 
 			// now we should be able to infer every type in every code body
 

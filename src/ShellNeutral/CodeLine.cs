@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
+﻿using System.Numerics;
 
 namespace Terumi.ShellNeutral
 {
-
 	public class CodeLine
 	{
 		public static CodeLine Pop { get; } = new CodeLine();
@@ -19,12 +14,12 @@ namespace Terumi.ShellNeutral
 		public CodeLine(BigInteger compilerFunctionId)
 		{
 			IsCompilerFunctionCall = true;
-			Variable = compilerFunctionId;
+			Number = compilerFunctionId;
 		}
 
 		public CodeLine(BigInteger labelId, bool isGoto, bool isDecl)
 		{
-			LabelId = labelId;
+			Number = labelId;
 
 			if (isDecl)
 			{
@@ -43,7 +38,7 @@ namespace Terumi.ShellNeutral
 			}
 		}
 
-		public CodeLine(BigInteger variable, CodeExpression expression)
+		public CodeLine(CodeExpression variable, CodeExpression expression)
 		{
 			IsSetLine = true;
 			Variable = variable;
@@ -52,10 +47,10 @@ namespace Terumi.ShellNeutral
 
 		public bool IsSetLine { get; }
 		public bool IsCompilerFunctionCall { get; }
-		public BigInteger Variable { get; }
+		public CodeExpression Variable { get; }
 		public CodeExpression Expression { get; }
 		public bool IsLabel { get; }
-		public BigInteger LabelId { get; }
+		public BigInteger Number { get; }
 		public bool IsGoto { get; }
 		public bool IsCall { get; }
 		public bool IsPop { get; }

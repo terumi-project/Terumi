@@ -1,9 +1,12 @@
-﻿namespace Terumi.SyntaxTree
+﻿using System;
+
+namespace Terumi.SyntaxTree
 {
 	public enum TypeDefinitionType
 	{
 		Class,
-		Contract
+		Contract,
+		Method
 	}
 
 	public static class TypeDefinitionTypeExtensions
@@ -13,6 +16,7 @@
 			{
 				TypeDefinitionType.Class => Tokens.Keyword.Class,
 				TypeDefinitionType.Contract => Tokens.Keyword.Contract,
+				_ => throw new ArgumentException("Unknown type definition type.")
 			};
 	}
 

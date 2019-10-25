@@ -27,6 +27,7 @@ namespace Terumi.Parser
 		private readonly IPattern<Method> _contractMethodPattern;
 		private readonly IPattern<TerumiMember> _contractMemberPattern;
 		private readonly IPattern<TypeDefinition> _contractPattern;
+		private readonly IPattern<TypeDefinition> _topLevelMethodPattern;
 		private readonly IPattern<TypeDefinition> _typeDefinitionPattern;
 		private readonly IPattern<CompilerUnitItem> _compilerUnitItem;
 		private readonly IPattern<CompilerUnit> _compilerUnit;
@@ -71,7 +72,9 @@ namespace Terumi.Parser
 			_contractMemberPattern = new CoagulatedPattern<Field, Method, TerumiMember>(_fieldPattern, _contractMethodPattern);
 			_contractPattern = new TypeDefinitionPattern(this, TypeDefinitionType.Contract, _contractMemberPattern);
 
-			_typeDefinitionPattern = new CoagulatedPattern<TypeDefinition, TypeDefinition, TypeDefinition>(_classPattern, _contractPattern);
+			_topLevelMethodPattern = new TopLevelMethodPattern(this, _methodPattern);
+
+			_typeDefinitionPattern = new CoagulationTypeDefinitionPattern(_classPattern, _contractPattern, _topLevelMethodPattern);
 
 			_compilerUnitItem = new CompilerUnitItemPattern(_typeDefinitionPattern, _packageLevelPattern);
 			_compilerUnit = new CompilerUnitPattern(this, _compilerUnitItem);

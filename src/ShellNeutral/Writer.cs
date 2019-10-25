@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Numerics;
-using System.Text;
 
 namespace Terumi.ShellNeutral
 {
@@ -16,7 +13,7 @@ namespace Terumi.ShellNeutral
 			return this;
 		}
 
-		public Writer Set(BigInteger variable, CodeExpression expression)
+		public Writer Set(CodeExpression variable, CodeExpression expression)
 			=> WriteLine(new CodeLine(variable, expression));
 
 		public Writer CallLabel(BigInteger label)

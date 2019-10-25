@@ -16,7 +16,7 @@ namespace Terumi.Parser.Expressions
 		public bool TryParse(ReaderFork<Token> source, out ThisExpression item)
 		{
 			if (!source.TryPeekNonWhitespace<KeywordToken>(out var token, out var peeked)
-				&& token.Keyword != Keyword.This)
+				|| token.Keyword != Keyword.This)
 			{
 				item = default;
 				return false;

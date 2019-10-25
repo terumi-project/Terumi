@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Text;
 
 namespace Terumi.ShellNeutral
 {
-
 	public class CodeExpression
 	{
 		public CodeExpression(IEnumerable<CodeExpression> expressions)
@@ -27,21 +24,20 @@ namespace Terumi.ShellNeutral
 			StringValue = value;
 		}
 
-		public CodeExpression(BigInteger value, bool isVariable)
+		public CodeExpression(BigInteger value)
 		{
-			if (isVariable)
-			{
-				IsVariable = true;
-			}
-			else
-			{
-				IsNumber = true;
-			}
-
+			IsNumber = true;
 			NumberValue = value;
 		}
 
+		public CodeExpression(CodeExpression variableName)
+		{
+			IsVariable = true;
+			Variable = variableName;
+		}
+
 		public bool IsArray { get; }
+		public CodeExpression Variable { get; }
 		public CodeExpression[] Expressions { get; }
 		public bool IsString { get; }
 		public string StringValue { get; }

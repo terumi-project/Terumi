@@ -5,6 +5,8 @@ using System.Linq;
 
 using Terumi.Binder;
 using Terumi.Lexer;
+using Terumi.ShellNeutral;
+using Terumi.Targets;
 using Terumi.Tokens;
 using Terumi.Workspace;
 
@@ -76,9 +78,9 @@ namespace Terumi
 				file = "sample_project";
 			}
 #endif
-			var fs = new System.IO.Abstractions.FileSystem();
+			var fileSystem = new System.IO.Abstractions.FileSystem();
 
-			if (!Project.TryLoad(file, fs, Git.Instance, out var project))
+			if (!Project.TryLoad(file, fileSystem, Git.Instance, out var project))
 			{
 				Console.WriteLine("Couldn't load project.");
 				return;
@@ -97,9 +99,18 @@ namespace Terumi
 			binder.PassOverMembers();
 			binder.PassOverMethodBodies();
 
+			var writer = new Writer();
+			Translate.Project(writer, binder.TypeInformation);
+
+			using var fs = File.OpenWrite("out.ps1");
+			using var sw = new StreamWriter(fs);
+
+			var target = new PowershellTarget(sw);
+			target.Write(writer.Code);
+
 			// now we should be able to infer every type in every code body
 
-#if DEBUG
+#if false
 			var jsonSerialized = Newtonsoft.Json.JsonConvert.SerializeObject(binder.TypeInformation, Newtonsoft.Json.Formatting.Indented, new Newtonsoft.Json.JsonSerializerSettings
 			{
 				ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Serialize,

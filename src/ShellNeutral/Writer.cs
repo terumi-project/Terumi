@@ -13,8 +13,11 @@ namespace Terumi.ShellNeutral
 			return this;
 		}
 
-		public Writer Set(CodeExpression variable, CodeExpression expression)
-			=> WriteLine(new CodeLine(variable, expression));
+		public Writer Place(BigInteger label)
+			=> WriteLine(new CodeLine(label, false, true));
+
+		public Writer Goto(BigInteger label)
+			=> WriteLine(new CodeLine(label, true, false));
 
 		public Writer CallLabel(BigInteger label)
 			=> WriteLine(new CodeLine(label, false, false));
@@ -22,11 +25,8 @@ namespace Terumi.ShellNeutral
 		public Writer CallCompiler(BigInteger compilerFunctionId)
 			=> WriteLine(new CodeLine(compilerFunctionId));
 
-		public Writer Goto(BigInteger label)
-			=> WriteLine(new CodeLine(label, true, false));
-
-		public Writer Place(BigInteger label)
-			=> WriteLine(new CodeLine(label, false, true));
+		public Writer Set(CodeExpression variable, CodeExpression expression)
+			=> WriteLine(new CodeLine(variable, expression));
 
 		public Writer Pop()
 			=> WriteLine(CodeLine.Pop);

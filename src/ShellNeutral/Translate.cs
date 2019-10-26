@@ -18,7 +18,7 @@ namespace Terumi.ShellNeutral
 
 			// translate all methods
 
-			BigInteger id = 0;
+			BigInteger id = 1;
 
 			foreach(var method in typeInformation.InfoItems)
 			{
@@ -28,12 +28,12 @@ namespace Terumi.ShellNeutral
 					continue;
 				}
 
-				var methodId = id;
+				BigInteger methodId = 0;
 
 				// we should've verified from before that there can't be two methods with the same level
-				if (method.Name == "main")
+				if (method.Name != "main")
 				{
-					methodId = 0;
+					methodId = id++;
 				}
 
 				var translatedMethod = new TranslationLayer.Method
@@ -52,6 +52,8 @@ namespace Terumi.ShellNeutral
 						ParameterId = parameterId++
 					});
 				}
+
+				layer.Methods.Add(translatedMethod);
 			}
 
 			Project(writer, layer);

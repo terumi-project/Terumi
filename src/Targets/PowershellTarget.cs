@@ -17,8 +17,9 @@ namespace Terumi.Targets
 			_writer = writer;
 		}
 
+		private bool _wroteLabel = false;
 		private bool _inLabel = false;
-		private BigInteger _labelId = 0;
+		private BigInteger _popId = -1;
 		private bool _popped = false;
 
 		public void Write(IEnumerable<CodeLine> lines)
@@ -28,49 +29,42 @@ namespace Terumi.Targets
 # This code is compiled and generated.
 
 # Boilerplate setup for interpreting ShellNeutral stuff.
-public class Scope
-{
-	public Dictionary<dynamic, dynamic> Variables { get; set; } = new Dictionary<dynamic, dynamic>();
-	public BigInteger Label { get; set; } = 0;
+$scopes_Variables = New-Object System.Collections.Generic.List[System.Object]
+$scopes_Label = New-Object System.Collections.Generic.List[System.Object]
+$scopes_Variables.Add(@{})
+$scopes_Label.Add(0)
 
-	public Scope Clone()
-	{
-		Dictionary<dynamic, dynamic> target = new Dictionary<dynamic, dynamic>();
+$scopeVars = $scopes_Variables[0]
+$scopeLabel = $scopes_Label[0]
 
-		foreach(KeyValuePair<dynamic, dynamic> kvp in Variables)
-		{
-			target[kvp.Key] = kvp.Value;
-		}
-
-		return new Scope
-		{
-			Variables = target
-			Label = Label
-		};
-	}
+function Change-Scope($label) {
+    $global:scopeLabel = $label
+    $global:scopes_Label[$global:scopes_Label.Count - 1] = $label
 }
 
-# Setup environment variables & helpers
-List<Scope> scopes = new List<Scope>();
-Scope scope = new Scope();
-
-void UpScope(BigInteger label)
-{
-	Scope newScope = scope.Clone(label);
-	scopes.Add(scope);
-	scope = newScope;
+function Assign-Scope() {
+    $global:scopeVars = $global:scopes_Variables[$global:scopes_Variables.Count - 1]
+    $global:scopeLabel = $global:scopes_Label[$global:scopes_Label.Count - 1]
 }
 
-void DownScope()
-{
-	scope = scopes[scopes.Length - 1]
-	scopes.RemoveAt(scopes.Length - 1);
+function Up-Scope($label) {
+    $global:scopes_Variables.Add($global:scopes_Variables[$global:scopes_Variables.Count - 1].Clone())
+    $global:scopes_Label.Add($label)
 }
 
-# Begin code
-UpScope(0);
+function Down-Scope() {
+    if ($global:scopes_Variables.Count -eq 0) {
+        # we will die anyways now
+        return
+    }
 
-while(scopes.Count > 0)
+    $global:scopes_Variables.RemoveAt($global:scopes_Variables.Count - 1)
+    $global:scopes_Label.RemoveAt($global:scopes_Label.Count - 1)
+
+    Assign-Scope
+}
+
+While ($scopes_Variables.Count -gt 0)
 {");
 
 			foreach(var line in lines)
@@ -125,10 +119,29 @@ while(scopes.Count > 0)
 		public void WriteLabel(BigInteger id)
 		{
 			_writer.WriteLine("\t# :" + id);
-			_writer.Write("\tcase ");
+
+			if (_inLabel)
+			{
+				// we need to quit the current label to set the current label to this label
+				_writer.WriteLine("\t\tChange-Scope " + ToBigInteger(id));
+				CloseLabel();
+			}
+
+			_writer.Write("\t");
+
+			if (_wroteLabel)
+			{
+				_writer.Write("else");
+			}
+
+			_wroteLabel = true;
+
+			_writer.Write("if ($scopeLabel -eq ");
 			_writer.Write(id);
-			_writer.WriteLine(":");
+			_writer.WriteLine(")");
 			_writer.WriteLine("\t{");
+
+			_inLabel = true;
 		}
 
 		public void WriteGoto(BigInteger id)
@@ -149,11 +162,18 @@ while(scopes.Count > 0)
 				throw new Exception("Invalid code line 'call' - not in label!");
 			}
 
+			var callback = _popId++;
+
 			_writer.WriteLine("\t\t# CALL " + id);
-			_writer.Write("\t\tUpScope(");
+			_writer.Write("\t\tChange-Scope ");
+			_writer.Write(ToBigInteger(callback));
+			_writer.WriteLine();
+			_writer.Write("\t\tUp-Scope ");
 			_writer.Write(ToBigInteger(id));
-			_writer.WriteLine(");");
-			SwitchToCase(id);
+			_writer.WriteLine();
+			CloseLabel();
+
+			WriteLabel(callback);
 		}
 
 		public void WriteCompilerFunctionCall(BigInteger id)
@@ -175,7 +195,7 @@ while(scopes.Count > 0)
 			}
 
 			_writer.WriteLine("\t\t# POP");
-			_writer.WriteLine("\t\tDownScope();");
+			_writer.WriteLine("\t\tDown-Scope");
 			CloseLabel();
 		}
 
@@ -186,9 +206,9 @@ while(scopes.Count > 0)
 				throw new Exception("Invalid code line - cannot switch to label when not in label!");
 			}
 
-			_writer.Write("scope.Label = ");
+			_writer.Write("\t\tChange-Scope ");
 			_writer.Write(id);
-			_writer.WriteLine(";");
+			_writer.WriteLine();
 			CloseLabel();
 		}
 
@@ -206,7 +226,6 @@ while(scopes.Count > 0)
 			}
 
 			_writer.WriteLine("\t}");
-			_writer.WriteLine("\tbreak;");
 			_inLabel = false;
 		}
 	}

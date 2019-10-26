@@ -100,7 +100,17 @@ namespace Terumi
 			binder.PassOverMethodBodies();
 
 			var writer = new Writer();
-			Translate.Project(writer, binder.TypeInformation);
+			// Translate.Project(writer, binder.TypeInformation);
+
+			writer.Place(0)
+				.Goto(1)
+				.Place(2)
+				.Set(new CodeExpression("test"), new CodeExpression(1337))
+				.Pop()
+				.Place(1)
+				.Set(new CodeExpression("wee"), new CodeExpression(1234))
+				.CallLabel(2)
+				.Pop();
 
 			using var fs = File.OpenWrite("out.ps1");
 			using var sw = new StreamWriter(fs);

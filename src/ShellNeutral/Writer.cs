@@ -22,7 +22,7 @@ namespace Terumi.ShellNeutral
 		public Writer CallLabel(BigInteger label)
 			=> WriteLine(new CodeLine(label, false, false));
 
-		public Writer CallCompiler(BigInteger compilerFunctionId)
+		public Writer CallCompiler(string compilerFunctionId)
 			=> WriteLine(new CodeLine(compilerFunctionId));
 
 		public Writer Set(CodeExpression variable, CodeExpression expression)

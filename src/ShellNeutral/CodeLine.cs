@@ -11,10 +11,10 @@ namespace Terumi.ShellNeutral
 			IsPop = true;
 		}
 
-		public CodeLine(BigInteger compilerFunctionId)
+		public CodeLine(string compilerFunctionId)
 		{
 			IsCompilerFunctionCall = true;
-			Number = compilerFunctionId;
+			String = compilerFunctionId;
 		}
 
 		public CodeLine(BigInteger labelId, bool isGoto, bool isDecl)
@@ -54,5 +54,6 @@ namespace Terumi.ShellNeutral
 		public bool IsGoto { get; }
 		public bool IsCall { get; }
 		public bool IsPop { get; }
+		public string String { get; }
 	}
 }

@@ -22,6 +22,14 @@ namespace Terumi.Targets
 		private BigInteger _popId = -1;
 		private bool _popped = false;
 
+		private static string WriteCode(string id, string code)
+		{
+			return @"	if ($id -eq " + ToString(id) + @") {
+" + code + @"
+		return
+	}";
+		}
+
 		public void Write(IEnumerable<CodeLine> lines)
 		{
 			// setup some boilerplate powershell crud for shell neutral
@@ -57,11 +65,35 @@ function Down-Scope() {
         # we will die anyways now
         return
     }
+	
+    if ($global:scopes_Variables.Count -gt 1) {
+        $setNew = @{}
+
+		# merge the negative bigintegers at the current layer w/ the previous
+		foreach ($key in $global:scopeVars.Keys) {
+			if ($key.GetType() -eq [System.Numerics.BigInteger]) {
+				if ($key -lt 0) {
+					$setNew[$key.ToString()] = $global:scopeVars[$key]
+				}
+			}
+		}
+
+        foreach ($key in $setNew.Keys) {
+            $bigIntKey = New-Object System.Numerics.BigInteger $key
+            $global:scopes_Variables[$global:scopes_Variables.Count - 2][$bigIntKey] = $setNew[$key]
+        }
+	}
 
     $global:scopes_Variables.RemoveAt($global:scopes_Variables.Count - 1)
     $global:scopes_Label.RemoveAt($global:scopes_Label.Count - 1)
 
     Assign-Scope
+}
+
+function Compiler-Defined([System.String] $id) {
+" +
+WriteCode("println", @"Write-Host $global:scopeVars[" + ToBigInteger(0) + "]") +
+@"
 }
 
 While ($scopes_Variables.Count -gt 0)
@@ -83,7 +115,7 @@ While ($scopes_Variables.Count -gt 0)
 				}
 				else if (line.IsCompilerFunctionCall)
 				{
-					WriteCompilerFunctionCall(line.Number);
+					WriteCompilerFunctionCall(line.String);
 				}
 				else if (line.IsSetLine)
 				{
@@ -139,6 +171,7 @@ While ($scopes_Variables.Count -gt 0)
 			_writer.Write("if ($scopeLabel -eq ");
 			_writer.Write(id);
 			_writer.WriteLine(")");
+
 			_writer.WriteLine("\t{");
 
 			_inLabel = true;
@@ -165,26 +198,71 @@ While ($scopes_Variables.Count -gt 0)
 			var callback = _popId++;
 
 			_writer.WriteLine("\t\t# CALL " + id);
+
 			_writer.Write("\t\tChange-Scope ");
-			_writer.Write(ToBigInteger(callback));
-			_writer.WriteLine();
+			_writer.WriteLine(ToBigInteger(callback));
+
 			_writer.Write("\t\tUp-Scope ");
-			_writer.Write(ToBigInteger(id));
-			_writer.WriteLine();
+			_writer.WriteLine(ToBigInteger(id));
+
+			_writer.WriteLine("\t\tAssign-Scope");
 			CloseLabel();
 
 			WriteLabel(callback);
 		}
 
-		public void WriteCompilerFunctionCall(BigInteger id)
+		public void WriteCompilerFunctionCall(string id)
 		{
 			// TODO
-			_writer.WriteLine("\t\t#TODO: Write Compiler Function Call " + id);
+			_writer.Write("\t\t# CALL @");
+			_writer.WriteLine(id);
+
+			_writer.Write("\t\tCompiler-Defined ");
+			_writer.WriteLine(ToString(id));
 		}
 
 		public void WriteSet(CodeExpression left, CodeExpression right)
 		{
-			_writer.WriteLine("\t\t#TODO: Set ");
+			_writer.WriteLine("\t\t# SET");
+
+			_writer.Write("\t\t$scopeVars[");
+			_writer.Write(EvaluateExpression(left));
+			_writer.Write("] = ");
+			_writer.WriteLine(EvaluateExpression(right));
+		}
+
+		private string EvaluateExpression(CodeExpression expression)
+		{
+			if (expression.IsNumber)
+			{
+				return ToBigInteger(expression.NumberValue);
+			}
+			else if (expression.IsString)
+			{
+				// TODO: better
+				return $"\"{expression.StringValue}\"";
+			}
+			else if (expression.IsVariable)
+			{
+				return $"$scopeVars[({EvaluateExpression(expression.Variable)})]";
+			}
+			else if (expression.IsConcatenationExpression)
+			{
+				StringBuilder strb = new StringBuilder("\"");
+
+				foreach(var concatExpr in expression.Expressions)
+				{
+					strb.Append("$(");
+					strb.Append(EvaluateExpression(concatExpr));
+					strb.Append(')');
+				}
+
+				strb.Append('\"');
+
+				return strb.ToString();
+			}
+
+			throw new ArgumentException("Unknown code expression");
 		}
 
 		public void WritePop()
@@ -195,6 +273,7 @@ While ($scopes_Variables.Count -gt 0)
 			}
 
 			_writer.WriteLine("\t\t# POP");
+
 			_writer.WriteLine("\t\tDown-Scope");
 			CloseLabel();
 		}
@@ -207,15 +286,19 @@ While ($scopes_Variables.Count -gt 0)
 			}
 
 			_writer.Write("\t\tChange-Scope ");
-			_writer.Write(id);
-			_writer.WriteLine();
+			_writer.WriteLine(id);
 			CloseLabel();
 		}
 
-		private string ToBigInteger(BigInteger id)
+		private static string ToBigInteger(BigInteger id)
 		{
 			// TODO: new BigInteger("id");
-			return id.ToString();
+			return $"(New-Object System.Numerics.BigInteger \"{id.ToString()}\")";
+		}
+
+		private static string ToString(string id)
+		{
+			return $"\"{id}\"";
 		}
 
 		private void CloseLabel()

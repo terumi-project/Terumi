@@ -106,10 +106,38 @@ namespace Terumi
 				.Goto(1)
 				.Place(2)
 				.Set(new CodeExpression("test"), new CodeExpression(1337))
+				.Set(new CodeExpression(-12345), new CodeExpression(new CodeExpression[] { new CodeExpression("a"), new CodeExpression("b") }))
 				.Pop()
 				.Place(1)
 				.Set(new CodeExpression("wee"), new CodeExpression(1234))
+				.Set(new CodeExpression(new CodeExpression[]
+				{
+					new CodeExpression("test"),
+					new CodeExpression(12345),
+					new CodeExpression(new CodeExpression[]
+					{
+						new CodeExpression("another concat"),
+						new CodeExpression(new CodeExpression("wee"))
+					})
+				}),
+				new CodeExpression(new CodeExpression[]
+				{
+					new CodeExpression("test"),
+					new CodeExpression(12345),
+					new CodeExpression(new CodeExpression[]
+					{
+						new CodeExpression("another concat"),
+						new CodeExpression(new CodeExpression("wee"))
+					})
+				}))
 				.CallLabel(2)
+				.Set(new CodeExpression(0), new CodeExpression(new CodeExpression[]
+				{
+					new CodeExpression("We set -12345 to: '"),
+					new CodeExpression(new CodeExpression(-12345)),
+					new CodeExpression("'.")
+				}))
+				.CallCompiler("println")
 				.Pop();
 
 			using var fs = File.OpenWrite("out.ps1");

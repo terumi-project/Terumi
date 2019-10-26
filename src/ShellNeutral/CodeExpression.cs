@@ -8,13 +8,13 @@ namespace Terumi.ShellNeutral
 	{
 		public CodeExpression(IEnumerable<CodeExpression> expressions)
 		{
-			IsArray = true;
+			IsConcatenationExpression = true;
 			Expressions = expressions.ToArray();
 		}
 
 		public CodeExpression(CodeExpression[] expressions)
 		{
-			IsArray = true;
+			IsConcatenationExpression = true;
 			Expressions = expressions;
 		}
 
@@ -36,7 +36,7 @@ namespace Terumi.ShellNeutral
 			Variable = variableName;
 		}
 
-		public bool IsArray { get; }
+		public bool IsConcatenationExpression { get; }
 		public CodeExpression Variable { get; }
 		public CodeExpression[] Expressions { get; }
 		public bool IsString { get; }

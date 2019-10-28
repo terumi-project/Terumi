@@ -13,7 +13,7 @@ namespace Terumi.ShellNeutral
 
 			var layer = new TranslationLayer
 			{
-				Information = typeInformation
+				BackingInformation = typeInformation
 			};
 
 			// translate all methods
@@ -22,7 +22,7 @@ namespace Terumi.ShellNeutral
 
 			foreach(var method in typeInformation.InfoItems)
 			{
-				if (!method.IsMethod)
+				if (true)
 				{
 					System.Console.WriteLine($"Cannot translate method {method.Name} - it's not a top level method.");
 					continue;
@@ -39,7 +39,8 @@ namespace Terumi.ShellNeutral
 				var translatedMethod = new TranslationLayer.Method
 				{
 					MethodName = method.Name,
-					LabelId = methodId
+					LabelId = methodId,
+					BackingMethod = method.Methods.ElementAt(0)
 				};
 
 				BigInteger parameterId = 0;
@@ -49,7 +50,8 @@ namespace Terumi.ShellNeutral
 					translatedMethod.Parameters.Add(new TranslationLayer.Method.Parameter
 					{
 						ParameterName = parameter.Name,
-						ParameterId = parameterId++
+						ParameterId = parameterId++,
+						BackingParameter = parameter
 					});
 				}
 
@@ -64,6 +66,7 @@ namespace Terumi.ShellNeutral
 			foreach(var method in translationLayer.Methods)
 			{
 				writer.Place(method.LabelId);
+
 				writer.Pop();
 			}
 		}

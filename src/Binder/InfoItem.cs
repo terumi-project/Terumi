@@ -23,11 +23,6 @@ namespace Terumi.Binder
 
 		public bool IsContract { get; set; }
 
-		/// <summary>
-		/// If this is true, the method definition will be in Methods[0].
-		/// </summary>
-		public bool IsMethod { get; set; }
-
 		public class Field
 		{
 			public InfoItem Type { get; set; }

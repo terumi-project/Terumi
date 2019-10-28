@@ -8,7 +8,7 @@ namespace Terumi.ShellNeutral
 {
 	public class TranslationLayer
 	{
-		public TypeInformation Information { get; set; }
+		public TypeInformation BackingInformation { get; set; }
 
 		public List<Method> Methods { get; set; } = new List<Method>();
 
@@ -18,6 +18,8 @@ namespace Terumi.ShellNeutral
 
 			public string MethodName { get; set; }
 
+			public InfoItem.Method BackingMethod { get; set; }
+
 			public List<Parameter> Parameters { get; set; } = new List<Parameter>();
 
 			public class Parameter
@@ -25,6 +27,8 @@ namespace Terumi.ShellNeutral
 				public BigInteger ParameterId { get; set; }
 
 				public string ParameterName { get; set; }
+
+				public InfoItem.Method.Parameter BackingParameter { get; set; }
 			}
 		}
 	}

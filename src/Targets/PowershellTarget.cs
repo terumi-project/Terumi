@@ -69,6 +69,18 @@ namespace Terumi.Targets
 								writer.WriteLine($"Write-Host (\"$(${parameterVar - 1})\")");
 							}
 							break;
+
+							case "concat":
+							{
+								writer.WriteLine($"${resultVar} = \"$(${parameterVar - 2})$(${parameterVar - 2})\"");
+							}
+							break;
+
+							case "add":
+							{
+								writer.WriteLine($"${resultVar} = ${parameterVar - 2} + ${parameterVar - 1}");
+							}
+							break;
 						}
 					}
 					else

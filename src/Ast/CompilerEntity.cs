@@ -35,6 +35,20 @@ namespace Terumi.Ast
 				Returns = TType.Void,
 				Params = new[] { TType.Number }
 			};
+
+			yield return new Func
+			{
+				Name = "concat",
+				Returns = TType.String,
+				Params = new[] { TType.String, TType.String }
+			};
+
+			yield return new Func
+			{
+				Name = "add",
+				Returns = TType.Number,
+				Params = new[] { TType.Number, TType.Number }
+			};
 		}
 
 		private static InfoItem Conv(TType type)
@@ -85,7 +99,8 @@ namespace Terumi.Ast
 						{
 							Name = "k" + k++,
 							Type = Conv(x)
-						}).ToList()
+						}).ToList(),
+						ReturnType = Conv(i.Returns)
 					}
 				});
 			}

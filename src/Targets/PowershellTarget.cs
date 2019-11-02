@@ -97,6 +97,17 @@ namespace Terumi.Targets
 					writer.WriteLine($"${resultVar} = \"{Sanitize(str.Literal)}\"");
 				}
 				break;
+
+				case ParameterExpression parameterExpression:
+				{
+					writer.WriteLine($"${resultVar} = ${parameterExpression.Parameter.Name}");
+				}
+				break;
+
+				default:
+				{
+					throw new Exception("Unresolved expression.");
+				}
 			}
 		}
 

@@ -116,6 +116,21 @@ namespace Terumi.Binder
 					return TopLevelBind(accessExpression.Access, predecessor);
 				}
 
+				case ReferenceExpression referenceExpression:
+				{
+					// the only named things we should be able to reference are variables and parameters
+					// TODO: check if we can reference a variable
+
+					// now check for parameters
+					if (!_type.Code.Parameters.Any(x => x.Name == referenceExpression.ReferenceName))
+					{
+						// nowhere else to look
+						throw new Exception("Unresolved reference '" + referenceExpression.ReferenceName + "'");
+					}
+
+					return new ParameterExpression(_type.Code.Parameters.First(x => x.Name == referenceExpression.ReferenceName));
+				}
+
 				case NumericLiteralExpression numericLiteralExpression:
 				{
 					return new ConstantLiteralExpression<BigInteger>(numericLiteralExpression.LiteralValue);

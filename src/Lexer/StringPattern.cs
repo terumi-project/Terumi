@@ -47,7 +47,7 @@ namespace Terumi.Lexer
 					continue;
 				}
 
-				strb.Append(current);
+				strb.Append((char)current);
 			}
 
 			if (!couldNext)

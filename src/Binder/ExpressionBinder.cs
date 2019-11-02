@@ -121,6 +121,11 @@ namespace Terumi.Binder
 					return new ConstantLiteralExpression<BigInteger>(numericLiteralExpression.LiteralValue);
 				}
 
+				case StringLiteralExpression stringLiteralExpression:
+				{
+					return new ConstantLiteralExpression<string>(stringLiteralExpression.LiteralValue);
+				}
+
 				case SyntaxTree.Expressions.ThisExpression _:
 				{
 					return new Ast.ThisExpression(_type);
@@ -141,12 +146,9 @@ namespace Terumi.Binder
 
 			if (methodCall.IsCompilerMethodCall)
 			{
-				if (!ParametersMatch(CompilerEntity.Instance.Type.Code.Parameters, expressions, out var parameters))
-				{
-					throw new InvalidOperationException("Compiler method call NOT println.");
-				}
+				var call = CompilerEntity.MatchMethod(methodCall.MethodName.Identifier, expressions.Select(x => x.Type));
 
-				return new MethodCallExpression(entity, CompilerEntity.Instance.Type.Code, parameters);
+				return new MethodCallExpression(entity, call.Type.Code, expressions.ToList());
 			}
 
 			foreach (var referencedItem in _typeInformation.AllReferenceableTypes(entity.Type))

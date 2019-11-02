@@ -91,6 +91,12 @@ namespace Terumi.Targets
 					writer.WriteLine($"${resultVar} = New-Object System.Numerics.BigInteger(\"{number.Literal.ToString()}\")");
 				}
 				break;
+
+				case ConstantLiteralExpression<string> str:
+				{
+					writer.WriteLine($"${resultVar} = \"{Sanitize(str.Literal)}\"");
+				}
+				break;
 			}
 		}
 
@@ -109,6 +115,36 @@ namespace Terumi.Targets
 			}
 
 			return item.Code.Parameters.Select(x => "$" + x.Name).Aggregate((a, b) => a + ", " + b);
+		}
+
+		private string Sanitize(string str)
+		{
+			var strb = new StringBuilder(str.Length);
+
+			foreach(var c in str)
+			{
+				if (c == '\n')
+				{
+					strb.Append('`');
+					strb.Append('n');
+				}
+				else if (c == '\t')
+				{
+					strb.Append('`');
+					strb.Append('t');
+				}
+				else if (c == '`')
+				{
+					strb.Append('`');
+					strb.Append('`');
+				}
+				else
+				{
+					strb.Append(c);
+				}
+			}
+
+			return strb.ToString();
 		}
 
 		public void Post(TextWriter writer)

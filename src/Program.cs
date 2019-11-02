@@ -54,6 +54,7 @@ namespace Terumi
 			yield return new IdentifierPattern(IdentifierCase.SnakeCase);
 			yield return new IdentifierPattern(IdentifierCase.PascalCase);
 			yield return new NumericPattern();
+			yield return new StringPattern();
 		}
 
 		private static IEnumerable<Token> DebugTokenInfo(IEnumerable<Token> tokens)

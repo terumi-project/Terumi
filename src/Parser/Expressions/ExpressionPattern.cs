@@ -11,6 +11,7 @@ namespace Terumi.Parser.Expressions
 		private readonly IPattern<ReturnExpression> _returnPattern;
 		private readonly IPattern<AccessExpression> _accessPattern;
 		private readonly IPattern<NumericLiteralExpression> _numericPattern;
+		private readonly IPattern<StringLiteralExpression> _stringPattern;
 		private readonly IPattern<ThisExpression> _thisPattern;
 
 		public ExpressionPattern
@@ -19,6 +20,7 @@ namespace Terumi.Parser.Expressions
 			IPattern<ReturnExpression> returnPattern,
 			IPattern<AccessExpression> accessPattern,
 			IPattern<NumericLiteralExpression> numericPattern,
+			IPattern<StringLiteralExpression> stringPattern,
 			IPattern<ThisExpression> thisPattern
 		)
 		{
@@ -26,6 +28,7 @@ namespace Terumi.Parser.Expressions
 			_returnPattern = returnPattern;
 			_accessPattern = accessPattern;
 			_numericPattern = numericPattern;
+			_stringPattern = stringPattern;
 			_thisPattern = thisPattern;
 		}
 
@@ -33,6 +36,7 @@ namespace Terumi.Parser.Expressions
 			=> TryParse(source, _methodCallPattern, out item)
 			|| TryParse(source, _returnPattern, out item)
 			|| TryParse(source, _numericPattern, out item)
+			|| TryParse(source, _stringPattern, out item)
 			|| TryParse(source, _thisPattern, out item);
 
 		// || TryParse(source, _accessPattern, out item);

@@ -20,6 +20,14 @@ namespace Terumi.Parser.Expressions
 
 		public bool TryParse(ReaderFork<Token> source, out MethodCall item)
 		{
+			bool isCompilerCall = false;
+
+			if (source.TryPeekCharacter('@', out var peeked))
+			{
+				isCompilerCall = true;
+				source.Advance(peeked);
+			}
+
 			if (!source.TryNextNonWhitespace<IdentifierToken>(out var target)
 				|| target.IdentifierCase != IdentifierCase.SnakeCase)
 			{
@@ -52,7 +60,7 @@ namespace Terumi.Parser.Expressions
 				return false;
 			}
 
-			item = new MethodCall(target, methodCallParameterGroup);
+			item = new MethodCall(isCompilerCall, target, methodCallParameterGroup);
 			_astNotificationReceiver.AstCreated(source, item);
 			return true;
 		}

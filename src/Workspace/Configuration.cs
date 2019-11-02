@@ -19,7 +19,7 @@ namespace Terumi.Workspace
 		}
 
 		[TomlMember(Key = "libs")]
-		public LibraryReference[] Libraries { get; set; }
+		public LibraryReference[] Libraries { get; set; } = Array.Empty<LibraryReference>();
 	}
 
 	public class LibraryReference

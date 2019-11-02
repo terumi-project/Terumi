@@ -19,14 +19,8 @@ namespace Terumi.Parser
 		private readonly IPattern<PackageLevel> _packageLevelPattern;
 		private readonly IPattern<ParameterType> _parameterTypePattern;
 		private readonly IPattern<ParameterGroup> _parameterGroupPattern;
-		private readonly IPattern<Field> _fieldPattern;
 		private readonly IPattern<CodeBody> _codeBodyPattern;
 		private readonly IPattern<Method> _methodPattern;
-		private readonly IPattern<TerumiMember> _classMemberPattern;
-		private readonly IPattern<TypeDefinition> _classPattern;
-		private readonly IPattern<Method> _contractMethodPattern;
-		private readonly IPattern<TerumiMember> _contractMemberPattern;
-		private readonly IPattern<TypeDefinition> _contractPattern;
 		private readonly IPattern<TypeDefinition> _topLevelMethodPattern;
 		private readonly IPattern<TypeDefinition> _typeDefinitionPattern;
 		private readonly IPattern<CompilerUnitItem> _compilerUnitItem;
@@ -61,20 +55,12 @@ namespace Terumi.Parser
 
 			_parameterTypePattern = new ParameterTypePattern(this);
 			_parameterGroupPattern = new ParameterGroupPattern(this, _parameterTypePattern);
-			_fieldPattern = new FieldPattern(this);
 			_codeBodyPattern = new CodeBodyPattern(this, _expressionPattern);
 			_methodPattern = new MethodPattern(this, _parameterGroupPattern, _codeBodyPattern);
 
-			_classMemberPattern = new CoagulatedPattern<Field, Method, TerumiMember>(_fieldPattern, _methodPattern);
-			_classPattern = new TypeDefinitionPattern(this, TypeDefinitionType.Class, _classMemberPattern);
-
-			_contractMethodPattern = new MethodPattern(this, _parameterGroupPattern, null);
-			_contractMemberPattern = new CoagulatedPattern<Field, Method, TerumiMember>(_fieldPattern, _contractMethodPattern);
-			_contractPattern = new TypeDefinitionPattern(this, TypeDefinitionType.Contract, _contractMemberPattern);
-
 			_topLevelMethodPattern = new TopLevelMethodPattern(this, _methodPattern);
 
-			_typeDefinitionPattern = new CoagulationTypeDefinitionPattern(_classPattern, _contractPattern, _topLevelMethodPattern);
+			_typeDefinitionPattern = _topLevelMethodPattern;
 
 			_compilerUnitItem = new CompilerUnitItemPattern(_typeDefinitionPattern, _packageLevelPattern);
 			_compilerUnit = new CompilerUnitPattern(this, _compilerUnitItem);

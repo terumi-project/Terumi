@@ -22,10 +22,7 @@ namespace Terumi.Parser
 		{
 			if (_methodPattern.TryParse(source, out var method))
 			{
-				item = new TypeDefinition(method.Identifier.Identifier, TypeDefinitionType.Method, new TerumiMember[]
-				{
-					method
-				});
+				item = new TypeDefinition(method.Identifier.Identifier, method);
 
 				_astNotificationReceiver.AstCreated(source, item);
 				return true;

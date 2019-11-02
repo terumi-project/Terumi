@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Targets\Python\" />
+    <Folder Include="Targets\" />
   </ItemGroup>
 
 </Project>

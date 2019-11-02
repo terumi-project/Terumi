@@ -12,20 +12,17 @@ namespace Terumi.Binder
 	{
 		private readonly InfoItem _type;
 		private readonly Ast.ThisExpression _thisExpression;
+		private readonly TypeInformation _typeInformation;
 
-		public ExpressionBinder(InfoItem type)
+		public ExpressionBinder(TypeInformation typeInformation, InfoItem type)
 		{
 			_type = type;
 			_thisExpression = new Ast.ThisExpression(_type);
+			_typeInformation = typeInformation;
 		}
 
 		public void Bind(InfoItem.Method method)
 		{
-			if (_type.IsContract)
-			{
-				return;
-			}
-
 			foreach (var expression in method.TerumiBacking.Body.Expressions)
 			{
 				HandleExpression(expression);
@@ -142,12 +139,22 @@ namespace Terumi.Binder
 
 			var expressions = ParseMethodCallExpressions(methodCall);
 
-			foreach (var referencedItem in _type.Methods)
+			if (methodCall.IsCompilerMethodCall)
+			{
+				if (!ParametersMatch(CompilerEntity.Instance.Type.Code.Parameters, expressions, out var parameters))
+				{
+					throw new InvalidOperationException("Compiler method call NOT println.");
+				}
+
+				return new MethodCallExpression(entity, CompilerEntity.Instance.Type.Code, parameters);
+			}
+
+			foreach (var referencedItem in _typeInformation.AllReferenceableTypes(entity.Type))
 			{
 				if (referencedItem.Name == methodCall.MethodName.Identifier
-					&& ParametersMatch(referencedItem.Parameters, expressions, out var parameters))
+					&& ParametersMatch(referencedItem.Code.Parameters, expressions, out var parameters))
 				{
-					return new MethodCallExpression(entity, referencedItem, parameters.AsReadOnly());
+					return new MethodCallExpression(entity, referencedItem.Code, parameters.AsReadOnly());
 				}
 			}
 

@@ -15,22 +15,9 @@ namespace Terumi.Binder
 
 		public string Name { get; set; }
 
-		public ICollection<Field> Fields { get; set; } = new List<Field>(5);
-
-		public ICollection<Method> Methods { get; set; } = new List<Method>(10);
+		public Method Code { get; set; }
 
 		public SyntaxTree.TypeDefinition TerumiBacking { get; set; }
-
-		public bool IsContract { get; set; }
-
-		public class Field
-		{
-			public InfoItem Type { get; set; }
-
-			public string Name { get; set; }
-
-			public SyntaxTree.Field TerumiBacking { get; set; }
-		}
 
 		public class Method
 		{

@@ -25,12 +25,20 @@ namespace Terumi.Parser
 		{
 			var parameters = new List<Parameter>();
 
+			using (var fork = source.Fork())
+			{
+				if (!_parameterTypePattern.TryParse(fork, out _))
+				{
+					// if there's no identifier token, we're done
+					item = new ParameterGroup(Array.Empty<Parameter>());
+					_astNotificationReceiver.AstCreated(source, item);
+					return true;
+				}
+			}
+
 			if (!_parameterTypePattern.TryParse(source, out var parameterType))
 			{
-				// if there's no identifier token, we're done
-				item = new ParameterGroup(Array.Empty<Parameter>());
-				_astNotificationReceiver.AstCreated(source, item);
-				return true;
+				throw new Exception("Impossible to reeach ehree");
 			}
 
 			if (!source.TryNextNonWhitespace<IdentifierToken>(out var parameterName))

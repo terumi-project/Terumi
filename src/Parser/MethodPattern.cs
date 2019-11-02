@@ -36,6 +36,8 @@ namespace Terumi.Parser
 				&& characterToken.IsChar('('))
 			{
 				// TODO: incorrect identifier for identifierOrType exception if != snake case
+
+				// we don't advance because the parameter parsing stage expects an open parenthesis
 				source.Advance(peeked);
 
 				// now it's method body time

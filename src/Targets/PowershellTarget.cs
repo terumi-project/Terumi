@@ -73,7 +73,7 @@ namespace Terumi.Targets
 					}
 					else
 					{
-						writer.Write(methodCallExpression.CallingMethod.Name);
+						writer.Write($"${resultVar} = {methodCallExpression.CallingMethod.Name}");
 
 						for (var i = 0; i < parameterVarCount; i++)
 						{

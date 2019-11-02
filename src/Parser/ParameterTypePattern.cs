@@ -14,15 +14,13 @@ namespace Terumi.Parser
 
 		public bool TryParse(ReaderFork<Token> source, out ParameterType item)
 		{
-			if (!source.TryPeekNonWhitespace<IdentifierToken>(out var identifier, out var peeked)
+			if (!source.TryNextNonWhitespace<IdentifierToken>(out var identifier)
 				) // || identifier.IdentifierCase != IdentifierCase.PascalCase)
 				  // we don't want to specifically test for PascalCase because SnakeCase counts as type (number, string, etc)
 			{
 				item = default;
 				return false;
 			}
-
-			source.Advance(peeked);
 
 			if (HasBrackets(source))
 			{

@@ -28,6 +28,11 @@ namespace Terumi.Lexer
 					continue;
 				}
 
+				if (strb.Length == 0 && current == '\n')
+				{
+					// we don't want to append a \n if it's the first character in the string
+				}
+
 				if (current == '\\')
 				{
 					if (!source.TryNext(out var next))

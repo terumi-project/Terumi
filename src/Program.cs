@@ -5,6 +5,7 @@ using System.Linq;
 
 using Terumi.Binder;
 using Terumi.Lexer;
+using Terumi.Targets;
 using Terumi.Tokens;
 using Terumi.Workspace;
 
@@ -96,6 +97,32 @@ namespace Terumi
 			binder.PassOverTypeDeclarations();
 			binder.PassOverMembers();
 			binder.PassOverMethodBodies();
+
+			try
+			{
+				File.Delete("out.ps1");
+			}
+			// if we can't delete it then oh well lol
+			catch (IOException _)
+			{
+			}
+
+			using var fs = File.OpenWrite("out.ps1");
+			using var sw = new StreamWriter(fs);
+
+			var target = new PowershellTarget(binder.TypeInformation);
+
+			foreach(var item in binder.TypeInformation.InfoItems)
+			{
+				if (item.IsCompilerDefined)
+				{
+					continue;
+				}
+
+				target.Write(sw, item);
+			}
+
+			target.Post(sw);
 
 			// now we should be able to infer every type in every code body
 

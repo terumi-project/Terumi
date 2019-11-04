@@ -38,6 +38,13 @@ namespace Terumi.Ast
 
 			yield return new Func
 			{
+				Name = "println",
+				Returns = TType.Void,
+				Params = new[] { TType.Boolean }
+			};
+
+			yield return new Func
+			{
 				Name = "concat",
 				Returns = TType.String,
 				Params = new[] { TType.String, TType.String }

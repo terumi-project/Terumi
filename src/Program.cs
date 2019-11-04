@@ -28,6 +28,8 @@ namespace Terumi
 				KeyValuePair.Create("using", Keyword.Using),
 				KeyValuePair.Create("return", Keyword.Return),
 				KeyValuePair.Create("this", Keyword.This),
+				KeyValuePair.Create("true", Keyword.True),
+				KeyValuePair.Create("false", Keyword.False),
 			});
 
 			yield return new CharacterPattern(';');

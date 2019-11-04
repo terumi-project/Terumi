@@ -141,6 +141,11 @@ namespace Terumi.Binder
 					return new ConstantLiteralExpression<string>(stringLiteralExpression.LiteralValue);
 				}
 
+				case BooleanLiteralExpression booleanLiteralExpression:
+				{
+					return new ConstantLiteralExpression<bool>(booleanLiteralExpression.LiteralValue);
+				}
+
 				case SyntaxTree.Expressions.ThisExpression _:
 				{
 					return new Ast.ThisExpression(_type);

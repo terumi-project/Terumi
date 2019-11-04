@@ -9,5 +9,7 @@
 		Namespace,
 		Return,
 		This,
+		True,
+		False
 	}
 }

@@ -37,9 +37,30 @@ namespace Terumi.Targets
 			{
 				case MethodCallExpression methodCallExpression:
 				{
+					if (TryHandleInlineExpression(methodCallExpression, out var result))
+					{
+						writer.WriteLine($"\t{result}");
+						return;
+					}
+
 					HandleExpression(writer, 0, methodCallExpression);
 				}
 				break;
+
+				case ReturnStatement returnStatement:
+				{
+					if (TryHandleInlineExpression(returnStatement.ReturnOn, out var result))
+					{
+						writer.WriteLine($"\treturn {result}");
+						return;
+					}
+
+					HandleExpression(writer, 0, returnStatement.ReturnOn);
+					writer.WriteLine($"\treturn $0");
+				}
+				break;
+
+				default: throw new Exception("Unhandled statement " + statement);
 			}
 		}
 
@@ -48,79 +69,138 @@ namespace Terumi.Targets
 			int parameterVarCount = 0;
 			int parameterVar = resultVar + 1;
 
+			if (TryHandleInlineExpression(expression, out var result))
+			{
+				writer.WriteLine($"\t${resultVar} = {result}");
+				return;
+			}
+
+			// anything an inline can't do, we do
+
+			switch (expression)
+			{
+				default: throw new Exception("Unhandled expression: " + expression);
+			}
+		}
+
+		private bool TryHandleInlineExpression(ICodeExpression expression, out string result)
+		{
 			switch (expression)
 			{
 				case MethodCallExpression methodCallExpression:
 				{
+					var inlineParameters = new List<string>();
+
 					foreach (var parameter in methodCallExpression.Parameters)
 					{
-						HandleExpression(writer, parameterVar++, parameter);
-						parameterVarCount++;
+						if (!TryHandleInlineExpression(parameter, out var param))
+						{
+							result = default;
+							return false;
+						}
+
+						inlineParameters.Add(param);
 					}
+
+					var strb = new StringBuilder();
 
 					if (methodCallExpression.CallingMethod.TerumiBacking == null)
 					{
-						// probably a compiler defined method
+						// compiler defined method
 
 						switch (methodCallExpression.CallingMethod.Name)
 						{
 							case "println":
 							{
-								writer.WriteLine($"Write-Host (\"$(${parameterVar - 1})\")");
+								result = "Write-Host " + inlineParameters[0];
 							}
 							break;
 
 							case "concat":
 							{
-								writer.WriteLine($"${resultVar} = \"$(${parameterVar - 2})$(${parameterVar - 2})\"");
+								strb.Append('"');
+
+								foreach (var parameter in inlineParameters)
+								{
+									strb.Append("$(");
+									strb.Append(parameter);
+									strb.Append(')');
+								}
+
+								strb.Append('"');
+
+								result = strb.ToString();
 							}
 							break;
 
 							case "add":
 							{
-								writer.WriteLine($"${resultVar} = ${parameterVar - 2} + ${parameterVar - 1}");
+								strb.Append('(');
+								strb.Append(inlineParameters[0]);
+
+								for (var i = 1; i < inlineParameters.Count; i++)
+								{
+									strb.Append('+');
+									strb.Append(inlineParameters[i]);
+								}
+
+								strb.Append(')');
+								result = strb.ToString();
 							}
 							break;
+
+							default:
+							{
+								result = default;
+								return false;
+							}
 						}
+
+						return true;
 					}
-					else
+
+					strb.Append('(');
+					strb.Append(methodCallExpression.CallingMethod.Name);
+
+					foreach (var parameter in inlineParameters)
 					{
-						writer.Write($"${resultVar} = {methodCallExpression.CallingMethod.Name}");
-
-						for (var i = 0; i < parameterVarCount; i++)
-						{
-							writer.Write(" $");
-							writer.Write(resultVar + 1 + i);
-						}
-
-						writer.WriteLine();
+						strb.Append(' ');
+						strb.Append(parameter);
 					}
+
+					strb.Append(')');
+
+					result = strb.ToString();
+					return true;
 				}
-				break;
 
 				case ConstantLiteralExpression<BigInteger> number:
 				{
-					writer.WriteLine($"${resultVar} = New-Object System.Numerics.BigInteger(\"{number.Literal.ToString()}\")");
+					result = $"(New-Object System.Numerics.BigInteger(\"{number.Literal.ToString()}\"))";
+					return true;
 				}
-				break;
 
 				case ConstantLiteralExpression<string> str:
 				{
-					writer.WriteLine($"${resultVar} = \"{Sanitize(str.Literal)}\"");
+					result = $"\"{Sanitize(str.Literal)}\"";
+					return true;
 				}
-				break;
+
+				case ConstantLiteralExpression<bool> @bool:
+				{
+					result = @bool.Literal ? "$TRUE" : "$FALSE";
+					return true;
+				}
 
 				case ParameterExpression parameterExpression:
 				{
-					writer.WriteLine($"${resultVar} = ${parameterExpression.Parameter.Name}");
-				}
-				break;
-
-				default:
-				{
-					throw new Exception("Unresolved expression.");
+					result = $"${parameterExpression.Parameter.Name}";
+					return true;
 				}
 			}
+
+			result = default;
+			return false;
 		}
 
 		private string Parameters(InfoItem item)

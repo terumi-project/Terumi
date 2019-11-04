@@ -17,6 +17,7 @@ namespace Terumi.Parser
 		private readonly ExpressionPattern _expressionPattern;
 		private readonly ThisExpressionPattern _thisPattern;
 		private readonly ReferenceExpressionPattern _referencePattern;
+		private readonly BooleanLiteralExpressionPattern _booleanPattern;
 
 		private readonly IPattern<PackageLevel> _packageLevelPattern;
 		private readonly IPattern<ParameterType> _parameterTypePattern;
@@ -39,6 +40,7 @@ namespace Terumi.Parser
 			_stringPattern = new StringLiteralExpressionPattern(this);
 			_thisPattern = new ThisExpressionPattern(this);
 			_referencePattern = new ReferenceExpressionPattern(this);
+			_booleanPattern = new BooleanLiteralExpressionPattern(this);
 
 			_expressionPattern = new ExpressionPattern
 			(
@@ -48,7 +50,8 @@ namespace Terumi.Parser
 				_numericPattern,
 				_stringPattern,
 				_thisPattern,
-				_referencePattern
+				_referencePattern,
+				_booleanPattern
 			);
 
 			_methodCallParameterGroupPattern.ExpressionPattern = _expressionPattern;

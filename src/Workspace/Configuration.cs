@@ -35,5 +35,8 @@ namespace Terumi.Workspace
 
 		[TomlMember(Key = "commit")]
 		public string CommitId { get; set; }
+
+		[TomlMember(Key = "path")]
+		public string Path { get; set; }
 	}
 }

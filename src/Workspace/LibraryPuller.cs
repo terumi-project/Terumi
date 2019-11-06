@@ -41,14 +41,18 @@ namespace Terumi.Workspace
 			var libHome = _fileSystem.Path.Combine(_libraryPath, name);
 			var libExists = _fileSystem.Directory.Exists(libHome);
 
-			if (forcePull || !libExists)
+			// TODO: decide the best way to pull crud, w/ forcePull
+			if (reference.Path != null && _fileSystem.Directory.Exists(reference.Path))
 			{
-				if (_fileSystem.Directory.Exists(libHome))
-				{
-					_fileSystem.Directory.Delete(libHome, true);
-				}
-
-				_git.Clone(reference.GitUrl, reference.Branch, reference.CommitId, libHome);
+				libHome = _fileSystem.Path.GetFullPath(reference.Path);
+			}
+			else if (forcePull)
+			{
+				Repull();
+			}
+			else if (!libExists)
+			{
+				Repull();
 			}
 
 			var projects = new Project[reference.Projects.Length];
@@ -67,6 +71,16 @@ namespace Terumi.Workspace
 			}
 
 			return projects;
+
+			void Repull()
+			{
+				if (_fileSystem.Directory.Exists(libHome))
+				{
+					_fileSystem.Directory.Delete(libHome, true);
+				}
+
+				_git.Clone(reference.GitUrl, reference.Branch, reference.CommitId, libHome);
+			}
 		}
 	}
 }

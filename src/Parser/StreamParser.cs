@@ -18,6 +18,7 @@ namespace Terumi.Parser
 		private readonly ThisExpressionPattern _thisPattern;
 		private readonly ReferenceExpressionPattern _referencePattern;
 		private readonly BooleanLiteralExpressionPattern _booleanPattern;
+		private readonly VariableExpressionPattern _variablePattern;
 
 		private readonly IPattern<PackageLevel> _packageLevelPattern;
 		private readonly IPattern<ParameterType> _parameterTypePattern;
@@ -31,6 +32,10 @@ namespace Terumi.Parser
 
 		public StreamParser()
 		{
+			_parameterTypePattern = new ParameterTypePattern(this);
+			_packageLevelPattern = new PackageLevelPattern(this);
+			_parameterGroupPattern = new ParameterGroupPattern(this, _parameterTypePattern);
+
 			// expressions oh no
 			_methodCallParameterGroupPattern = new MethodCallParameterGroupPattern(this);
 			_methodCallPattern = new MethodCallPattern(this, _methodCallParameterGroupPattern);
@@ -41,6 +46,7 @@ namespace Terumi.Parser
 			_thisPattern = new ThisExpressionPattern(this);
 			_referencePattern = new ReferenceExpressionPattern(this);
 			_booleanPattern = new BooleanLiteralExpressionPattern(this);
+			_variablePattern = new VariableExpressionPattern(this, _parameterTypePattern);
 
 			_expressionPattern = new ExpressionPattern
 			(
@@ -51,19 +57,17 @@ namespace Terumi.Parser
 				_stringPattern,
 				_thisPattern,
 				_referencePattern,
-				_booleanPattern
+				_booleanPattern,
+				_variablePattern
 			);
 
 			_methodCallParameterGroupPattern.ExpressionPattern = _expressionPattern;
 			_returnPattern.ExpressionPattern = _expressionPattern;
 			_accessPattern.ExpressionPattern = _expressionPattern;
+			_variablePattern.ExpressionPattern = _expressionPattern;
 
 			// then other code stuff
 
-			_packageLevelPattern = new PackageLevelPattern(this);
-
-			_parameterTypePattern = new ParameterTypePattern(this);
-			_parameterGroupPattern = new ParameterGroupPattern(this, _parameterTypePattern);
 			_codeBodyPattern = new CodeBodyPattern(this, _expressionPattern);
 			_methodPattern = new MethodPattern(this, _parameterGroupPattern, _codeBodyPattern);
 

@@ -60,6 +60,17 @@ namespace Terumi.Targets
 				}
 				break;
 
+				case AssignmentStatement assignmentStatement:
+				{
+					if (!TryHandleInlineExpression(assignmentStatement.VariableAssignment, out var result))
+					{
+						throw new Exception("Impossible for inline to not handle variable assignment");
+					}
+
+					writer.WriteLine($"\t{result}");
+				}
+				break;
+
 				default: throw new Exception("Unhandled statement " + statement);
 			}
 		}
@@ -192,10 +203,32 @@ namespace Terumi.Targets
 					return true;
 				}
 
-				case ParameterExpression parameterExpression:
+				case ParameterReferenceExpression parameterExpression:
 				{
 					result = $"${parameterExpression.Parameter.Name}";
 					return true;
+				}
+
+				case VariableReferenceExpression variableReferenceExpression:
+				{
+					result = $"${variableReferenceExpression.VarName}";
+					return true;
+				}
+
+				case VariableAssignment variableAssignment:
+				{
+					if (!TryHandleInlineExpression(variableAssignment.Value, out var value))
+					{
+						throw new Exception("I didn't plan for inline expressions to be unable to handle everything oh god oh frick");
+					}
+
+					result = $"(${variableAssignment.VariableName} = {value})";
+					return true;
+				}
+
+				default:
+				{
+					throw new Exception("unhandled inline expression " + expression);
 				}
 			}
 

@@ -13,6 +13,7 @@ namespace Terumi.Binder
 		private readonly InfoItem _type;
 		private readonly Ast.ThisExpression _thisExpression;
 		private readonly TypeInformation _typeInformation;
+		private readonly List<(string name, InfoItem type)> _vars = new List<(string name, InfoItem type)>();
 
 		public ExpressionBinder(TypeInformation typeInformation, InfoItem type)
 		{
@@ -92,6 +93,14 @@ namespace Terumi.Binder
 					}
 					break;
 
+					case VariableExpression variableExpression:
+					{
+						var expr = TopLevelBind(variableExpression);
+
+						method.Statements.Add(new AssignmentStatement(expr as VariableAssignment));
+					}
+					break;
+
 					default:
 					{
 						throw new Exception("Invalid expression in code body: " + expression.GetType().FullName);
@@ -119,7 +128,13 @@ namespace Terumi.Binder
 				case ReferenceExpression referenceExpression:
 				{
 					// the only named things we should be able to reference are variables and parameters
-					// TODO: check if we can reference a variable
+					var varName = _vars.Find(x => x.name == referenceExpression.ReferenceName);
+
+					if (varName != default)
+					{
+						// TODOdoododododoojiiiiiiiiiiiiiiiiijoiiiiiiiiiiiiiijoooooooooooojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojo
+						return new VariableReferenceExpression(varName.name, varName.type);
+					}
 
 					// now check for parameters
 					if (!_type.Code.Parameters.Any(x => x.Name == referenceExpression.ReferenceName))
@@ -128,7 +143,7 @@ namespace Terumi.Binder
 						throw new Exception("Unresolved reference '" + referenceExpression.ReferenceName + "'");
 					}
 
-					return new ParameterExpression(_type.Code.Parameters.First(x => x.Name == referenceExpression.ReferenceName));
+					return new ParameterReferenceExpression(_type.Code.Parameters.First(x => x.Name == referenceExpression.ReferenceName));
 				}
 
 				case NumericLiteralExpression numericLiteralExpression:
@@ -149,6 +164,37 @@ namespace Terumi.Binder
 				case SyntaxTree.Expressions.ThisExpression _:
 				{
 					return new Ast.ThisExpression(_type);
+				}
+
+				case VariableExpression variableExpression:
+				{
+					var valueExpr = TopLevelBind(variableExpression.Value);
+
+					var name = variableExpression.Identifier.Identifier;
+
+					if (variableExpression.Type != null)
+					{
+						if (!_typeInformation.TryGetItem(_type, variableExpression.Type.TypeName.Identifier, out var type))
+						{
+							throw new Exception($"Unable to find variable type '{variableExpression.Type.TypeName.Identifier}' for variable '{name}'");
+						}
+
+						if (_vars.Any(x => x.name == name))
+						{
+							throw new Exception($"Variable '{name}' already defined.");
+						}
+
+						_vars.Add((name, type));
+					}
+					else
+					{
+						if (!_vars.Any(x => x.name == name))
+						{
+							_vars.Add((name, valueExpr.Type));
+						}
+					}
+
+					return new VariableAssignment(name, valueExpr);
 				}
 
 				default:

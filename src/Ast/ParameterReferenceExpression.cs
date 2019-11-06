@@ -2,9 +2,9 @@
 
 namespace Terumi.Ast
 {
-	public class ParameterExpression : ICodeExpression
+	public class ParameterReferenceExpression : ICodeExpression
 	{
-		public ParameterExpression(InfoItem.Method.Parameter parameter)
+		public ParameterReferenceExpression(InfoItem.Method.Parameter parameter)
 		{
 			Parameter = parameter;
 		}

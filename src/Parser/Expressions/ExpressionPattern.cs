@@ -15,6 +15,7 @@ namespace Terumi.Parser.Expressions
 		private readonly IPattern<ThisExpression> _thisPattern;
 		private readonly IPattern<ReferenceExpression> _referencePattern;
 		private readonly IPattern<BooleanLiteralExpression> _booleanPattern;
+		private readonly IPattern<VariableExpression> _variablePattern;
 
 		public ExpressionPattern
 		(
@@ -25,7 +26,8 @@ namespace Terumi.Parser.Expressions
 			IPattern<StringLiteralExpression> stringPattern,
 			IPattern<ThisExpression> thisPattern,
 			IPattern<ReferenceExpression> referencePattern,
-			IPattern<BooleanLiteralExpression> booleanPattern
+			IPattern<BooleanLiteralExpression> booleanPattern,
+			IPattern<VariableExpression> variablePattern
 		)
 		{
 			_methodCallPattern = methodCallPattern;
@@ -36,6 +38,7 @@ namespace Terumi.Parser.Expressions
 			_thisPattern = thisPattern;
 			_referencePattern = referencePattern;
 			_booleanPattern = booleanPattern;
+			_variablePattern = variablePattern;
 		}
 
 		public bool TryParse(ReaderFork<Token> source, out Expression item)
@@ -44,8 +47,10 @@ namespace Terumi.Parser.Expressions
 			|| TryParse(source, _numericPattern, out item)
 			|| TryParse(source, _stringPattern, out item)
 			|| TryParse(source, _thisPattern, out item)
+			|| TryParse(source, _booleanPattern, out item)
+			|| TryParse(source, _variablePattern, out item)
 			|| TryParse(source, _referencePattern, out item)
-			|| TryParse(source, _booleanPattern, out item);
+			;
 
 		// || TryParse(source, _accessPattern, out item);
 

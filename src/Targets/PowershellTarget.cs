@@ -222,7 +222,7 @@ namespace Terumi.Targets
 						throw new Exception("I didn't plan for inline expressions to be unable to handle everything oh god oh frick");
 					}
 
-					result = $"(${variableAssignment.VariableName} = {value})";
+					result = $"${variableAssignment.VariableName} = {value}";
 					return true;
 				}
 

@@ -11,13 +11,7 @@ namespace Terumi.Workspace
 	{
 		public static ParsedSourceFile Parse(this SourceFile sourceFile, StreamLexer lexer, StreamParser parser)
 		{
-			var tokens = lexer.ParseTokens(sourceFile.Source)
-			
-			#if DEBUG
-			.ToArray()
-			#endif
-			
-			;
+			var tokens = lexer.ParseTokens(sourceFile.Source);
 
 			if (!parser.TryParse(tokens, out var compilerUnit))
 			{

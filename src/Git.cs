@@ -13,12 +13,13 @@ namespace Terumi
 				BranchName = string.IsNullOrWhiteSpace(branch) ? "master" : branch,
 			});
 
-			var repo = new Repository(cloned);
+			using var repo = new Repository(cloned);
 
 			if (!string.IsNullOrWhiteSpace(commitHash))
 			{
 				repo.Reset(ResetMode.Hard, repo.Commits.First(commit => commit.Sha == commitHash));
 				// TODO: print ERROR saying they should specify a commit
+				Log.Warn($"Please specify a commit to pull the repository '{gitUrl}` from!");
 			}
 
 			return cloned;

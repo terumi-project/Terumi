@@ -14,7 +14,16 @@ namespace Terumi.Workspace
 			{
 				foreach (var source in dependency.GetSources())
 				{
-					yield return source.Parse(lexer, parser);
+					try
+					{
+						yield return source.Parse(lexer, parser);
+
+						// dispose the stream of the source as to release the file handle
+					}
+					finally
+					{
+						source.Source.Dispose();
+					}
 				}
 			}
 		}

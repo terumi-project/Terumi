@@ -1,18 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Abstractions;
 using System.Linq;
 
 using Terumi.Binder;
 using Terumi.Lexer;
+using Terumi.Parser;
 using Terumi.Targets;
 using Terumi.Tokens;
 using Terumi.Workspace;
 
 namespace Terumi
 {
-	internal class Program
+	internal static class Program
 	{
+		private static readonly StreamLexer _lexer = new StreamLexer(GetPatterns());
+		private static readonly StreamParser _parser = new StreamParser();
+
+		private static readonly IFileSystem _fileSystem = new FileSystem();
+
 		private static IEnumerable<IPattern> GetPatterns()
 		{
 			yield return new CharacterPattern('\n');
@@ -59,13 +66,63 @@ namespace Terumi
 			yield return new StringPattern();
 		}
 
-		private static IEnumerable<Token> DebugTokenInfo(IEnumerable<Token> tokens)
+		public static bool Compile(string projectName)
 		{
-			foreach (var token in tokens)
+			Project project;
+
+			using (var _ = Log.Stage("SETUP", $"Loading project {projectName}"))
 			{
-				Console.WriteLine(token.ToString());
-				yield return token;
+				if (!Project.TryLoad(projectName, _fileSystem, out project))
+				{
+					Log.Error("Unable to load project");
+					return false;
+				}
 			}
+
+			List<ParsedSourceFile> parsedFiles;
+
+			using (var _ = Log.Stage("PARSE", "Parsing project source code"))
+			{
+				parsedFiles = project.ParseAllSourceFiles(_lexer, _parser)
+					.ToList();
+			}
+
+			BinderEnvironment binder;
+
+			using (var _ = Log.Stage("BINDING", "Binding parsed source files to in memory representations"))
+			{
+				binder = new BinderEnvironment(parsedFiles);
+
+				binder.PassOverTypeDeclarations();
+				binder.PassOverMembers();
+				binder.PassOverMethodBodies();
+			}
+
+			using (var _ = Log.Stage("WRITING", "Writing input code to target powershell file."))
+			{
+				// try/catching to delete files w/ IOException is a good practice
+				try { File.Delete("out.ps1"); } catch (IOException __) { }
+
+				// looks ugly but meh
+				using var fs = File.OpenWrite("out.ps1");
+				using var sw = new StreamWriter(fs);
+
+				var target = new PowershellTarget(binder.TypeInformation);
+
+				foreach (var item in binder.TypeInformation.InfoItems)
+				{
+					if (item.IsCompilerDefined)
+					{
+						continue;
+					}
+
+					target.Write(sw, item);
+				}
+
+				target.Post(sw);
+			}
+
+			return true;
 		}
 
 		/// <summary>
@@ -73,69 +130,8 @@ namespace Terumi
 		/// </summary>
 		private static void Main(string[] args)
 		{
-			string file = default;
 #if DEBUG
-			if (file == default)
-			{
-				file = "sample_project";
-			}
-#endif
-			var fileSystem = new System.IO.Abstractions.FileSystem();
-
-			if (!Project.TryLoad(file, fileSystem, Git.Instance, out var project))
-			{
-				Console.WriteLine("Couldn't load project.");
-				return;
-			}
-
-			Console.WriteLine("Loaded project.");
-
-			var lexer = new StreamLexer(GetPatterns());
-			var parser = new Parser.StreamParser();
-
-			var parsedSourceFiles = project.ParseAllSourceFiles(lexer, parser).ToList();
-
-			var binder = new BinderEnvironment(parsedSourceFiles);
-
-			binder.PassOverTypeDeclarations();
-			binder.PassOverMembers();
-			binder.PassOverMethodBodies();
-
-			try
-			{
-				File.Delete("out.ps1");
-			}
-			// if we can't delete it then oh well lol
-			catch (IOException _)
-			{
-			}
-
-			using var fs = File.OpenWrite("out.ps1");
-			using var sw = new StreamWriter(fs);
-
-			var target = new PowershellTarget(binder.TypeInformation);
-
-			foreach(var item in binder.TypeInformation.InfoItems)
-			{
-				if (item.IsCompilerDefined)
-				{
-					continue;
-				}
-
-				target.Write(sw, item);
-			}
-
-			target.Post(sw);
-
-			// now we should be able to infer every type in every code body
-
-#if false
-			var jsonSerialized = Newtonsoft.Json.JsonConvert.SerializeObject(binder.TypeInformation, Newtonsoft.Json.Formatting.Indented, new Newtonsoft.Json.JsonSerializerSettings
-			{
-				ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Serialize,
-				PreserveReferencesHandling = Newtonsoft.Json.PreserveReferencesHandling.Objects
-			});
-			File.WriteAllText("binder_info.json", jsonSerialized);
+			Compile("sample_project");
 #endif
 		}
 	}

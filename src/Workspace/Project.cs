@@ -11,14 +11,14 @@ namespace Terumi.Workspace
 
 	public class Project
 	{
-		public static bool TryLoad(string name, IFileSystem fileSystem, IGit git, out Project project)
+		public static bool TryLoad(string name, IFileSystem fileSystem, out Project project)
 		{
 			var fullName = fileSystem.Path.GetFullPath(name);
 
 			var basePath = fileSystem.Path.Combine(fullName, "..");
 			var libraryPath = fileSystem.Path.Combine(fullName, ".libs");
 
-			return Project.TryLoad(basePath, name, libraryPath, new LibraryPuller(fileSystem, libraryPath, git), fileSystem, out project);
+			return Project.TryLoad(basePath, name, libraryPath, new LibraryPuller(fileSystem, libraryPath), fileSystem, out project);
 		}
 
 		public static bool TryLoad(string basePath, string name, string libraryPath, LibraryPuller puller, IFileSystem fileSystem, out Project project)
@@ -27,6 +27,7 @@ namespace Terumi.Workspace
 
 			if (!fileSystem.Directory.Exists(namePath))
 			{
+				Log.Error($"Path to project '{namePath}' doesn't exist");
 				project = default;
 				return false;
 			}
@@ -36,6 +37,7 @@ namespace Terumi.Workspace
 
 			if (fileSystem.File.Exists(configName))
 			{
+				Log.Debug($"Reading project configuration '{configName}'");
 				config = Configuration.ReadFile(configName, fileSystem);
 			}
 
@@ -44,10 +46,12 @@ namespace Terumi.Workspace
 
 			if (!anyTerumiFilesInFolder.Any())
 			{
+				Log.Debug($"Project has no files ('{name}'@'{namePath})");
 				project = default;
 				return false;
 			}
 
+			Log.Debug($"Loaded project '{name}'");
 			project = new Project(puller, config, fileSystem, name, basePath, anyTerumiFilesInFolder.ToArray(), libraryPath);
 			return true;
 		}

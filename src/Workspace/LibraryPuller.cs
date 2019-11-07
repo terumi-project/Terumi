@@ -9,13 +9,11 @@ namespace Terumi.Workspace
 	{
 		private readonly IFileSystem _fileSystem;
 		private readonly string _libraryPath;
-		private readonly IGit _git;
 
-		public LibraryPuller(IFileSystem fileSystem, string libraryPath, IGit git)
+		public LibraryPuller(IFileSystem fileSystem, string libraryPath)
 		{
 			_fileSystem = fileSystem;
 			_libraryPath = libraryPath;
-			_git = git;
 		}
 
 		private static string Hash(string input)
@@ -64,7 +62,7 @@ namespace Terumi.Workspace
 				if (!Project.TryLoad(libHome, projectName, _libraryPath, this, _fileSystem, out var project))
 				{
 					// TODO: exception on loading project
-					Console.WriteLine("Couldn't load " + projectName);
+					Log.Error("Couldn't load " + projectName);
 				}
 
 				projects[i] = project;
@@ -79,7 +77,7 @@ namespace Terumi.Workspace
 					_fileSystem.Directory.Delete(libHome, true);
 				}
 
-				_git.Clone(reference.GitUrl, reference.Branch, reference.CommitId, libHome);
+				Git.Clone(reference.GitUrl, reference.Branch, reference.CommitId, libHome);
 			}
 		}
 	}

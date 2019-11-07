@@ -81,7 +81,7 @@ namespace Terumi.Parser
 
 		public void AstCreated<T>(ReaderFork<Token> fork, T ast)
 		{
-			System.Console.WriteLine("ast: " + ast.GetType().FullName);
+			// Log.Debug("ast: " + ast.GetType().FullName);
 		}
 
 		public void DebugPrint(ReaderFork<Token> fork)
@@ -90,7 +90,7 @@ namespace Terumi.Parser
 			using var tmp = fork.Fork();
 			for (var i = 0; i < 5 && tmp.TryNext(out var tkn); i++)
 			{
-				System.Console.WriteLine("debug print - tkn " + tkn.GetType().FullName + " - " + tkn.ToString());
+				Log.Debug("debug print - tkn " + tkn.GetType().FullName + " - " + tkn.ToString());
 				int c = 1; // for debug breakpoint
 			}
 #endif
@@ -98,7 +98,7 @@ namespace Terumi.Parser
 
 		public void Throw(string message)
 		{
-			System.Console.WriteLine("AST got 'Throw': " + message);
+			Log.Warn("AST got 'Throw': " + message);
 		}
 
 		public bool TryParse(IEnumerable<Token> tokens, out CompilerUnit compilerUnit)

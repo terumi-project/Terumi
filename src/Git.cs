@@ -4,17 +4,9 @@ using System.Linq;
 
 namespace Terumi
 {
-	public interface IGit
+	public static class Git
 	{
-		/// <returns>The folder name pointing to the .git folder location</returns>
-		string Clone(string gitUrl, string branch, string commitHash, string destinationPath);
-	}
-
-	public class Git : IGit
-	{
-		public static IGit Instance { get; } = new Git();
-
-		public string Clone(string gitUrl, string branch, string commitHash, string path)
+		public static string Clone(string gitUrl, string branch, string commitHash, string path)
 		{
 			var cloned = Repository.Clone(gitUrl, path, new CloneOptions
 			{

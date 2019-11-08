@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Terumi
 {
@@ -13,6 +14,9 @@ namespace Terumi
 
 			return newArray;
 		}
+
+		public static string ToNamespace(this string[] levels)
+			=> levels.Aggregate((a, b) => $"{a}.{b}");
 
 		public static bool TryFirst<T>(this IEnumerable<T> enumerable, out T item, Predicate<T> isItem)
 		{

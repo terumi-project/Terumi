@@ -10,11 +10,11 @@ namespace Terumi.Binder
 	{
 		public TypeInformation TypeInformation { get; set; } = new TypeInformation();
 
-		private readonly IReadOnlyCollection<ParsedSourceFile> _sourceFiles;
+		private readonly IReadOnlyCollection<ParsedProjectFile> _sourceFiles;
 
 		public BinderEnvironment
 		(
-			IReadOnlyCollection<ParsedSourceFile> sourceFiles
+			IReadOnlyCollection<ParsedProjectFile> sourceFiles
 		)
 			=> _sourceFiles = sourceFiles;
 
@@ -30,7 +30,7 @@ namespace Terumi.Binder
 					var infoItem = new InfoItem
 					{
 						IsCompilerDefined = false, // explicit for readability
-						Namespace = file.Namespace.Levels,
+						Namespace = file.Namespace,
 						Name = item.Identifier,
 						NamespaceReferences = file.Usings.Select(x => (ICollection<string>)x.Levels).ToList(),
 						TerumiBacking = item

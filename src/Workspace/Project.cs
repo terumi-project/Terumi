@@ -15,7 +15,7 @@ namespace Terumi.Workspace
 
 			Log.Debug($"Attempting to load '{projectName}'@'{basePath}'");
 
-			if (!File.Exists(basePath))
+			if (!Directory.Exists(basePath))
 			{
 				Log.Error($"Path doesn't exist: '{basePath}'");
 				return false;
@@ -23,7 +23,7 @@ namespace Terumi.Workspace
 
 			var projectPath = Path.GetFullPath(Path.Combine(basePath, projectName));
 
-			if (!File.Exists(projectPath))
+			if (!Directory.Exists(projectPath))
 			{
 				Log.Error($"Path to project doesn't exist: '{projectPath}'");
 				return false;
@@ -97,7 +97,7 @@ namespace Terumi.Workspace
 					// get rid of 'reader.trm'
 					.ExcludeLast();
 
-				yield return new ProjectFile(source, packageLevel);
+				yield return new ProjectFile(file, source, packageLevel);
 			}
 		}
 
@@ -105,7 +105,7 @@ namespace Terumi.Workspace
 		{
 			foreach (var file in RecursivelySearch(projectPath))
 			{
-				if (Path.GetExtension(file) == TerumiFileEnding)
+				if (Path.GetExtension(file) == $".{TerumiFileEnding}")
 				{
 					yield return file;
 				}
@@ -114,6 +114,14 @@ namespace Terumi.Workspace
 
 		private static IEnumerable<string> RecursivelySearch(string folder)
 		{
+			// TODO: use constants
+			// special directories
+			if (Path.GetDirectoryName(folder) == ".libs"
+				|| Path.GetDirectoryName(folder) == "bin")
+			{
+				yield break;
+			}
+
 			foreach (var file in Directory.GetFiles(folder))
 			{
 				yield return file;

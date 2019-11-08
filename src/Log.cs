@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace Terumi
 {
@@ -27,7 +28,23 @@ namespace Terumi
 
 		public static void Warn(string message) => DisplayMessage(ConsoleColor.Yellow, "WARN", message);
 
-		public static void Error(string message) => DisplayMessage(ConsoleColor.Red, "ERR", message);
+		public static void Error
+		(
+			string message,
+#if DEBUG
+			[CallerMemberName] string memberName = "",
+			[CallerFilePath] string filePath = "",
+			[CallerLineNumber] int lineNumber = 0
+#endif
+		) => DisplayMessage
+		(
+			ConsoleColor.Red,
+			"ERR",
+#if DEBUG
+			$"in '{memberName}'@'{filePath}' line {lineNumber}: " +
+#endif
+			message
+		);
 
 		public static DisposableLoggerEvent Stage(string stageName, string message)
 		{

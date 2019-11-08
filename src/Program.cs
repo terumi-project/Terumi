@@ -69,18 +69,18 @@ namespace Terumi
 
 			using (var _ = Log.Stage("SETUP", $"Loading project {projectName}"))
 			{
-				if (!Project.TryLoad(projectName, out project))
+				if (!Project.TryLoad(Directory.GetCurrentDirectory(), projectName, out project))
 				{
 					Log.Error("Unable to load project");
 					return false;
 				}
 			}
 
-			List<ParsedSourceFile> parsedFiles;
+			List<ParsedProjectFile> parsedFiles;
 
 			using (var _ = Log.Stage("PARSE", "Parsing project source code"))
 			{
-				parsedFiles = project.ParseAllSourceFiles(_lexer, _parser)
+				parsedFiles = project.ParseProject(_lexer, _parser)
 					.ToList();
 			}
 
@@ -128,6 +128,7 @@ namespace Terumi
 		private static void Main(string[] args)
 		{
 #if DEBUG
+			Directory.SetCurrentDirectory("D:\\test");
 			Compile("sample_project");
 #endif
 		}

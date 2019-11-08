@@ -1,125 +1,129 @@
 ﻿using System.Collections.Generic;
-using System.IO.Abstractions;
+using System.IO;
 using System.Linq;
 
 namespace Terumi.Workspace
 {
-	// folder /
-	// folder / project_name / <source files.trm>
-	// folder / project_name.toml
-	// folder / project_name / .libs / <library source codes and toml files>
-
 	public class Project
 	{
-		public static bool TryLoad(string name, IFileSystem fileSystem, out Project project)
+		public const string TerumiFileEnding = "trm";
+		public const string TerumiConfigEnding = "toml";
+
+		public static bool TryLoad(string basePath, string projectName, out Project sourceProject)
 		{
-			var fullName = fileSystem.Path.GetFullPath(name);
+			sourceProject = default;
 
-			var basePath = fileSystem.Path.Combine(fullName, "..");
-			var libraryPath = fileSystem.Path.Combine(fullName, ".libs");
+			Log.Debug($"Attempting to load '{projectName}'@'{basePath}'");
 
-			return Project.TryLoad(basePath, name, libraryPath, new LibraryPuller(fileSystem, libraryPath), fileSystem, out project);
-		}
-
-		public static bool TryLoad(string basePath, string name, string libraryPath, LibraryPuller puller, IFileSystem fileSystem, out Project project)
-		{
-			var namePath = fileSystem.Path.Combine(basePath, name);
-
-			if (!fileSystem.Directory.Exists(namePath))
+			if (!File.Exists(basePath))
 			{
-				Log.Error($"Path to project '{namePath}' doesn't exist");
-				project = default;
+				Log.Error($"Path doesn't exist: '{basePath}'");
 				return false;
 			}
 
+			var projectPath = Path.GetFullPath(Path.Combine(basePath, projectName));
+
+			if (!File.Exists(projectPath))
+			{
+				Log.Error($"Path to project doesn't exist: '{projectPath}'");
+				return false;
+			}
+
+			if (!GetSourceFiles(projectPath).Any())
+			{
+				Log.Error($"No source files in project path: '{projectPath}'. Ensure that there is at least one file ending in '.{TerumiFileEnding}'");
+				return false;
+			}
+
+			var configPath = Path.GetFullPath(Path.Combine(basePath, projectName + $".{TerumiConfigEnding}"));
 			var config = Configuration.Default;
-			var configName = fileSystem.Path.Combine(basePath, name + ".toml");
 
-			if (fileSystem.File.Exists(configName))
+			if (File.Exists(configPath))
 			{
-				Log.Debug($"Reading project configuration '{configName}'");
-				config = Configuration.ReadFile(configName, fileSystem);
+				Log.Debug($"Loaded config for '{projectName}'@'{configPath}'");
+
+				config = Configuration.ReadFile(configPath);
 			}
 
-			var anyTerumiFilesInFolder = fileSystem.Directory.GetFiles(namePath)
-				.Where(file => file.EndsWith(".trm"));
-
-			if (!anyTerumiFilesInFolder.Any())
-			{
-				Log.Debug($"Project has no files ('{name}'@'{namePath})");
-				project = default;
-				return false;
-			}
-
-			Log.Debug($"Loaded project '{name}'");
-			project = new Project(puller, config, fileSystem, name, basePath, anyTerumiFilesInFolder.ToArray(), libraryPath);
+			sourceProject = new Project(basePath, projectName, config, projectPath);
 			return true;
 		}
 
-		private readonly IFileSystem _fileSystem;
-		private readonly string[] _files;
-		private readonly string _basePath;
-		private readonly LibraryPuller _puller;
-
 		public Project
 		(
-			LibraryPuller puller,
-			Configuration configuration,
-			IFileSystem fileSystem,
-			string name,
 			string basePath,
-			string[] files,
-			string libraryPath
+			string projectName,
+			Configuration configuration,
+			string? projectPath = null
 		)
 		{
+			BasePath = basePath;
+			ProjectName = projectName;
+			ProjectPath = projectPath ?? Path.GetFullPath(Path.Combine(BasePath, ProjectName));
 			Configuration = configuration;
-			_fileSystem = fileSystem;
-			_files = files;
-			LibraryPath = libraryPath;
-			_basePath = _fileSystem.Path.GetFullPath(basePath);
-			Name = name;
-			_puller = puller;
 		}
 
-		public string Name { get; }
+		public string BasePath { get; }
+		public string ProjectName { get; }
+		public string ProjectPath { get; }
 		public Configuration Configuration { get; }
-		public string LibraryPath { get; }
 
-		public IEnumerable<SourceFile> GetSources()
+		public IEnumerable<Project> ResolveDependencies(DependencyResolver resolver)
 		{
-			foreach (var file in _files)
+			foreach (var dependency in Configuration.Libraries)
 			{
-				var fullFile = _fileSystem.Path.GetFullPath(file);
-
-				if (!fullFile.StartsWith(_basePath))
+				foreach (var project in resolver.Resolve(dependency))
 				{
-					// uhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
-					// should never happen :)
-					throw new System.Exception("Source file must have a base folder... am i bad programmer?");
+					yield return project;
 				}
-
-				var subPath = fullFile.Substring(_basePath.Length);
-				var levelsWithFile = subPath.Split(_fileSystem.Path.DirectorySeparatorChar);
-				var levels = levelsWithFile.Take(levelsWithFile.Length - 1).Where(str => !string.IsNullOrWhiteSpace(str)).ToArray();
-
-				var location = _fileSystem.Path.GetFullPath(_fileSystem.Path.Combine(_basePath, file));
-
-				// hope the user disposes it
-				var stream = _fileSystem.File.OpenRead(location);
-				var sourceFile = new SourceFile(stream, new SyntaxTree.PackageLevel(SyntaxTree.PackageAction.Namespace, levels), location);
-
-				Log.Debug($"Found source file of '{Name}'@'{location}'");
-				yield return sourceFile;
 			}
 		}
 
-		public IEnumerable<Project> GetDependencies()
+		public IEnumerable<ProjectFile> GetSources()
 		{
-			foreach (var library in Configuration.Libraries)
+			foreach(var file in GetSourceFiles(ProjectPath))
 			{
-				foreach (var dependency in _puller.Pull(library))
+				var source = File.ReadAllText(file);
+
+				// extract out the base path from the file path
+				var packageLevel =
+
+					// take out the base path to the project
+					file.Substring(BasePath.Length)
+
+					// now we should have something like 'terumi_sdk/json/reader.trm'
+					.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+
+					// get rid of 'reader.trm'
+					.ExcludeLast();
+
+				yield return new ProjectFile(source, packageLevel);
+			}
+		}
+
+		private static IEnumerable<string> GetSourceFiles(string projectPath)
+		{
+			foreach (var file in RecursivelySearch(projectPath))
+			{
+				if (Path.GetExtension(file) == TerumiFileEnding)
 				{
-					yield return dependency;
+					yield return file;
+				}
+			}
+		}
+
+		private static IEnumerable<string> RecursivelySearch(string folder)
+		{
+			foreach (var file in Directory.GetFiles(folder))
+			{
+				yield return file;
+			}
+
+			foreach (var directory in Directory.GetDirectories(folder))
+			{
+				foreach (var file in RecursivelySearch(directory))
+				{
+					yield return file;
 				}
 			}
 		}

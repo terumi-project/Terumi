@@ -6,11 +6,15 @@ namespace Terumi
 {
 	public static class Git
 	{
-		public static string Clone(string gitUrl, string branch, string commitHash, string path)
+		public static string Clone(string gitUrl, string? branch, string? commitHash, string path)
 		{
+			var branchName = string.IsNullOrWhiteSpace(branch) ? "master" : branch;
+
+			Log.Debug($"Cloning git repository '{gitUrl}' on branch '{branchName}' on commit '{commitHash ?? "N/A"}' at '{path}'");
+
 			var cloned = Repository.Clone(gitUrl, path, new CloneOptions
 			{
-				BranchName = string.IsNullOrWhiteSpace(branch) ? "master" : branch,
+				BranchName = branchName,
 			});
 
 			using var repo = new Repository(cloned);

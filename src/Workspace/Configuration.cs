@@ -1,7 +1,7 @@
 ﻿using Nett;
 
 using System;
-using System.IO.Abstractions;
+using System.IO;
 
 namespace Terumi.Workspace
 {
@@ -12,9 +12,9 @@ namespace Terumi.Workspace
 			Libraries = Array.Empty<LibraryReference>()
 		};
 
-		public static Configuration ReadFile(string filePath, IFileSystem fileSystem)
+		public static Configuration ReadFile(string filePath)
 		{
-			using var stream = fileSystem.File.OpenRead(filePath);
+			using var stream = File.OpenRead(filePath);
 			return Toml.ReadStream<Configuration>(stream);
 		}
 

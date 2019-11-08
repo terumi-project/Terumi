@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Abstractions;
 using System.Linq;
 
 using Terumi.Binder;
@@ -17,8 +16,6 @@ namespace Terumi
 	{
 		private static readonly StreamLexer _lexer = new StreamLexer(GetPatterns());
 		private static readonly StreamParser _parser = new StreamParser();
-
-		private static readonly IFileSystem _fileSystem = new FileSystem();
 
 		private static IEnumerable<IPattern> GetPatterns()
 		{
@@ -72,7 +69,7 @@ namespace Terumi
 
 			using (var _ = Log.Stage("SETUP", $"Loading project {projectName}"))
 			{
-				if (!Project.TryLoad(projectName, _fileSystem, out project))
+				if (!Project.TryLoad(projectName, out project))
 				{
 					Log.Error("Unable to load project");
 					return false;

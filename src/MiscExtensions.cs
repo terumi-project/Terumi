@@ -5,6 +5,15 @@ namespace Terumi
 {
 	public static class MiscExtensions
 	{
+		public static string[] ExcludeLast(this string[] array)
+		{
+			var newArray = new string[array.Length - 1];
+
+			Array.Copy(array, 0, newArray, 0, newArray.Length);
+
+			return newArray;
+		}
+
 		public static bool TryFirst<T>(this IEnumerable<T> enumerable, out T item, Predicate<T> isItem)
 		{
 			using var enumerator = enumerable.GetEnumerator();

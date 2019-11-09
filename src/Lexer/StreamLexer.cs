@@ -8,16 +8,6 @@ using Terumi.Tokens;
 
 namespace Terumi.Lexer
 {
-	public struct LexerMetadata
-	{
-		public int Line;
-		public int Column;
-		public int BinaryOffset;
-		public string File;
-
-		public string ToInfo() => $"on line {Line}, column {Column} (binary offset {BinaryOffset}) in file {File}.";
-	}
-
 	public class StreamLexer
 	{
 		private readonly IPattern[] _patterns;
@@ -45,32 +35,14 @@ namespace Terumi.Lexer
 				{
 					var result = pattern.TryParse(source.Span, meta, ref token);
 
-					// TODO: check that token isn't an ExceptionToken
-
 					// trust that the pattern doesn't return anything less than 1 ever
 					if (result == 0)
 					{
 						continue;
 					}
 
-					// update lexer metadata based on what was consumed
-					var consumed = source.Slice(0, result);
+					meta = meta.FromConsumed(source.Slice(0, result).Span);
 					source = source.Slice(result);
-
-					meta.BinaryOffset += result;
-
-					for (var i = 0; i < consumed.Length; i++)
-					{
-						if (consumed.Span[i] == '\n')
-						{
-							meta.Line++;
-							meta.Column = 1;
-						}
-						else
-						{
-							meta.Column++;
-						}
-					}
 
 					token.End = meta;
 
@@ -78,7 +50,7 @@ namespace Terumi.Lexer
 					goto next; // goes to beginning of while loop
 				}
 
-				throw new Exception($"Unlexable character discovered {meta.ToInfo()}");
+				throw new LexingException($"Unlexable character discovered: {source.Span[0]:X2} {meta}");
 			}
 		}
 	}

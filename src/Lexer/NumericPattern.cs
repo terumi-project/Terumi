@@ -16,16 +16,17 @@ namespace Terumi.Lexer
 				var value = source[end];
 
 				if (
-				// if it starts with -
-				(end == 0 && value == '-')
+					// if it starts with -
+					(end == 0 && value == '-')
 
-				// or the char goes from 0 to 9
+					// or the char goes from 0 to 9
 					|| (value >= '0' && value <= '9'))
-
+				{
 					// it is valid
 					continue;
+				}
 
-				// invalid char - we break and go back one
+				// invalid char
 				break;
 			}
 

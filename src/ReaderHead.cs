@@ -5,14 +5,12 @@ namespace Terumi
 {
 	public class ReaderHead<T>
 	{
-		private readonly Func<int, T[]> _readAmount;
-		private readonly List<T> _buffer;
+		private readonly Memory<T> _memory;
 
-		public ReaderHead(Func<int, T[]> reader)
+		public ReaderHead(Memory<T> memory)
 		{
-			_readAmount = reader;
-			_buffer = new List<T>();
 			Position = 0;
+			_memory = memory;
 		}
 
 		public int Position { get; private set; }
@@ -24,39 +22,14 @@ namespace Terumi
 				Position,
 				(pos) =>
 				{
-					var positionOffset = pos - Position;
-					var inBuffer = positionOffset < _buffer.Count;
+					// assume pos >= 0
 
-					if (!inBuffer)
-					{
-						var needToRead = positionOffset - _buffer.Count + 1;
-						var bytes = _readAmount(needToRead);
+					if (pos <= _memory.Length) return (false, default);
 
-						_buffer.AddRange(bytes);
-
-						// if we didn't read the amount we want, we're at the end.
-						if (bytes.Length != needToRead)
-						{
-							return (false, default);
-						}
-					}
-
-					return (true, _buffer[positionOffset]);
+					return (true, _memory.Span[pos]);
 				},
 				(commitPos) =>
 				{
-					var needToRemove = commitPos - Position;
-
-					if (needToRemove > _buffer.Count)
-					{
-						// TODO: there's an off by one error somewhere, and there's a hacky workaround in SpecificReaderForkExtensions.cs
-						// for peeking and stuff (as well as in ReaderFork)
-						// so this needs to be fixed
-						// Console.WriteLine("off by one error in reader fork");
-						needToRemove = _buffer.Count;
-					}
-
-					_buffer.RemoveRange(0, needToRemove);
 					Position = commitPos;
 				}
 			);

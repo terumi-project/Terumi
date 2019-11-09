@@ -104,13 +104,7 @@ namespace Terumi.Parser
 
 		public bool TryParse(Memory<Token> tokens, out CompilerUnit compilerUnit)
 		{
-			int currentPos = 0;
-			var head = new ReaderHead<Token>((amt) =>
-			{
-				var ret = tokens.Slice(currentPos, amt);
-				currentPos += amt;
-				return ret.ToArray();
-			});
+			var head = new ReaderHead<Token>(tokens);
 
 			using var fork = head.Fork();
 			fork.Commit = true;

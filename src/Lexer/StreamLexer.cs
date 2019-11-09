@@ -17,13 +17,7 @@ namespace Terumi.Lexer
 
 		public IEnumerable<Token> ParseTokens(Memory<byte> source)
 		{
-			int currentPos = 0;
-			var readerHead = new ReaderHead<byte>((bytes) =>
-			{
-				var returnBytes = source.Slice(currentPos, bytes);
-				currentPos += bytes;
-				return returnBytes.ToArray();
-			});
+			var readerHead = new ReaderHead<byte>(source);
 
 			while (true)
 			{

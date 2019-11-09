@@ -1,7 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-
+using System.Text;
 using Terumi.Tokens;
 
 namespace Terumi.Lexer
@@ -9,54 +8,51 @@ namespace Terumi.Lexer
 	public class IdentifierPattern : IPattern
 	{
 		private readonly IdentifierCase _case;
+		private readonly Func<byte, bool> _predicate;
 
 		public IdentifierPattern(IdentifierCase @case)
-			=> _case = @case;
-
-		public bool TryParse(ReaderFork<byte> source, out Token token)
 		{
-			Func<char, bool> predicate = IsSnakeCase;
+			_case = @case;
+
+			_predicate = IsSnakeCase;
 
 			if (_case == IdentifierCase.PascalCase)
 			{
-				predicate = IsPascalCase;
+				_predicate = IsPascalCase;
 			}
+		}
 
-			var chars = new List<char>();
+		public int TryParse(Span<byte> source, LexerMetadata meta, ref Token token)
+		{
+			var end = 0;
 
-			while (source.TryNext(out var currentByte))
+			for(; end < source.Length; end++)
 			{
-				var @char = (char)currentByte;
-
-				if (!predicate(@char))
+				if (!_predicate(source[end]))
 				{
+					// we want to end after we stopped touching the invalid char
 					break;
 				}
-
-				chars.Add(@char);
 			}
 
-			if (chars.Count == 0)
-			{
-				token = default;
-				return false;
-			}
+			if (end == 0) return 0;
 
-			source.Back(1);
+			var bytes = source.Slice(0, end);
+			var str = Encoding.UTF8.GetString(bytes);
 
-			token = new IdentifierToken(new string(chars.ToArray()), _case);
-			return true;
+			token = new IdentifierToken(meta, str, _case);
+			return end;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		private static bool IsSnakeCase(char chr)
+		private static bool IsSnakeCase(byte chr)
 		{
 			return (chr >= 'a' && chr <= 'z')
 				|| chr == '_';
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		private static bool IsPascalCase(char chr)
+		private static bool IsPascalCase(byte chr)
 		{
 			return (chr >= 'a' && chr <= 'z')
 				|| (chr >= 'A' && chr <= 'Z');

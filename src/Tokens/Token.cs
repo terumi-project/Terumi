@@ -1,6 +1,10 @@
-﻿namespace Terumi.Tokens
+﻿using Terumi.Lexer;
+
+namespace Terumi.Tokens
 {
-	public class Token
+	public abstract class Token
 	{
+		public abstract LexerMetadata Start { get; protected set; }
+		public abstract LexerMetadata End { get; set; }
 	}
 }

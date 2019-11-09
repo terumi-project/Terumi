@@ -1,69 +1,70 @@
-﻿using Terumi.Tokens;
+﻿using System;
+using Terumi.Tokens;
 
 namespace Terumi.Lexer
 {
 	public class CommentPattern : IPattern
 	{
-		public bool TryParse(ReaderFork<byte> source, out Token token)
-		{
-			int start = source.Position;
+		public const byte Slash = (byte)'/';
+		public const byte Asterisk = (byte)'*';
 
-			if (!(source.TryNext(out var firstSlash)
-				&& firstSlash == (byte)'/'
-				&& source.TryNext(out var secondSlash)
-				&& (secondSlash == (byte)'/' || secondSlash == (byte)'*')))
-			{
-				token = default;
-				return false;
-			}
+		public int TryParse(Span<byte> source, LexerMetadata meta, ref Token token)
+		{
+			if (source.Length < 2) return 0;
+			if (source[0] != Slash) return 0;
+
+			var second = source[1];
+			var singleLine = second == Slash;
+			var multiLine = second == Asterisk;
+			if (!singleLine && !multiLine) return 0;
 
 			// comments are unimportant to computers so they're considered whitespace :^)
 			// TODO: don't be lazy and make comments not completely die from the AST
 
-			// multiline?
-			if (secondSlash == '*')
+			if (multiLine)
 			{
-				// a common problem of programming languages is that you have to have an ending /*
-				// but sometimes i just want to comment out everything, y'know?
-				// so if we can't match */ we just assume the comment extends to EOF.
+				// TERUMI DECISION:
+				// we want to enable /*/ to work
+				// if a multiline comment has no ending */ we don't call it an error.
 
-				// another thing i dislike is having to have /**/, i want to be able to do /*/
-				// so we support that for god knows why
+				var i = 1;
 
-				bool needsAstriek = false;
-
-				while (source.TryNext(out var current))
+				// make sure i + 1 works so we can always lookahead to a slash
+				for(; i + 1 < source.Length; i++)
 				{
-					if (!needsAstriek && current == (byte)'/')
+					if (source[i] == Asterisk
+						&& source[i + 1] == Slash)
 					{
-						token = new WhitespaceToken(start, source.Position);
-						return true;
+						token = new WhitespaceToken(meta);
+						return i + 1;
 					}
-					else if (current == (byte)'*')
-					{
-						if (source.TryPeek(out var next) && next == (byte)'/')
-						{
-							source.Advance(1);
-							token = new WhitespaceToken(start, source.Position);
-							return true;
-						}
-					}
-
-					needsAstriek = true;
 				}
+
+				// assume multiline comment spans the entire file.
+				Log.Warn($"Mutliline comment spans to end of code file {meta.ToInfo()}");
+
+				token = new WhitespaceToken(meta);
+				return i;
+			}
+			else if (singleLine)
+			{
+				var i = 1;
+
+				for(; i < source.Length; i++)
+				{
+					if (source[i] == (byte)'\n')
+					{
+						break;
+					}
+				}
+
+				token = new WhitespaceToken(meta);
+				return i;
 			}
 			else
 			{
-				// sigle line, go until line ends
-
-				while (source.TryNext(out var current) && current != (byte)'\n')
-				{
-					// consume
-				}
+				throw new Exception("Reached unreachable point.");
 			}
-
-			token = new WhitespaceToken(start, source.Position);
-			return true;
 		}
 	}
 }

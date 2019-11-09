@@ -8,6 +8,16 @@ using Terumi.Tokens;
 
 namespace Terumi.Lexer
 {
+	public struct LexerMetadata
+	{
+		public int Line;
+		public int Column;
+		public int BinaryOffset;
+		public string File;
+
+		public string ToInfo() => $"on line {Line}, column {Column} (binary offset {BinaryOffset}) in file {File}.";
+	}
+
 	public class StreamLexer
 	{
 		private readonly IPattern[] _patterns;
@@ -15,42 +25,58 @@ namespace Terumi.Lexer
 		public StreamLexer(IEnumerable<IPattern> patterns)
 			=> _patterns = patterns.ToArray();
 
-		public IEnumerable<Token> ParseTokens(Memory<byte> source)
+		/// <param name="filename">Used purely as metadata.</param>
+		public IEnumerable<Token> ParseTokens(Memory<byte> source, string filename)
 		{
-			var readerHead = new ReaderHead<byte>(source);
+			var meta = new LexerMetadata { Line = 1, Column = 1, File = filename };
 
 			while (true)
 			{
+			next: // jumped to after a successful yield <token>
+
 				// make sure there are items
-				using (var fork = readerHead.Fork())
+				if (source.Length == 0)
 				{
-					if (!fork.TryNext(out _))
-					{
-						// if there's nothing left, exit
-						break;
-					}
+					yield break;
 				}
 
-				var hasCommit = false;
-
+				Token token = default;
 				foreach (var pattern in _patterns)
 				{
-					using var fork = readerHead.Fork();
+					var result = pattern.TryParse(source.Span, meta, ref token);
 
-					if (!pattern.TryParse(fork, out var token))
+					// TODO: check that token isn't an ExceptionToken
+
+					// trust that the pattern doesn't return anything less than 1 ever
+					if (result == 0)
 					{
 						continue;
 					}
 
-					hasCommit = fork.Commit = true;
+					// update lexer metadata based on what was consumed
+					var consumed = source.Slice(0, result);
+					source = source.Slice(result);
+
+					meta.BinaryOffset += result;
+
+					for (var i = 0; i < consumed.Length; i++)
+					{
+						if (consumed.Span[i] == '\n')
+						{
+							meta.Line++;
+							meta.Column = 1;
+						}
+						else
+						{
+							meta.Column++;
+						}
+					}
+
 					yield return token;
-					break;
+					goto next; // goes to beginning of while loop
 				}
 
-				if (!hasCommit)
-				{
-					throw new Exception("Unrecognized sequence beginning at " + readerHead.Position);
-				}
+				throw new Exception($"Unlexable character discovered {meta.ToInfo()}");
 			}
 		}
 	}

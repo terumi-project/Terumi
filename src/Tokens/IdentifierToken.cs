@@ -1,4 +1,6 @@
-﻿namespace Terumi.Tokens
+﻿using Terumi.Lexer;
+
+namespace Terumi.Tokens
 {
 	public enum IdentifierCase
 	{
@@ -8,11 +10,15 @@
 
 	public class IdentifierToken : Token
 	{
-		public IdentifierToken(string identifier, IdentifierCase identifierCase)
+		public IdentifierToken(LexerMetadata meta, string identifier, IdentifierCase identifierCase)
 		{
+			Start = meta;
 			Identifier = identifier;
 			IdentifierCase = identifierCase;
 		}
+
+		public override LexerMetadata Start { get; protected set; }
+		public override LexerMetadata End { get; set; }
 
 		public string Identifier { get; }
 		public IdentifierCase IdentifierCase { get; }

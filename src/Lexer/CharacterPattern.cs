@@ -1,27 +1,28 @@
-﻿using Terumi.Tokens;
+﻿using System;
+using Terumi.Tokens;
 
 namespace Terumi.Lexer
 {
 	public class CharacterPattern : IPattern
 	{
-		private readonly char _character;
+		private readonly char _char;
+		private readonly byte _byteChar;
 
 		public CharacterPattern(char character)
-			=> _character = character;
-
-		public bool TryParse(ReaderFork<byte> source, out Token token)
 		{
-			var position = source.Position;
+			_char = character;
+			_byteChar = (byte)character;
+		}
 
-			if (source.TryNext(out var value)
-			&& value == _character)
+		public int TryParse(Span<byte> source, LexerMetadata meta, ref Token token)
+		{
+			if (source[0] == _byteChar)
 			{
-				token = new CharacterToken(_character, position);
-				return true;
+				token = new CharacterToken(meta, _char);
+				return 1;
 			}
 
-			token = default;
-			return false;
+			return 0;
 		}
 	}
 }

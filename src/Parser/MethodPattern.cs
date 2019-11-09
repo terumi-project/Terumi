@@ -41,7 +41,7 @@ namespace Terumi.Parser
 				source.Advance(peeked);
 
 				// now it's method body time
-				return ParameterParsingStage(source, new IdentifierToken("void", IdentifierCase.SnakeCase), identifierOrType, out item);
+				return ParameterParsingStage(source, new IdentifierToken(default, "void", IdentifierCase.SnakeCase), identifierOrType, out item);
 			}
 			else if (source.TryPeekNonWhitespace<IdentifierToken>(out var identifierToken, out peeked))
 			{

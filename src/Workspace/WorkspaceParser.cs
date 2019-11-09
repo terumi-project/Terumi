@@ -17,7 +17,7 @@ namespace Terumi.Workspace
 			{
 				// TODO: use string directly and rid all the code of reader head/fork stuff
 
-				var tokens = lexer.ParseTokens(Encoding.UTF8.GetBytes(code.Source).AsMemory());
+				var tokens = lexer.ParseTokens(Encoding.UTF8.GetBytes(code.Source).AsMemory(), code.Path);
 
 				if (!parser.TryParse(tokens.ToArray().AsMemory(), out var compilerUnit))
 				{

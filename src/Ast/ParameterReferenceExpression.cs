@@ -4,13 +4,13 @@ namespace Terumi.Ast
 {
 	public class ParameterReferenceExpression : ICodeExpression
 	{
-		public ParameterReferenceExpression(InfoItem.Method.Parameter parameter)
+		public ParameterReferenceExpression(MethodBind.Parameter parameter)
 		{
 			Parameter = parameter;
 		}
 
 		public InfoItem Type => Parameter.Type;
 
-		public InfoItem.Method.Parameter Parameter { get; }
+		public MethodBind.Parameter Parameter { get; }
 	}
 }

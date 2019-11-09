@@ -240,7 +240,7 @@ namespace Terumi.Binder
 
 		private bool ParametersMatch
 		(
-			ICollection<InfoItem.Method.Parameter> parametersDefinition,
+			ICollection<MethodBind.Parameter> parametersDefinition,
 			ICollection<ICodeExpression> passedExpressions,
 			out List<ICodeExpression> parameters
 		)

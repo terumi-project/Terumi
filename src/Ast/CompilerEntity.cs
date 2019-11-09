@@ -100,7 +100,7 @@ namespace Terumi.Ast
 				return new MethodBind()
 				{
 					Name = i.Name,
-					Parameters = i.Params.Select(x => new InfoItem.Method.Parameter
+					Parameters = i.Params.Select(x => new MethodBind.Parameter
 					{
 						Name = "k" + k++,
 						Type = Conv(x)

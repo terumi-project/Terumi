@@ -24,7 +24,7 @@ namespace Terumi
 				{
 					// assume pos >= 0
 
-					if (pos <= _memory.Length) return (false, default);
+					if (pos >= _memory.Length) return (false, default);
 
 					return (true, _memory.Span[pos]);
 				},

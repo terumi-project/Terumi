@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 
 using Terumi.Ast;
 using Terumi.SyntaxTree.Expressions;
@@ -109,6 +108,12 @@ namespace Terumi.Binder
 
 		public ICodeExpression TopLevelBind(Expression expression, ICodeExpression entityReference = null)
 		{
+			// primarily used for literals
+			if (expression is ICodeExpression codeExpression)
+			{
+				return codeExpression;
+			}
+
 			switch (expression)
 			{
 				case MethodCall methodCall:
@@ -142,21 +147,6 @@ namespace Terumi.Binder
 					}
 
 					return new ParameterReferenceExpression(_method.Parameters.First(x => x.Name == referenceExpression.ReferenceName));
-				}
-
-				case ConstantLiteralExpression<BigInteger> numericLiteralExpression:
-				{
-					return new ConstantLiteralExpression<BigInteger>(numericLiteralExpression.Value);
-				}
-
-				case ConstantLiteralExpression<string> stringLiteralExpression:
-				{
-					return new ConstantLiteralExpression<string>(stringLiteralExpression.Value);
-				}
-
-				case ConstantLiteralExpression<bool> booleanLiteralExpression:
-				{
-					return new ConstantLiteralExpression<bool>(booleanLiteralExpression.Value);
 				}
 
 				case SyntaxTree.Expressions.ThisExpression _:

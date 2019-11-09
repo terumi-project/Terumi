@@ -10,48 +10,46 @@ namespace Terumi.Binder
 {
 	public class ExpressionBinder
 	{
-		private readonly InfoItem _type;
-		private readonly Ast.ThisExpression _thisExpression;
 		private readonly TypeInformation _typeInformation;
 		private readonly List<(string name, InfoItem type)> _vars = new List<(string name, InfoItem type)>();
+		private readonly MethodBind _method;
 
-		public ExpressionBinder(TypeInformation typeInformation, InfoItem type)
+		public ExpressionBinder(TypeInformation typeInformation, MethodBind method)
 		{
-			_type = type;
-			_thisExpression = new Ast.ThisExpression(_type);
 			_typeInformation = typeInformation;
+			_method = method;
 		}
 
-		public void Bind(InfoItem.Method method)
+		public void Bind()
 		{
-			foreach (var expression in method.TerumiBacking.Body.Expressions)
+			foreach (var expression in _method.TerumiBacking.Body.Expressions)
 			{
 				HandleExpression(expression);
 			}
 
-			if (method.ReturnType != TypeInformation.Void)
+			if (_method.ReturnType != TypeInformation.Void)
 			{
 				var isReturn = false;
 
 				// TODO: verify that for each branch there is a way to exit.
 
 				// make sure it returns the proper type
-				foreach (var statement in method.Statements)
+				foreach (var statement in _method.Statements)
 				{
 					if (statement is ReturnStatement returnStatement)
 					{
 						isReturn = true;
 
-						if (returnStatement.ReturnOn.Type != method.ReturnType)
+						if (returnStatement.ReturnOn.Type != _method.ReturnType)
 						{
-							throw new Exception($"Returning on a '{returnStatement.ReturnOn.Type.Name}' - suppose to return on a '{method.ReturnType.Name}'.");
+							throw new Exception($"Returning on a '{returnStatement.ReturnOn.Type.Name}' - suppose to return on a '{_method.ReturnType.Name}'.");
 						}
 					}
 				}
 
 				if (!isReturn)
 				{
-					throw new Exception($"Method {method.Name} expected to return a {method.ReturnType.Name}, but doesn't return anything at all.");
+					throw new Exception($"Method {_method.Name} expected to return a {_method.ReturnType.Name}, but doesn't return anything at all.");
 				}
 			}
 
@@ -61,13 +59,13 @@ namespace Terumi.Binder
 				{
 					case ReturnExpression returnExpression:
 					{
-						method.Statements.Add(new ReturnStatement(TopLevelBind(returnExpression.Expression)));
+						_method.Statements.Add(new ReturnStatement(TopLevelBind(returnExpression.Expression)));
 					}
 					break;
 
 					case MethodCall methodCall:
 					{
-						method.Statements.Add((MethodCallExpression)TopLevelBind(methodCall));
+						_method.Statements.Add((MethodCallExpression)TopLevelBind(methodCall));
 					}
 					break;
 
@@ -81,7 +79,7 @@ namespace Terumi.Binder
 						{
 							case MethodCallExpression methodCallExpression:
 							{
-								method.Statements.Add(methodCallExpression);
+								_method.Statements.Add(methodCallExpression);
 							}
 							break;
 
@@ -97,7 +95,7 @@ namespace Terumi.Binder
 					{
 						var expr = TopLevelBind(variableExpression);
 
-						method.Statements.Add(new AssignmentStatement(expr as VariableAssignment));
+						_method.Statements.Add(new AssignmentStatement(expr as VariableAssignment));
 					}
 					break;
 
@@ -137,13 +135,13 @@ namespace Terumi.Binder
 					}
 
 					// now check for parameters
-					if (!_type.Code.Parameters.Any(x => x.Name == referenceExpression.ReferenceName))
+					if (!_method.Parameters.Any(x => x.Name == referenceExpression.ReferenceName))
 					{
 						// nowhere else to look
 						throw new Exception("Unresolved reference '" + referenceExpression.ReferenceName + "'");
 					}
 
-					return new ParameterReferenceExpression(_type.Code.Parameters.First(x => x.Name == referenceExpression.ReferenceName));
+					return new ParameterReferenceExpression(_method.Parameters.First(x => x.Name == referenceExpression.ReferenceName));
 				}
 
 				case NumericLiteralExpression numericLiteralExpression:
@@ -163,7 +161,8 @@ namespace Terumi.Binder
 
 				case SyntaxTree.Expressions.ThisExpression _:
 				{
-					return new Ast.ThisExpression(_type);
+					throw new NotImplementedException();
+					// return new Ast.ThisExpression(_type);
 				}
 
 				case VariableExpression variableExpression:
@@ -174,7 +173,7 @@ namespace Terumi.Binder
 
 					if (variableExpression.Type != null)
 					{
-						if (!_typeInformation.TryGetItem(_type, variableExpression.Type.TypeName.Identifier, out var type))
+						if (!_typeInformation.TryGetType(_method, variableExpression.Type.TypeName.Identifier, out var type))
 						{
 							throw new Exception($"Unable to find variable type '{variableExpression.Type.TypeName.Identifier}' for variable '{name}'");
 						}
@@ -206,23 +205,21 @@ namespace Terumi.Binder
 
 		private ICodeExpression HandleMethodCall(MethodCall methodCall, ICodeExpression entity = null)
 		{
-			entity ??= _thisExpression;
-
 			var expressions = ParseMethodCallExpressions(methodCall);
 
 			if (methodCall.IsCompilerMethodCall)
 			{
 				var call = CompilerEntity.MatchMethod(methodCall.MethodName.Identifier, expressions.Select(x => x.Type));
 
-				return new MethodCallExpression(entity, call.Type.Code, expressions.ToList());
+				return new MethodCallExpression(entity, call, expressions.ToList());
 			}
 
-			foreach (var referencedItem in _typeInformation.AllReferenceableTypes(entity.Type))
+			foreach (var referencedItem in _typeInformation.AllReferenceableTypes(entity.Type).OfType<MethodBind>())
 			{
 				if (referencedItem.Name == methodCall.MethodName.Identifier
-					&& ParametersMatch(referencedItem.Code.Parameters, expressions, out var parameters))
+					&& ParametersMatch(referencedItem.Parameters, expressions, out var parameters))
 				{
-					return new MethodCallExpression(entity, referencedItem.Code, parameters.AsReadOnly());
+					return new MethodCallExpression(entity, referencedItem, parameters.AsReadOnly());
 				}
 			}
 

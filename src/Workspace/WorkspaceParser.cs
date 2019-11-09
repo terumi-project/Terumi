@@ -32,8 +32,9 @@ namespace Terumi.Workspace
 		{
 			var mainLevel = source.PackageLevel;
 
-			var usings = new List<PackageReference>();
+			var usings = new List<PackageLevel>();
 			var typeDefinitions = new List<TypeDefinition>();
+			var methods = new List<Method>();
 
 			var parsedTypeDefinition = false;
 
@@ -59,7 +60,7 @@ namespace Terumi.Workspace
 						// if it's a using, add it
 						if (packageLevel.Action == PackageAction.Using)
 						{
-							usings.Add(packageLevel);
+							usings.Add(packageLevel.Levels);
 							break;
 						}
 
@@ -84,6 +85,13 @@ namespace Terumi.Workspace
 						typeDefinitions.Add(typeDefinition);
 					}
 					break;
+
+					case Method method:
+					{
+						parsedTypeDefinition = true;
+						methods.Add(method);
+					}
+					break;
 				}
 			}
 
@@ -93,7 +101,8 @@ namespace Terumi.Workspace
 				@namespace: mainLevel,
 
 				usings: usings,
-				typeDefinitions: typeDefinitions
+				typeDefinitions: typeDefinitions,
+				methods: methods
 			);
 		}
 	}

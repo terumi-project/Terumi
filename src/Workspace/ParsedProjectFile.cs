@@ -9,17 +9,20 @@ namespace Terumi.Workspace
 		public ParsedProjectFile
 		(
 			string[] @namespace,
-			List<PackageReference> usings,
-			List<TypeDefinition> typeDefinitions
+			List<PackageLevel> usings,
+			List<TypeDefinition> typeDefinitions,
+			List<Method> methods
 		)
 		{
 			Namespace = @namespace;
 			Usings = usings;
 			TypeDefinitions = typeDefinitions;
+			Methods = methods;
 		}
 
 		public string[] Namespace { get; }
-		public List<PackageReference> Usings { get; }
+		public List<PackageLevel> Usings { get; }
 		public List<TypeDefinition> TypeDefinitions { get; }
+		public List<Method> Methods { get; }
 	}
 }

@@ -24,5 +24,6 @@ namespace Terumi.Tokens
 		public IdentifierCase IdentifierCase { get; }
 
 		public override string ToString() => $"IdentifierToken - \"{Identifier}\", in {IdentifierCase}";
+		public static implicit operator string(IdentifierToken token) => token.Identifier;
 	}
 }

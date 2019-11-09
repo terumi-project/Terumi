@@ -30,30 +30,16 @@ namespace Terumi.Binder
 			Name = "bool"
 		};
 
-		public TypeInformation()
-		{
-			// add built in types
-			InfoItems.Add(Void);
-			InfoItems.Add(String);
-			InfoItems.Add(Number);
-			InfoItems.Add(Boolean);
-		}
+		public List<IBind> Binds { get; set; } = new List<IBind>();
 
-		public ICollection<InfoItem> InfoItems { get; set; } = new List<InfoItem>();
-
-		public IEnumerable<InfoItem> AllReferenceableTypes(InfoItem mainType)
+		public IEnumerable<IBind> AllReferenceableTypes(IBind mainType)
 		{
-			var namespaces = new List<ICollection<string>>(mainType.NamespaceReferences);
+			var namespaces = new List<PackageLevel>(mainType.References);
 			namespaces.Add(mainType.Namespace);
 
-			foreach (var item in InfoItems)
+			foreach (var item in Binds)
 			{
-				if (item.IsCompilerDefined)
-				{
-					yield return item;
-				}
-
-				if (!namespaces.Contains(item.Namespace, SequenceEqualsEqualityComparer<string>.Instance))
+				if (!namespaces.Contains(item.Namespace))
 				{
 					continue;
 				}
@@ -69,15 +55,36 @@ namespace Terumi.Binder
 
 				yield return item;
 			}
+
+			yield return Void;
+			yield return String;
+			yield return Number;
+			yield return Boolean;
 		}
 
-		public bool TryGetItem(InfoItem mainType, string typeName, out InfoItem type)
+		public bool TryGetItem(IBind mainType, string typeName, out IBind type)
 		{
 			foreach (var item in AllReferenceableTypes(mainType))
 			{
 				if (item.Name == typeName)
 				{
 					type = item;
+					return true;
+				}
+			}
+
+			type = default;
+			return false;
+		}
+
+		public bool TryGetType(IBind mainType, string typeName, out InfoItem type)
+		{
+			foreach (var item in AllReferenceableTypes(mainType))
+			{
+				if (item is InfoItem infoItem
+					&& item.Name == typeName)
+				{
+					type = infoItem;
 					return true;
 				}
 			}

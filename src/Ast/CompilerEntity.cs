@@ -71,7 +71,7 @@ namespace Terumi.Ast
 			throw new Exception();
 		}
 
-		public static ICodeExpression MatchMethod(string name, IEnumerable<InfoItem> parameters)
+		public static MethodBind MatchMethod(string name, IEnumerable<InfoItem> parameters)
 		{
 			foreach(var i in Gen())
 			{
@@ -97,19 +97,16 @@ namespace Terumi.Ast
 				}
 
 				int k = 0;
-				return new CompilerEntity(new InfoItem
+				return new MethodBind()
 				{
-					Code = new InfoItem.Method
+					Name = i.Name,
+					Parameters = i.Params.Select(x => new InfoItem.Method.Parameter
 					{
-						Name = i.Name,
-						Parameters = i.Params.Select(x => new InfoItem.Method.Parameter
-						{
-							Name = "k" + k++,
-							Type = Conv(x)
-						}).ToList(),
-						ReturnType = Conv(i.Returns)
-					}
-				});
+						Name = "k" + k++,
+						Type = Conv(x)
+					}).ToList(),
+					ReturnType = Conv(i.Returns)
+				};
 			}
 
 			throw new Exception("No matching compiler call");

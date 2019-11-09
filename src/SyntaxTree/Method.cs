@@ -2,7 +2,7 @@
 
 namespace Terumi.SyntaxTree
 {
-	public class Method : TerumiMember
+	public class Method : CompilerUnitItem, ITerumiMember
 	{
 		public Method(IdentifierToken type, IdentifierToken identifier, ParameterGroup parameters, CodeBody? body)
 		{

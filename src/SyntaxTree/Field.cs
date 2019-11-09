@@ -2,7 +2,7 @@
 
 namespace Terumi.SyntaxTree
 {
-	public class Field : TerumiMember
+	public class Field : ITerumiMember
 	{
 		public Field(bool @readonly, IdentifierToken type, IdentifierToken name)
 		{

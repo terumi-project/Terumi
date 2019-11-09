@@ -26,8 +26,6 @@ namespace Terumi.Parser
 		private readonly IPattern<ParameterGroup> _parameterGroupPattern;
 		private readonly IPattern<CodeBody> _codeBodyPattern;
 		private readonly IPattern<Method> _methodPattern;
-		private readonly IPattern<TypeDefinition> _topLevelMethodPattern;
-		private readonly IPattern<TypeDefinition> _typeDefinitionPattern;
 		private readonly IPattern<CompilerUnitItem> _compilerUnitItem;
 		private readonly IPattern<CompilerUnit> _compilerUnit;
 
@@ -72,11 +70,7 @@ namespace Terumi.Parser
 			_codeBodyPattern = new CodeBodyPattern(this, _expressionPattern);
 			_methodPattern = new MethodPattern(this, _parameterGroupPattern, _codeBodyPattern);
 
-			_topLevelMethodPattern = new TopLevelMethodPattern(this, _methodPattern);
-
-			_typeDefinitionPattern = _topLevelMethodPattern;
-
-			_compilerUnitItem = new CompilerUnitItemPattern(_typeDefinitionPattern, _packageLevelPattern);
+			_compilerUnitItem = new CompilerUnitItemPattern(_methodPattern, _packageLevelPattern);
 			_compilerUnit = new CompilerUnitPattern(this, _compilerUnitItem);
 		}
 

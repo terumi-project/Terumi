@@ -9,13 +9,13 @@ namespace Terumi.Parser
 
 		public CompilerUnitItemPattern
 		(
-			IPattern<TypeDefinition> typeDefinitionPattern,
+			IPattern<Method> methodPattern,
 			IPattern<PackageReference> packagePattern
 		)
 		{
-			_coagulation = new CoagulatedPattern<TypeDefinition, PackageReference, CompilerUnitItem>
+			_coagulation = new CoagulatedPattern<Method, PackageReference, CompilerUnitItem>
 			(
-				typeDefinitionPattern,
+				methodPattern,
 				packagePattern
 			);
 		}

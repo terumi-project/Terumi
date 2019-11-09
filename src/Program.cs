@@ -106,13 +106,8 @@ namespace Terumi
 
 				var target = new PowershellTarget(binder.TypeInformation);
 
-				foreach (var item in binder.TypeInformation.InfoItems)
+				foreach (var item in binder.TypeInformation.Binds)
 				{
-					if (item.IsCompilerDefined)
-					{
-						continue;
-					}
-
 					target.Write(sw, item);
 				}
 

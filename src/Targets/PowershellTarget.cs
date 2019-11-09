@@ -18,12 +18,24 @@ namespace Terumi.Targets
 			_info = info;
 		}
 
-		public void Write(TextWriter writer, InfoItem item)
+		public void Write(TextWriter writer, IBind bind)
 		{
-			writer.WriteLine($@"function {item.Code.Name}({Parameters(item)})
+			if (bind is MethodBind methodBind)
+			{
+				WriteMethod(writer, methodBind);
+			}
+			else
+			{
+				throw new NotImplementedException();
+			}
+		}
+
+		public void WriteMethod(TextWriter writer, MethodBind method)
+		{
+			writer.WriteLine($@"function {method.Name}({Parameters(method)})
 {{");
 
-			foreach(var loc in item.Code.Statements)
+			foreach (var loc in method.Statements)
 			{
 				HandleStatement(writer, loc);
 			}
@@ -236,9 +248,9 @@ namespace Terumi.Targets
 			return false;
 		}
 
-		private string Parameters(InfoItem item)
+		private string Parameters(MethodBind item)
 		{
-			var parameters = item.Code.Parameters;
+			var parameters = item.Parameters;
 
 			if (parameters.Count == 0)
 			{
@@ -250,7 +262,7 @@ namespace Terumi.Targets
 				return "$" + parameters.First().Name;
 			}
 
-			return item.Code.Parameters.Select(x => "$" + x.Name).Aggregate((a, b) => a + ", " + b);
+			return item.Parameters.Select(x => "$" + x.Name).Aggregate((a, b) => a + ", " + b);
 		}
 
 		private string Sanitize(string str)

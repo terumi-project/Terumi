@@ -1,6 +1,6 @@
 ﻿namespace Terumi.SyntaxTree
 {
-	public abstract class TerumiMember
+	public interface ITerumiMember
 	{
 	}
 }

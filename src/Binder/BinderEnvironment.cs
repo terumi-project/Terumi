@@ -81,13 +81,6 @@ namespace Terumi.Binder
 			// we're good :D
 		}
 
-		public void PassOverMembers()
-		{
-			// so now we want to pass over every field/method
-			// we want to consume in the type declarations of them
-			// we can also refer to all the types we declared in the previous step
-		}
-
 		// now that we've passed over both the type declarations, method declarations,
 		// we can start to parse the method bodies themselves.
 		public void PassOverMethodBodies()

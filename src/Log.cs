@@ -4,11 +4,6 @@ using System.Runtime.CompilerServices;
 
 namespace Terumi
 {
-	public struct DisposableLoggerEvent : IDisposable
-	{
-		public void Dispose() => Log.StageEnd();
-	}
-
 	// static logger makes code neater, but unit testing harder /shrug
 	// don't think we'll be testing anyways lol
 	public static class Log
@@ -46,15 +41,16 @@ namespace Terumi
 			message
 		);
 
-		public static DisposableLoggerEvent Stage(string stageName, string message)
+		public static void Stage(string stageName, string message)
 		{
+			if (_stageName != "STOP") StageEnd();
+
 			_stageName = stageName;
 			_stopwatch = null;
 
 			DisplayMessage(ConsoleColor.Cyan, "START", message);
 
 			_stopwatch = Stopwatch.StartNew();
-			return default;
 		}
 
 		public static void StageEnd()

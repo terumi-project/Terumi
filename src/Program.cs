@@ -46,55 +46,41 @@ namespace Terumi
 
 		public static bool Compile(string projectName)
 		{
-			Project project;
-
-			using (var _ = Log.Stage("SETUP", $"Loading project {projectName}"))
+			Log.Stage("SETUP", $"Loading project {projectName}");
+			if (!Project.TryLoad(Directory.GetCurrentDirectory(), projectName, out var project))
 			{
-				if (!Project.TryLoad(Directory.GetCurrentDirectory(), projectName, out project))
-				{
-					Log.Error("Unable to load project");
-					return false;
-				}
+				Log.Error("Unable to load project");
+				return false;
 			}
 
-			List<ParsedProjectFile> parsedFiles;
+			Log.Stage("PARSE", "Parsing project source code");
+			var parsedFiles = project.ParseProject(_lexer, _parser).ToList();
 
-			using (var _ = Log.Stage("PARSE", "Parsing project source code"))
+			Log.Stage("BINDING", "Binding parsed source files to in memory representations");
+
+			var binder = new BinderEnvironment(parsedFiles);
+			binder.PassOverTypeDeclarations();
+			binder.PassOverMethodBodies();
+
+			Log.Stage("WRITING", "Writing input code to target powershell file.");
+
+			// try/catching to delete files w/ IOException is a good practice
+			try { File.Delete("out.ps1"); } catch (IOException __) { }
+
+			// looks ugly but meh
+			using var fs = File.OpenWrite("out.ps1");
+			using var sw = new StreamWriter(fs);
+
+			var target = new PowershellTarget(binder.TypeInformation);
+
+			foreach (var item in binder.TypeInformation.Binds)
 			{
-				parsedFiles = project.ParseProject(_lexer, _parser)
-					.ToList();
+				target.Write(sw, item);
 			}
 
-			BinderEnvironment binder;
+			target.Post(sw);
 
-			using (var _ = Log.Stage("BINDING", "Binding parsed source files to in memory representations"))
-			{
-				binder = new BinderEnvironment(parsedFiles);
-
-				binder.PassOverTypeDeclarations();
-				binder.PassOverMembers();
-				binder.PassOverMethodBodies();
-			}
-
-			using (var _ = Log.Stage("WRITING", "Writing input code to target powershell file."))
-			{
-				// try/catching to delete files w/ IOException is a good practice
-				try { File.Delete("out.ps1"); } catch (IOException __) { }
-
-				// looks ugly but meh
-				using var fs = File.OpenWrite("out.ps1");
-				using var sw = new StreamWriter(fs);
-
-				var target = new PowershellTarget(binder.TypeInformation);
-
-				foreach (var item in binder.TypeInformation.Binds)
-				{
-					target.Write(sw, item);
-				}
-
-				target.Post(sw);
-			}
-
+			Log.StageEnd();
 			return true;
 		}
 

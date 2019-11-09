@@ -5,7 +5,7 @@ using Terumi.Tokens;
 
 namespace Terumi.Parser
 {
-	public class PackageLevelPattern : IPattern<PackageLevel>
+	public class PackageLevelPattern : IPattern<PackageReference>
 	{
 		private readonly IAstNotificationReceiver _astNotificationReceiver;
 
@@ -14,7 +14,7 @@ namespace Terumi.Parser
 			_astNotificationReceiver = astNotificationReceiver;
 		}
 
-		public bool TryParse(ReaderFork<IToken> source, out PackageLevel item)
+		public bool TryParse(ReaderFork<IToken> source, out PackageReference item)
 		{
 			if (!source.TryNextNonWhitespace<KeywordToken>(out var keywordToken))
 			{
@@ -31,7 +31,7 @@ namespace Terumi.Parser
 					return false;
 				}
 
-				item = new PackageLevel(PackageAction.Using, levels.ToArray());
+				item = new PackageReference(PackageAction.Using, levels.ToArray());
 				_astNotificationReceiver.AstCreated(source, item);
 				return true;
 			}
@@ -44,7 +44,7 @@ namespace Terumi.Parser
 					return false;
 				}
 
-				item = new PackageLevel(PackageAction.Namespace, levels.ToArray());
+				item = new PackageReference(PackageAction.Namespace, levels.ToArray());
 				_astNotificationReceiver.AstCreated(source, item);
 				return true;
 			}

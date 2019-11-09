@@ -32,7 +32,7 @@ namespace Terumi.Workspace
 		{
 			var mainLevel = source.PackageLevel;
 
-			var usings = new List<PackageLevel>();
+			var usings = new List<PackageReference>();
 			var typeDefinitions = new List<TypeDefinition>();
 
 			var parsedTypeDefinition = false;
@@ -43,7 +43,7 @@ namespace Terumi.Workspace
 
 				switch (item)
 				{
-					case PackageLevel packageLevel:
+					case PackageReference packageLevel:
 					{
 						// ensure only using/namespace at top
 						if (parsedTypeDefinition)

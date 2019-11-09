@@ -9,9 +9,9 @@ namespace Terumi.SyntaxTree
 		Using
 	}
 
-	public class PackageLevel : CompilerUnitItem, IEquatable<PackageLevel>
+	public class PackageReference : CompilerUnitItem, IEquatable<PackageReference>
 	{
-		public PackageLevel(PackageAction action, string[] levels)
+		public PackageReference(PackageAction action, string[] levels)
 		{
 			Action = action;
 			Levels = levels;
@@ -20,20 +20,20 @@ namespace Terumi.SyntaxTree
 		public PackageAction Action { get; }
 		public string[] Levels { get; }
 
-		public bool Equals(PackageLevel other)
+		public bool Equals(PackageReference other)
 			=> Action == other.Action
 			&& LevelEquals(other);
 
-		public static bool operator ==(PackageLevel a, PackageLevel b)
+		public static bool operator ==(PackageReference a, PackageReference b)
 			=> a.Equals(b);
 
-		public static bool operator !=(PackageLevel a, PackageLevel b)
+		public static bool operator !=(PackageReference a, PackageReference b)
 			=> !(a == b);
 
 		public override string ToString()
 			=> Levels.Aggregate((a, b) => $"{a}.{b}");
 
-		internal bool LevelEquals(PackageLevel level)
+		internal bool LevelEquals(PackageReference level)
 			=> Levels.SequenceEqual(level.Levels);
 	}
 }

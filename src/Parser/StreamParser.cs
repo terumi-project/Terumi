@@ -21,7 +21,7 @@ namespace Terumi.Parser
 		private readonly BooleanLiteralExpressionPattern _booleanPattern;
 		private readonly VariableExpressionPattern _variablePattern;
 
-		private readonly IPattern<PackageLevel> _packageLevelPattern;
+		private readonly IPattern<PackageReference> _packageLevelPattern;
 		private readonly IPattern<ParameterType> _parameterTypePattern;
 		private readonly IPattern<ParameterGroup> _parameterGroupPattern;
 		private readonly IPattern<CodeBody> _codeBodyPattern;

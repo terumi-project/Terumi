@@ -9,7 +9,7 @@ namespace Terumi.Workspace
 		public ParsedProjectFile
 		(
 			string[] @namespace,
-			List<PackageLevel> usings,
+			List<PackageReference> usings,
 			List<TypeDefinition> typeDefinitions
 		)
 		{
@@ -19,7 +19,7 @@ namespace Terumi.Workspace
 		}
 
 		public string[] Namespace { get; }
-		public List<PackageLevel> Usings { get; }
+		public List<PackageReference> Usings { get; }
 		public List<TypeDefinition> TypeDefinitions { get; }
 	}
 }

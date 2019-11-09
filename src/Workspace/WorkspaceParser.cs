@@ -68,7 +68,7 @@ namespace Terumi.Workspace
 						if (i != 0)
 						{
 							var error = $"The first item in the file must specify the namespace of the file. " +
-	$"The namespace of the file '{source.Path}' will remain as '{mainLevel.ToNamespace()}', and not '{packageLevel}'.";
+	$"The namespace of the file '{source.Path}' will remain as '{mainLevel}', and not '{packageLevel.Levels}'.";
 
 							Log.Error(error);
 							break;

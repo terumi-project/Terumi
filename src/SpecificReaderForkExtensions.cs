@@ -79,10 +79,12 @@ namespace Terumi
 				out peeked
 			);
 
-		public static bool TryPeekNonPredicate(this ReaderFork<IToken> fork, Func<IToken, bool> predicate, out IToken token, out int peeked)
+		public static bool TryPeekNonPredicate(this ReaderFork<IToken> source, Func<IToken, bool> predicate, out IToken token, out int peeked)
 		{
+			using var fork = source.Fork();
+
 			peeked = 1;
-			while (fork.TryPeek(out var nextToken, peeked++))
+			while (fork.TryNext(out var nextToken))
 			{
 				if (predicate(nextToken))
 				{

@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-
+using System.Numerics;
 using Terumi.SyntaxTree.Expressions;
 using Terumi.Tokens;
 
@@ -10,11 +10,11 @@ namespace Terumi.Parser.Expressions
 		private readonly IPattern<MethodCall> _methodCallPattern;
 		private readonly IPattern<ReturnExpression> _returnPattern;
 		private readonly IPattern<AccessExpression> _accessPattern;
-		private readonly IPattern<NumericLiteralExpression> _numericPattern;
-		private readonly IPattern<StringLiteralExpression> _stringPattern;
+		private readonly IPattern<Terumi.Ast.ConstantLiteralExpression<BigInteger>> _numericPattern;
+		private readonly IPattern<Terumi.Ast.ConstantLiteralExpression<string>> _stringPattern;
 		private readonly IPattern<ThisExpression> _thisPattern;
 		private readonly IPattern<ReferenceExpression> _referencePattern;
-		private readonly IPattern<BooleanLiteralExpression> _booleanPattern;
+		private readonly IPattern<Terumi.Ast.ConstantLiteralExpression<bool>> _booleanPattern;
 		private readonly IPattern<VariableExpression> _variablePattern;
 
 		public ExpressionPattern
@@ -22,11 +22,11 @@ namespace Terumi.Parser.Expressions
 			IPattern<MethodCall> methodCallPattern,
 			IPattern<ReturnExpression> returnPattern,
 			IPattern<AccessExpression> accessPattern,
-			IPattern<NumericLiteralExpression> numericPattern,
-			IPattern<StringLiteralExpression> stringPattern,
+			IPattern<Terumi.Ast.ConstantLiteralExpression<BigInteger>> numericPattern,
+			IPattern<Terumi.Ast.ConstantLiteralExpression<string>> stringPattern,
 			IPattern<ThisExpression> thisPattern,
 			IPattern<ReferenceExpression> referencePattern,
-			IPattern<BooleanLiteralExpression> booleanPattern,
+			IPattern<Terumi.Ast.ConstantLiteralExpression<bool>> booleanPattern,
 			IPattern<VariableExpression> variablePattern
 		)
 		{

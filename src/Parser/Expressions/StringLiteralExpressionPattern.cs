@@ -1,16 +1,16 @@
-﻿using Terumi.SyntaxTree.Expressions;
+﻿using Terumi.Ast;
 using Terumi.Tokens;
 
 namespace Terumi.Parser.Expressions
 {
-	public class StringLiteralExpressionPattern : IPattern<StringLiteralExpression>
+	public class ConstantLiteralExpressionStringPattern : IPattern<ConstantLiteralExpression<string>>
 	{
 		private readonly IAstNotificationReceiver _astNotificationReceiver;
 
-		public StringLiteralExpressionPattern(IAstNotificationReceiver astNotificationReceiver)
+		public ConstantLiteralExpressionStringPattern(IAstNotificationReceiver astNotificationReceiver)
 			=> _astNotificationReceiver = astNotificationReceiver;
 
-		public bool TryParse(ReaderFork<IToken> source, out StringLiteralExpression item)
+		public bool TryParse(ReaderFork<IToken> source, out ConstantLiteralExpression<string> item)
 		{
 			if (!source.TryNextNonWhitespace<StringToken>(out var @string))
 			{
@@ -18,7 +18,7 @@ namespace Terumi.Parser.Expressions
 				return false;
 			}
 
-			item = new StringLiteralExpression(@string.String);
+			item = new ConstantLiteralExpression<string>(@string.String);
 			_astNotificationReceiver.AstCreated(source, item);
 			return true;
 		}

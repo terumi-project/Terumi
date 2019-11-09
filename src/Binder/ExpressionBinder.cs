@@ -144,19 +144,19 @@ namespace Terumi.Binder
 					return new ParameterReferenceExpression(_method.Parameters.First(x => x.Name == referenceExpression.ReferenceName));
 				}
 
-				case NumericLiteralExpression numericLiteralExpression:
+				case ConstantLiteralExpression<BigInteger> numericLiteralExpression:
 				{
-					return new ConstantLiteralExpression<BigInteger>(numericLiteralExpression.LiteralValue);
+					return new ConstantLiteralExpression<BigInteger>(numericLiteralExpression.Value);
 				}
 
-				case StringLiteralExpression stringLiteralExpression:
+				case ConstantLiteralExpression<string> stringLiteralExpression:
 				{
-					return new ConstantLiteralExpression<string>(stringLiteralExpression.LiteralValue);
+					return new ConstantLiteralExpression<string>(stringLiteralExpression.Value);
 				}
 
-				case BooleanLiteralExpression booleanLiteralExpression:
+				case ConstantLiteralExpression<bool> booleanLiteralExpression:
 				{
-					return new ConstantLiteralExpression<bool>(booleanLiteralExpression.LiteralValue);
+					return new ConstantLiteralExpression<bool>(booleanLiteralExpression.Value);
 				}
 
 				case SyntaxTree.Expressions.ThisExpression _:

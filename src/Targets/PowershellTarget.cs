@@ -200,19 +200,19 @@ namespace Terumi.Targets
 
 				case ConstantLiteralExpression<BigInteger> number:
 				{
-					result = $"(New-Object System.Numerics.BigInteger(\"{number.Literal.ToString()}\"))";
+					result = $"(New-Object System.Numerics.BigInteger(\"{number.Value.ToString()}\"))";
 					return true;
 				}
 
 				case ConstantLiteralExpression<string> str:
 				{
-					result = $"\"{Sanitize(str.Literal)}\"";
+					result = $"\"{Sanitize(str.Value)}\"";
 					return true;
 				}
 
 				case ConstantLiteralExpression<bool> @bool:
 				{
-					result = @bool.Literal ? "$TRUE" : "$FALSE";
+					result = @bool.Value ? "$TRUE" : "$FALSE";
 					return true;
 				}
 

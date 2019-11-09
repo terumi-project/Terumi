@@ -1,14 +1,15 @@
 ﻿using System.Numerics;
 
 using Terumi.Binder;
+using Terumi.SyntaxTree.Expressions;
 
 namespace Terumi.Ast
 {
-	public class ConstantLiteralExpression<T> : ICodeExpression
+	public class ConstantLiteralExpression<T> : Expression, ICodeExpression
 	{
 		public ConstantLiteralExpression(T value)
 		{
-			Literal = value;
+			Value = value;
 
 			switch (value)
 			{
@@ -26,7 +27,7 @@ namespace Terumi.Ast
 			}
 		}
 
-		public T Literal { get; }
+		public T Value { get; }
 
 		public InfoItem Type { get; }
 	}

@@ -12,12 +12,12 @@ namespace Terumi.Parser
 		private readonly MethodCallPattern _methodCallPattern;
 		private readonly ReturnExpressionPattern _returnPattern;
 		private readonly AccessExpressionPattern _accessPattern;
-		private readonly NumericLiteralExpressionPattern _numericPattern;
-		private readonly StringLiteralExpressionPattern _stringPattern;
+		private readonly ConstantLiteralExpressionBigIntegerPattern _numericPattern;
+		private readonly ConstantLiteralExpressionStringPattern _stringPattern;
 		private readonly ExpressionPattern _expressionPattern;
 		private readonly ThisExpressionPattern _thisPattern;
 		private readonly ReferenceExpressionPattern _referencePattern;
-		private readonly BooleanLiteralExpressionPattern _booleanPattern;
+		private readonly ConstantLiteralExpressionBooleanPattern _booleanPattern;
 		private readonly VariableExpressionPattern _variablePattern;
 
 		private readonly IPattern<PackageReference> _packageLevelPattern;
@@ -39,11 +39,11 @@ namespace Terumi.Parser
 			_methodCallPattern = new MethodCallPattern(this, _methodCallParameterGroupPattern);
 			_returnPattern = new ReturnExpressionPattern(this);
 			_accessPattern = new AccessExpressionPattern(this);
-			_numericPattern = new NumericLiteralExpressionPattern(this);
-			_stringPattern = new StringLiteralExpressionPattern(this);
+			_numericPattern = new ConstantLiteralExpressionBigIntegerPattern(this);
+			_stringPattern = new ConstantLiteralExpressionStringPattern(this);
 			_thisPattern = new ThisExpressionPattern(this);
 			_referencePattern = new ReferenceExpressionPattern(this);
-			_booleanPattern = new BooleanLiteralExpressionPattern(this);
+			_booleanPattern = new ConstantLiteralExpressionBooleanPattern(this);
 			_variablePattern = new VariableExpressionPattern(this, _parameterTypePattern);
 
 			_expressionPattern = new ExpressionPattern
@@ -97,11 +97,7 @@ namespace Terumi.Parser
 
 		public bool TryParse(Memory<IToken> tokens, out CompilerUnit compilerUnit)
 		{
-			var head = new ReaderHead<IToken>(tokens);
-
-			using var fork = head.Fork();
-			fork.Commit = true;
-			return _compilerUnit.TryParse(fork, out compilerUnit);
+			return _compilerUnit.TryParse(new ReaderFork<IToken>(0, tokens, null), out compilerUnit);
 		}
 	}
 }

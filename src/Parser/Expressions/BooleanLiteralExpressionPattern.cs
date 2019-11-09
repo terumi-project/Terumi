@@ -1,16 +1,16 @@
-﻿using Terumi.SyntaxTree.Expressions;
+﻿using Terumi.Ast;
 using Terumi.Tokens;
 
 namespace Terumi.Parser.Expressions
 {
-	public class BooleanLiteralExpressionPattern : IPattern<BooleanLiteralExpression>
+	public class ConstantLiteralExpressionBooleanPattern : IPattern<ConstantLiteralExpression<bool>>
 	{
 		private readonly IAstNotificationReceiver _astNotificationReceiver;
 
-		public BooleanLiteralExpressionPattern(IAstNotificationReceiver astNotificationReceiver)
+		public ConstantLiteralExpressionBooleanPattern(IAstNotificationReceiver astNotificationReceiver)
 			=> _astNotificationReceiver = astNotificationReceiver;
 
-		public bool TryParse(ReaderFork<IToken> source, out BooleanLiteralExpression item)
+		public bool TryParse(ReaderFork<IToken> source, out ConstantLiteralExpression<bool> item)
 		{
 			if (!source.TryNextNonWhitespace<KeywordToken>(out var boolean))
 			{
@@ -34,7 +34,7 @@ namespace Terumi.Parser.Expressions
 				return false;
 			}
 
-			item = new BooleanLiteralExpression(value);
+			item = new ConstantLiteralExpression<bool>(value);
 			_astNotificationReceiver.AstCreated(source, item);
 			return true;
 		}

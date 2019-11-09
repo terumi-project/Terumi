@@ -18,7 +18,7 @@ namespace Terumi.SyntaxTree
 		}
 
 		public PackageAction Action { get; }
-		public string[] Levels { get; }
+		public PackageLevel Levels { get; }
 
 		public bool Equals(PackageReference other)
 			=> Action == other.Action

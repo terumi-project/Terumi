@@ -50,7 +50,7 @@ namespace Terumi.Workspace
 						{
 							var error = $"A package statement other than 'using'/'namespace' has been parsed. " +
 	$"You may not specify any more package statements after a different kind of statement is parsed. " +
-	$"Error when using '{packageLevel.Levels.ToNamespace()}' at '{source.Path}'.";
+	$"Error when using '{packageLevel}' at '{source.Path}'.";
 
 							Log.Error(error);
 							break;
@@ -67,7 +67,7 @@ namespace Terumi.Workspace
 						if (i != 0)
 						{
 							var error = $"The first item in the file must specify the namespace of the file. " +
-	$"The namespace of the file '{source.Path}' will remain as '{mainLevel.ToNamespace()}', and not '{packageLevel.Levels.ToNamespace()}'.";
+	$"The namespace of the file '{source.Path}' will remain as '{mainLevel.ToNamespace()}', and not '{packageLevel}'.";
 
 							Log.Error(error);
 							break;

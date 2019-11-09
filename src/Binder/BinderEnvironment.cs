@@ -32,7 +32,7 @@ namespace Terumi.Binder
 						IsCompilerDefined = false, // explicit for readability
 						Namespace = file.Namespace,
 						Name = item.Identifier,
-						NamespaceReferences = file.Usings.Select(x => (ICollection<string>)x.Levels).ToList(),
+						NamespaceReferences = file.Usings.Select(x => (ICollection<string>)(x.Levels.ToArray())).ToList(),
 						TerumiBacking = item
 					};
 

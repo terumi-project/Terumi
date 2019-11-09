@@ -7,6 +7,8 @@ namespace Terumi
 		private readonly Memory<T> _memory;
 		private readonly Action<int>? _commit;
 
+		public Memory<T> Memory => _memory.Slice(Position);
+
 		public ReaderFork(int position, Memory<T> memory, Action<int>? commit)
 		{
 			Position = position;

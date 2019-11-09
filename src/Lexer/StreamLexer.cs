@@ -15,11 +15,15 @@ namespace Terumi.Lexer
 		public StreamLexer(IEnumerable<IPattern> patterns)
 			=> _patterns = patterns.ToArray();
 
-		public IEnumerable<Token> ParseTokens(Stream source)
+		public IEnumerable<Token> ParseTokens(Memory<byte> source)
 		{
-			using var reader = new BinaryReader(source, Encoding.UTF8, true);
-
-			var readerHead = new ReaderHead<byte>(reader.ReadBytes);
+			int currentPos = 0;
+			var readerHead = new ReaderHead<byte>((bytes) =>
+			{
+				var returnBytes = source.Slice(currentPos, bytes);
+				currentPos += bytes;
+				return returnBytes.ToArray();
+			});
 
 			while (true)
 			{

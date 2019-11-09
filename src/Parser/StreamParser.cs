@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 using Terumi.Parser.Expressions;
 using Terumi.SyntaxTree;
@@ -101,20 +102,14 @@ namespace Terumi.Parser
 			Log.Warn("AST got 'Throw': " + message);
 		}
 
-		public bool TryParse(IEnumerable<Token> tokens, out CompilerUnit compilerUnit)
+		public bool TryParse(Memory<Token> tokens, out CompilerUnit compilerUnit)
 		{
-			using var enumerator = tokens.GetEnumerator();
-
+			int currentPos = 0;
 			var head = new ReaderHead<Token>((amt) =>
 			{
-				var result = new List<Token>(amt);
-
-				for (var i = 0; i < amt && enumerator.MoveNext(); i++)
-				{
-					result.Add(enumerator.Current);
-				}
-
-				return result.ToArray();
+				var ret = tokens.Slice(currentPos, amt);
+				currentPos += amt;
+				return ret.ToArray();
 			});
 
 			using var fork = head.Fork();

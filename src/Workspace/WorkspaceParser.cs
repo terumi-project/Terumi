@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Terumi.Lexer;
 using Terumi.Parser;
@@ -15,10 +17,9 @@ namespace Terumi.Workspace
 			{
 				// TODO: use string directly and rid all the code of reader head/fork stuff
 
-				using var ms = new MemoryStream(Encoding.UTF8.GetBytes(code.Source));
-				var tokens = lexer.ParseTokens(ms);
+				var tokens = lexer.ParseTokens(Encoding.UTF8.GetBytes(code.Source).AsMemory());
 
-				if (!parser.TryParse(tokens, out var compilerUnit))
+				if (!parser.TryParse(tokens.ToArray().AsMemory(), out var compilerUnit))
 				{
 					throw new WorkspaceParserException($"Unable to parse source code into compiler unit: in '{project.ProjectName}', at '{code.Path}'.");
 				}

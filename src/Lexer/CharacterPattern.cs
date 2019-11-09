@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 using Terumi.Tokens;
 
@@ -6,21 +7,24 @@ namespace Terumi.Lexer
 {
 	public class CharacterPattern : IPattern
 	{
-		private readonly char _char;
-		private readonly byte _byteChar;
+		private readonly char[] _chars;
+		private readonly byte[] _byteChars;
 
-		public CharacterPattern(char character)
+		public CharacterPattern(params char[] characters)
 		{
-			_char = character;
-			_byteChar = (byte)character;
+			_chars = characters;
+			_byteChars = _chars.Select(x => (byte)x).ToArray();
 		}
 
 		public int TryParse(Span<byte> source, LexerMetadata meta, ref IToken token)
 		{
-			if (source[0] == _byteChar)
+			for (var i = 0; i < _byteChars.Length; i++)
 			{
-				token = new CharacterToken(meta, _char);
-				return 1;
+				if (source[0] == _byteChars[i])
+				{
+					token = new CharacterToken(meta, _chars[i]);
+					return 1;
+				}
 			}
 
 			return 0;

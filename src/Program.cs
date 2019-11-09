@@ -16,13 +16,14 @@ namespace Terumi
 		private static readonly StreamLexer _lexer = new StreamLexer(GetPatterns());
 		private static readonly StreamParser _parser = new StreamParser();
 
-		private static IEnumerable<IPattern> GetPatterns()
+		private static IPattern[] GetPatterns()
+			=> new IPattern[]
 		{
-			yield return new CharacterPattern('\n');
-			yield return new WhitespacePattern();
-			yield return new CommentPattern();
+			new CharacterPattern('\n'),
+			new WhitespacePattern(),
+			new CommentPattern(),
 
-			yield return new KeywordPattern(new KeyValuePair<string, Keyword>[]
+			new KeywordPattern(new KeyValuePair<string, Keyword>[]
 			{
 				KeyValuePair.Create("contract", Keyword.Contract),
 				KeyValuePair.Create("class", Keyword.Class),
@@ -33,34 +34,15 @@ namespace Terumi
 				KeyValuePair.Create("this", Keyword.This),
 				KeyValuePair.Create("true", Keyword.True),
 				KeyValuePair.Create("false", Keyword.False),
-			});
+			}),
 
-			yield return new CharacterPattern(';');
-			yield return new CharacterPattern('@');
+			new CharacterPattern(';', '@', '=', ',', '.', '(', ')', '[', ']', '{', '}', '+', '-', '/', '*'),
 
-			yield return new CharacterPattern('=');
-			yield return new CharacterPattern(',');
-			yield return new CharacterPattern('.');
-
-			yield return new CharacterPattern('(');
-			yield return new CharacterPattern(')');
-
-			yield return new CharacterPattern('[');
-			yield return new CharacterPattern(']');
-
-			yield return new CharacterPattern('{');
-			yield return new CharacterPattern('}');
-
-			yield return new CharacterPattern('+');
-			yield return new CharacterPattern('-');
-			yield return new CharacterPattern('/');
-			yield return new CharacterPattern('*');
-
-			yield return new IdentifierPattern(IdentifierCase.SnakeCase);
-			yield return new IdentifierPattern(IdentifierCase.PascalCase);
-			yield return new NumericPattern();
-			yield return new StringPattern();
-		}
+			new IdentifierPattern(IdentifierCase.SnakeCase),
+			new IdentifierPattern(IdentifierCase.PascalCase),
+			new NumericPattern(),
+			new StringPattern(),
+		};
 
 		public static bool Compile(string projectName)
 		{

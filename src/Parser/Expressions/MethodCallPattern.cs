@@ -18,7 +18,7 @@ namespace Terumi.Parser.Expressions
 			_pattern = pattern;
 		}
 
-		public bool TryParse(ReaderFork<Token> source, out MethodCall item)
+		public bool TryParse(ReaderFork<IToken> source, out MethodCall item)
 		{
 			bool isCompilerCall = false;
 

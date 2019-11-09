@@ -2,7 +2,7 @@
 
 namespace Terumi.Tokens
 {
-	public class KeywordToken : Token
+	public class KeywordToken : IToken
 	{
 		public KeywordToken(LexerMetadata start, Keyword keyword)
 		{
@@ -10,8 +10,8 @@ namespace Terumi.Tokens
 			Keyword = keyword;
 		}
 
-		public override LexerMetadata Start { get; protected set; }
-		public override LexerMetadata End { get; set; }
+		public LexerMetadata Start { get; }
+		public LexerMetadata End { get; set; }
 		public Keyword Keyword { get; }
 	}
 }

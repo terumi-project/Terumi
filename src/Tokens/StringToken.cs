@@ -2,7 +2,7 @@
 
 namespace Terumi.Tokens
 {
-	public class StringToken : Token
+	public class StringToken : IToken
 	{
 		public StringToken(LexerMetadata meta, string @string)
 		{
@@ -10,8 +10,8 @@ namespace Terumi.Tokens
 			String = @string;
 		}
 
-		public override LexerMetadata Start { get; protected set; }
-		public override LexerMetadata End { get; set; }
+		public LexerMetadata Start { get; }
+		public LexerMetadata End { get; set; }
 
 		public string String { get; }
 	}

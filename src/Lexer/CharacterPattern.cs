@@ -14,7 +14,7 @@ namespace Terumi.Lexer
 			_byteChar = (byte)character;
 		}
 
-		public int TryParse(Span<byte> source, LexerMetadata meta, ref Token token)
+		public int TryParse(Span<byte> source, LexerMetadata meta, ref IToken token)
 		{
 			if (source[0] == _byteChar)
 			{

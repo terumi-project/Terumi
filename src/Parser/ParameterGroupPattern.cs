@@ -21,7 +21,7 @@ namespace Terumi.Parser
 			_parameterTypePattern = parameterTypePattern;
 		}
 
-		public bool TryParse(ReaderFork<Token> source, out ParameterGroup item)
+		public bool TryParse(ReaderFork<IToken> source, out ParameterGroup item)
 		{
 			var parameters = new List<Parameter>();
 
@@ -75,7 +75,7 @@ namespace Terumi.Parser
 			}
 		}
 
-		private bool NeedsMore(ReaderFork<Token> source)
+		private bool NeedsMore(ReaderFork<IToken> source)
 		{
 			if (source.TryPeekNonWhitespace<CharacterToken>(out var characterToken, out var peeked)
 				&& characterToken.IsChar(','))

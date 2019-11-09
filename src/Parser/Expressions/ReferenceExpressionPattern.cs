@@ -15,7 +15,7 @@ namespace Terumi.Parser.Expressions
 			_astNotificationReceiver = astNotificationReceiver;
 		}
 
-		public bool TryParse(ReaderFork<Token> source, out ReferenceExpression item)
+		public bool TryParse(ReaderFork<IToken> source, out ReferenceExpression item)
 		{
 			if (!source.TryNextNonWhitespace<IdentifierToken>(out var identifier))
 			{

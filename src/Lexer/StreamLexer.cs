@@ -26,7 +26,7 @@ namespace Terumi.Lexer
 			=> _patterns = patterns.ToArray();
 
 		/// <param name="filename">Used purely as metadata.</param>
-		public IEnumerable<Token> ParseTokens(Memory<byte> source, string filename)
+		public IEnumerable<IToken> ParseTokens(Memory<byte> source, string filename)
 		{
 			var meta = new LexerMetadata { Line = 1, Column = 1, File = filename };
 
@@ -40,7 +40,7 @@ namespace Terumi.Lexer
 					yield break;
 				}
 
-				Token token = default;
+				IToken token = default;
 				foreach (var pattern in _patterns)
 				{
 					var result = pattern.TryParse(source.Span, meta, ref token);
@@ -71,6 +71,8 @@ namespace Terumi.Lexer
 							meta.Column++;
 						}
 					}
+
+					token.End = meta;
 
 					yield return token;
 					goto next; // goes to beginning of while loop

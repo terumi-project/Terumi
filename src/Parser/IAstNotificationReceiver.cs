@@ -4,9 +4,9 @@ namespace Terumi.Parser
 {
 	public interface IAstNotificationReceiver
 	{
-		void AstCreated<T>(ReaderFork<Token> fork, T ast);
+		void AstCreated<T>(ReaderFork<IToken> fork, T ast);
 
-		void DebugPrint(ReaderFork<Token> fork);
+		void DebugPrint(ReaderFork<IToken> fork);
 
 		void Throw(string msg);
 	}

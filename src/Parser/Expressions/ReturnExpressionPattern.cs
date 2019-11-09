@@ -14,7 +14,7 @@ namespace Terumi.Parser.Expressions
 
 		public IPattern<Expression> ExpressionPattern { get; set; }
 
-		public bool TryParse(ReaderFork<Token> source, out ReturnExpression item)
+		public bool TryParse(ReaderFork<IToken> source, out ReturnExpression item)
 		{
 			if (ExpressionPattern == null)
 			{

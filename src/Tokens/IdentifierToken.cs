@@ -8,7 +8,7 @@ namespace Terumi.Tokens
 		SnakeCase
 	}
 
-	public class IdentifierToken : Token
+	public class IdentifierToken : IToken
 	{
 		public IdentifierToken(LexerMetadata meta, string identifier, IdentifierCase identifierCase)
 		{
@@ -17,8 +17,8 @@ namespace Terumi.Tokens
 			IdentifierCase = identifierCase;
 		}
 
-		public override LexerMetadata Start { get; protected set; }
-		public override LexerMetadata End { get; set; }
+		public LexerMetadata Start { get; }
+		public LexerMetadata End { get; set; }
 
 		public string Identifier { get; }
 		public IdentifierCase IdentifierCase { get; }

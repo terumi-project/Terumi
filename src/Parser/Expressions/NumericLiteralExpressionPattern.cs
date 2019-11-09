@@ -10,7 +10,7 @@ namespace Terumi.Parser.Expressions
 		public NumericLiteralExpressionPattern(IAstNotificationReceiver astNotificationReceiver)
 			=> _astNotificationReceiver = astNotificationReceiver;
 
-		public bool TryParse(ReaderFork<Token> source, out NumericLiteralExpression item)
+		public bool TryParse(ReaderFork<IToken> source, out NumericLiteralExpression item)
 		{
 			if (!source.TryNextNonWhitespace<NumericToken>(out var numeric))
 			{

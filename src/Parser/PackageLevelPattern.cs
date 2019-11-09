@@ -14,7 +14,7 @@ namespace Terumi.Parser
 			_astNotificationReceiver = astNotificationReceiver;
 		}
 
-		public bool TryParse(ReaderFork<Token> source, out PackageLevel item)
+		public bool TryParse(ReaderFork<IToken> source, out PackageLevel item)
 		{
 			if (!source.TryNextNonWhitespace<KeywordToken>(out var keywordToken))
 			{
@@ -53,7 +53,7 @@ namespace Terumi.Parser
 			return false;
 		}
 
-		private bool TryParseLevels(ReaderFork<Token> source, out List<string> levels)
+		private bool TryParseLevels(ReaderFork<IToken> source, out List<string> levels)
 		{
 			levels = new List<string>();
 
@@ -78,7 +78,7 @@ namespace Terumi.Parser
 			return true;
 		}
 
-		private bool TryParseAccessLevel(ReaderFork<Token> source)
+		private bool TryParseAccessLevel(ReaderFork<IToken> source)
 		{
 			if (!(source.TryPeekNonWhitespace<CharacterToken>(out var characterToken, out int peeked)
 				&& characterToken.Character == '.'))

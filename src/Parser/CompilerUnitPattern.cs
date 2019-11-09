@@ -21,7 +21,7 @@ namespace Terumi.Parser
 			_astNotificationReceiver = astNotificationReceiver;
 		}
 
-		public bool TryParse(ReaderFork<Token> source, out CompilerUnit compilerUnit)
+		public bool TryParse(ReaderFork<IToken> source, out CompilerUnit compilerUnit)
 		{
 			var items = new List<CompilerUnitItem>();
 

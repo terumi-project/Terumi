@@ -21,7 +21,7 @@ namespace Terumi.Parser
 			_expressionPattern = expressionPattern;
 		}
 
-		public bool TryParse(ReaderFork<Token> source, out CodeBody item)
+		public bool TryParse(ReaderFork<IToken> source, out CodeBody item)
 		{
 			if (!(source.TryNextNonWhitespace<CharacterToken>(out var openBrace)
 				&& openBrace.IsChar('{')))

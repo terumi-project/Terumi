@@ -18,7 +18,7 @@ namespace Terumi.Parser
 			_methodPattern = methodPattern;
 		}
 
-		public bool TryParse(ReaderFork<Token> source, out TypeDefinition item)
+		public bool TryParse(ReaderFork<IToken> source, out TypeDefinition item)
 		{
 			if (_methodPattern.TryParse(source, out var method))
 			{

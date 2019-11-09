@@ -20,7 +20,7 @@ namespace Terumi.Parser
 			);
 		}
 
-		public bool TryParse(ReaderFork<Token> source, out CompilerUnitItem item)
+		public bool TryParse(ReaderFork<IToken> source, out CompilerUnitItem item)
 			=> _coagulation.TryParse(source, out item);
 	}
 }

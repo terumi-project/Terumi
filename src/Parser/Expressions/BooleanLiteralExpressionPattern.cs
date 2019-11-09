@@ -10,7 +10,7 @@ namespace Terumi.Parser.Expressions
 		public BooleanLiteralExpressionPattern(IAstNotificationReceiver astNotificationReceiver)
 			=> _astNotificationReceiver = astNotificationReceiver;
 
-		public bool TryParse(ReaderFork<Token> source, out BooleanLiteralExpression item)
+		public bool TryParse(ReaderFork<IToken> source, out BooleanLiteralExpression item)
 		{
 			if (!source.TryNextNonWhitespace<KeywordToken>(out var boolean))
 			{

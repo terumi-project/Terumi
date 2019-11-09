@@ -10,7 +10,7 @@ namespace Terumi.Parser.Expressions
 		public StringLiteralExpressionPattern(IAstNotificationReceiver astNotificationReceiver)
 			=> _astNotificationReceiver = astNotificationReceiver;
 
-		public bool TryParse(ReaderFork<Token> source, out StringLiteralExpression item)
+		public bool TryParse(ReaderFork<IToken> source, out StringLiteralExpression item)
 		{
 			if (!source.TryNextNonWhitespace<StringToken>(out var @string))
 			{

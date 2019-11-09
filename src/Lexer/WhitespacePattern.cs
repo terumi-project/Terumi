@@ -7,7 +7,7 @@ namespace Terumi.Lexer
 {
 	public class WhitespacePattern : IPattern
 	{
-		public int TryParse(Span<byte> source, LexerMetadata meta, ref Token token)
+		public int TryParse(Span<byte> source, LexerMetadata meta, ref IToken token)
 		{
 			// short circuit if we don't have any data
 			if (!IsWhitespace(source[0]))

@@ -13,7 +13,7 @@ namespace Terumi.Parser.Expressions
 		)
 			=> _astNotificationReceiver = astNotificationReceiver;
 
-		public bool TryParse(ReaderFork<Token> source, out ThisExpression item)
+		public bool TryParse(ReaderFork<IToken> source, out ThisExpression item)
 		{
 			if (!source.TryPeekNonWhitespace<KeywordToken>(out var token, out var peeked)
 				|| token.Keyword != Keyword.This)

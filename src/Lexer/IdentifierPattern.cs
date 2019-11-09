@@ -22,7 +22,7 @@ namespace Terumi.Lexer
 			}
 		}
 
-		public int TryParse(Span<byte> source, LexerMetadata meta, ref Token token)
+		public int TryParse(Span<byte> source, LexerMetadata meta, ref IToken token)
 		{
 			var end = 0;
 

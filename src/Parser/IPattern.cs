@@ -4,6 +4,6 @@ namespace Terumi.Parser
 {
 	public interface IPattern<T>
 	{
-		public bool TryParse(ReaderFork<Token> source, out T item);
+		public bool TryParse(ReaderFork<IToken> source, out T item);
 	}
 }

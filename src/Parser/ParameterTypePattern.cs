@@ -12,7 +12,7 @@ namespace Terumi.Parser
 			_astNotificationReceiver = astNotificationReceiver;
 		}
 
-		public bool TryParse(ReaderFork<Token> source, out ParameterType item)
+		public bool TryParse(ReaderFork<IToken> source, out ParameterType item)
 		{
 			if (!source.TryNextNonWhitespace<IdentifierToken>(out var identifier)
 				) // || identifier.IdentifierCase != IdentifierCase.PascalCase)
@@ -41,7 +41,7 @@ namespace Terumi.Parser
 			return true;
 		}
 
-		private static bool HasBrackets(ReaderFork<Token> source)
+		private static bool HasBrackets(ReaderFork<IToken> source)
 		{
 			if (source.TryPeekNonWhitespace<CharacterToken>(out var openBracket, out var peeked)
 				&& openBracket.Character == '[')

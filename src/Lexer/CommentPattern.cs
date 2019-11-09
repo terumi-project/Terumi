@@ -8,7 +8,7 @@ namespace Terumi.Lexer
 		public const byte Slash = (byte)'/';
 		public const byte Asterisk = (byte)'*';
 
-		public int TryParse(Span<byte> source, LexerMetadata meta, ref Token token)
+		public int TryParse(Span<byte> source, LexerMetadata meta, ref IToken token)
 		{
 			if (source.Length < 2) return 0;
 			if (source[0] != Slash) return 0;

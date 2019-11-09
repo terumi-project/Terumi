@@ -24,7 +24,7 @@ namespace Terumi.Parser.Expressions
 
 		public IPattern<Expression> ExpressionPattern { get; set; }
 
-		public bool TryParse(ReaderFork<Token> source, out VariableExpression item)
+		public bool TryParse(ReaderFork<IToken> source, out VariableExpression item)
 		{
 			using (var fork = source.Fork())
 			{
@@ -38,7 +38,7 @@ namespace Terumi.Parser.Expressions
 			return Parse(source, null, out item);
 		}
 
-		private bool Parse(ReaderFork<Token> source, ParameterType type, out VariableExpression item)
+		private bool Parse(ReaderFork<IToken> source, ParameterType type, out VariableExpression item)
 		{
 			if (!source.TryNextNonWhitespace<IdentifierToken>(out var identifier))
 			{

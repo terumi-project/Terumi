@@ -3,7 +3,7 @@ using Terumi.Lexer;
 
 namespace Terumi.Tokens
 {
-	public class NumericToken : Token
+	public class NumericToken : IToken
 	{
 		public NumericToken(LexerMetadata meta, BigInteger number)
 		{
@@ -11,8 +11,8 @@ namespace Terumi.Tokens
 			Number = number;
 		}
 
-		public override LexerMetadata Start { get; protected set; }
-		public override LexerMetadata End { get; set; }
+		public LexerMetadata Start { get; }
+		public LexerMetadata End { get; set; }
 		public BigInteger Number { get; }
 	}
 }

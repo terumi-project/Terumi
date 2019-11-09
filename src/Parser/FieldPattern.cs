@@ -12,7 +12,7 @@ namespace Terumi.Parser
 		public FieldPattern(IAstNotificationReceiver astNotificationReceiver)
 			=> _astNotificationReceiver = astNotificationReceiver;
 
-		public bool TryParse(ReaderFork<Token> source, out Field item)
+		public bool TryParse(ReaderFork<IToken> source, out Field item)
 		{
 			var keywords = new List<KeywordToken>();
 			int peeked;

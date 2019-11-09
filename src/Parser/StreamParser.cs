@@ -80,12 +80,12 @@ namespace Terumi.Parser
 			_compilerUnit = new CompilerUnitPattern(this, _compilerUnitItem);
 		}
 
-		public void AstCreated<T>(ReaderFork<Token> fork, T ast)
+		public void AstCreated<T>(ReaderFork<IToken> fork, T ast)
 		{
 			// Log.Debug("ast: " + ast.GetType().FullName);
 		}
 
-		public void DebugPrint(ReaderFork<Token> fork)
+		public void DebugPrint(ReaderFork<IToken> fork)
 		{
 #if DEBUG
 			using var tmp = fork.Fork();
@@ -102,9 +102,9 @@ namespace Terumi.Parser
 			Log.Warn("AST got 'Throw': " + message);
 		}
 
-		public bool TryParse(Memory<Token> tokens, out CompilerUnit compilerUnit)
+		public bool TryParse(Memory<IToken> tokens, out CompilerUnit compilerUnit)
 		{
-			var head = new ReaderHead<Token>(tokens);
+			var head = new ReaderHead<IToken>(tokens);
 
 			using var fork = head.Fork();
 			fork.Commit = true;

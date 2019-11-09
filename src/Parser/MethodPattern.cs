@@ -21,7 +21,7 @@ namespace Terumi.Parser
 			_codeBodyPattern = codeBodyPattern;
 		}
 
-		public bool TryParse(ReaderFork<Token> source, out Method item)
+		public bool TryParse(ReaderFork<IToken> source, out Method item)
 		{
 			if (!source.TryNextNonWhitespace<IdentifierToken>(out var identifierOrType))
 			{
@@ -64,7 +64,7 @@ namespace Terumi.Parser
 			return false;
 		}
 
-		private bool ParameterParsingStage(ReaderFork<Token> source, IdentifierToken type, IdentifierToken name, out Method item)
+		private bool ParameterParsingStage(ReaderFork<IToken> source, IdentifierToken type, IdentifierToken name, out Method item)
 		{
 			if (!_parameterPattern.TryParse(source, out var parameterGroup))
 			{

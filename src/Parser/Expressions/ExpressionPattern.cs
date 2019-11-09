@@ -41,7 +41,7 @@ namespace Terumi.Parser.Expressions
 			_variablePattern = variablePattern;
 		}
 
-		public bool TryParse(ReaderFork<Token> source, out Expression item)
+		public bool TryParse(ReaderFork<IToken> source, out Expression item)
 			=> TryParse(source, _methodCallPattern, out item)
 			|| TryParse(source, _returnPattern, out item)
 			|| TryParse(source, _numericPattern, out item)
@@ -66,7 +66,7 @@ namespace Terumi.Parser.Expressions
 		// stuff about type safety
 		private Expression TryDeeperExpressionParse
 		(
-			ReaderFork<Token> source,
+			ReaderFork<IToken> source,
 			Expression start
 		)
 		{
@@ -90,7 +90,7 @@ namespace Terumi.Parser.Expressions
 			return totalExpression;
 		}
 
-		private IEnumerable<Expression> ContinueParseDeeper(ReaderFork<Token> source)
+		private IEnumerable<Expression> ContinueParseDeeper(ReaderFork<IToken> source)
 		{
 			while (TryParseToTExpression(source, _accessPattern, out var expr))
 			{
@@ -100,7 +100,7 @@ namespace Terumi.Parser.Expressions
 
 		private bool TryParse<TExpresion>
 		(
-			ReaderFork<Token> source,
+			ReaderFork<IToken> source,
 			IPattern<TExpresion> pattern,
 			out Expression expression
 		)
@@ -118,7 +118,7 @@ namespace Terumi.Parser.Expressions
 
 		private static bool TryParseToTExpression<TExpression>
 		(
-			ReaderFork<Token> source,
+			ReaderFork<IToken> source,
 			IPattern<TExpression> pattern,
 			out TExpression expression
 		)

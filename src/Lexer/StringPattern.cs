@@ -6,7 +6,7 @@ namespace Terumi.Lexer
 {
 	public class StringPattern : IPattern
 	{
-		public int TryParse(Span<byte> source, LexerMetadata meta, ref Token token)
+		public int TryParse(Span<byte> source, LexerMetadata meta, ref IToken token)
 		{
 			if (source[0] != '"')
 			{

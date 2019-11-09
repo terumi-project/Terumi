@@ -21,7 +21,7 @@ namespace Terumi.Parser
 			_pattern2 = pattern2;
 		}
 
-		public bool TryParse(ReaderFork<Token> source, out T3 item)
+		public bool TryParse(ReaderFork<IToken> source, out T3 item)
 		{
 			using var fork1 = source.Fork();
 			using var fork2 = source.Fork();

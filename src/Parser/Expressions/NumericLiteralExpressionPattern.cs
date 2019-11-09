@@ -1,28 +1,26 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 
 using Terumi.Ast;
 using Terumi.Tokens;
 
 namespace Terumi.Parser.Expressions
 {
-	public class ConstantLiteralExpressionBigIntegerPattern : IPattern<ConstantLiteralExpression<BigInteger>>
+	public class ConstantLiteralExpressionBigIntegerPattern : INewPattern<ConstantLiteralExpression<BigInteger>>
 	{
 		private readonly IAstNotificationReceiver _astNotificationReceiver;
 
 		public ConstantLiteralExpressionBigIntegerPattern(IAstNotificationReceiver astNotificationReceiver)
 			=> _astNotificationReceiver = astNotificationReceiver;
 
-		public bool TryParse(ReaderFork<IToken> source, out ConstantLiteralExpression<BigInteger> item)
+		public int TryParse(Span<IToken> source, ref ConstantLiteralExpression<BigInteger> item)
 		{
-			if (!source.TryNextNonWhitespace<NumericToken>(out var numeric))
-			{
-				item = default;
-				return false;
-			}
+			int consumed;
+			if ((consumed = source.TryNextNonWhitespace<NumericToken>(out var numeric)) == 0) return 0;
 
 			item = new ConstantLiteralExpression<BigInteger>(numeric.Number);
 			_astNotificationReceiver.AstCreated(source, item);
-			return true;
+			return consumed;
 		}
 	}
 }

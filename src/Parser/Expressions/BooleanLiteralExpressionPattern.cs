@@ -1,42 +1,33 @@
-﻿using Terumi.Ast;
+﻿using System;
+using Terumi.Ast;
 using Terumi.Tokens;
 
 namespace Terumi.Parser.Expressions
 {
-	public class ConstantLiteralExpressionBooleanPattern : IPattern<ConstantLiteralExpression<bool>>
+	public class ConstantLiteralExpressionBooleanPattern : INewPattern<ConstantLiteralExpression<bool>>
 	{
 		private readonly IAstNotificationReceiver _astNotificationReceiver;
 
 		public ConstantLiteralExpressionBooleanPattern(IAstNotificationReceiver astNotificationReceiver)
 			=> _astNotificationReceiver = astNotificationReceiver;
 
-		public bool TryParse(ReaderFork<IToken> source, out ConstantLiteralExpression<bool> item)
+		public int TryParse(Span<IToken> source, ref ConstantLiteralExpression<bool> item)
 		{
-			if (!source.TryNextNonWhitespace<KeywordToken>(out var boolean))
-			{
-				item = default;
-				return false;
-			}
+			int consumed;
+			if ((consumed = source.TryNextNonWhitespace<KeywordToken>(out var keywordToken)) == 0) return 0;
 
 			bool value;
 
-			if (boolean.Keyword == Keyword.True)
+			switch (keywordToken.Keyword)
 			{
-				value = true;
-			}
-			else if (boolean.Keyword == Keyword.False)
-			{
-				value = false;
-			}
-			else
-			{
-				item = default;
-				return false;
+				case Keyword.True: value = true; break;
+				case Keyword.False: value = false; break;
+				default: return 0;
 			}
 
 			item = new ConstantLiteralExpression<bool>(value);
 			_astNotificationReceiver.AstCreated(source, item);
-			return true;
+			return consumed;
 		}
 	}
 }

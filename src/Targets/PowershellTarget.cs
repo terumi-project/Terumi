@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+
 using Terumi.Ast;
 using Terumi.Binder;
 
@@ -45,7 +46,7 @@ namespace Terumi.Targets
 
 		private void HandleStatement(TextWriter writer, CodeStatement statement)
 		{
-			switch(statement)
+			switch (statement)
 			{
 				case MethodCallExpression methodCallExpression:
 				{
@@ -269,7 +270,7 @@ namespace Terumi.Targets
 		{
 			var strb = new StringBuilder(str.Length);
 
-			foreach(var c in str)
+			foreach (var c in str)
 			{
 				if (c == '\n')
 				{

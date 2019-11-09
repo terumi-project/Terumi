@@ -11,6 +11,7 @@ namespace Terumi.SyntaxTree
 		public Parameter[] Parameters { get; }
 
 		public IEnumerator<Parameter> GetEnumerator() => ((IEnumerable<Parameter>)Parameters).GetEnumerator();
+
 		IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<Parameter>)Parameters).GetEnumerator();
 	}
 }

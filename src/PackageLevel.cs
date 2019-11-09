@@ -27,7 +27,7 @@ namespace Terumi
 
 			Length = levels.Length - 1;
 
-			for(var i = 0; i < levels.Length; i++)
+			for (var i = 0; i < levels.Length; i++)
 			{
 				Length += i;
 			}
@@ -35,6 +35,7 @@ namespace Terumi
 
 		// props
 		public ReadOnlyMemory<string> Levels { get; }
+
 		public int Length { get; }
 
 		// indexer
@@ -42,11 +43,14 @@ namespace Terumi
 
 		// enumerators
 		public PackageLevelEnumerator GetEnumerator() => new PackageLevelEnumerator(Levels);
+
 		IEnumerator<string> IEnumerable<string>.GetEnumerator() => GetEnumerator();
+
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
 		// object methods
 		public override bool Equals(object obj) => obj is PackageLevel level && Equals(level);
+
 		public override int GetHashCode() => HashCode.Combine(Levels);
 
 		public override string ToString()
@@ -74,7 +78,7 @@ namespace Terumi
 			var a = Levels.Span;
 			var b = other.Levels.Span;
 
-			for(var i = 0; i < Levels.Length; i++)
+			for (var i = 0; i < Levels.Length; i++)
 			{
 				if (!a[i].Equals(b[i])) return false;
 			}
@@ -84,13 +88,18 @@ namespace Terumi
 
 		// operators
 		public static bool operator ==(PackageLevel left, PackageLevel right) => left.Equals(right);
+
 		public static bool operator !=(PackageLevel left, PackageLevel right) => !(left == right);
 
 		// implicit operators
 		public static implicit operator PackageLevel(List<string> levels) => new PackageLevel(levels);
+
 		public static implicit operator PackageLevel(string[] levels) => new PackageLevel(levels);
+
 		public static implicit operator PackageLevel(Memory<string> levels) => new PackageLevel(levels);
+
 		public static implicit operator PackageLevel(ReadOnlyMemory<string> levels) => new PackageLevel(levels);
+
 		public static implicit operator string[](PackageLevel levels) => levels.Levels.ToArray();
 
 		// enumerator for enumerability
@@ -109,8 +118,12 @@ namespace Terumi
 			object IEnumerator.Current => Current;
 
 			public bool MoveNext() => ++_i < _levels.Length;
+
 			public void Reset() => _i = 0;
-			public void Dispose() { }
+
+			public void Dispose()
+			{
+			}
 		}
 	}
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+
 using Terumi.Tokens;
 
 namespace Terumi.Lexer

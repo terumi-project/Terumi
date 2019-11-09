@@ -41,7 +41,7 @@ namespace Terumi.Lexer
 		{
 			var i = 0;
 
-			for(; i < source.Length; i++)
+			for (; i < source.Length; i++)
 			{
 				var sourceKeyword = source.Slice(0, i);
 

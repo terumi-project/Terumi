@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+
 using Terumi.Tokens;
 
 namespace Terumi.Lexer
@@ -26,10 +27,10 @@ namespace Terumi.Lexer
 				if (current == '\r') continue;
 
 				// if the string starts with a '\n', we want to ignore that
-/*
-string so = "
-that multiline strings ignore the first newline"
-*/
+				/*
+				string so = "
+				that multiline strings ignore the first newline"
+				*/
 				if (i == initialValue && current == '\n')
 				{
 					continue;

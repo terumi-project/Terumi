@@ -65,6 +65,7 @@ namespace Terumi
 
 			_stageName = "NONE";
 		}
+
 		private static void DisplayMessage(ConsoleColor color, string characterized, string message)
 		{
 			DisplayStage();

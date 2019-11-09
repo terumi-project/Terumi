@@ -23,6 +23,7 @@ namespace Terumi.Binder
 
 		// specific to method
 		public InfoItem ReturnType { get; set; }
+
 		public List<Parameter> Parameters { get; set; } = new List<Parameter>();
 		public List<Ast.CodeStatement> Statements { get; set; } = new List<Ast.CodeStatement>();
 

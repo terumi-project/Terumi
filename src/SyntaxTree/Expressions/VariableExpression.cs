@@ -1,5 +1,4 @@
-﻿using Terumi.Ast;
-using Terumi.Tokens;
+﻿using Terumi.Tokens;
 
 namespace Terumi.SyntaxTree.Expressions
 {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Numerics;
 using System.Text;
+
 using Terumi.Tokens;
 
 namespace Terumi.Lexer

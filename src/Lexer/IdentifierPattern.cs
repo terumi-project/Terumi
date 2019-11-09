@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using System.Text;
+
 using Terumi.Tokens;
 
 namespace Terumi.Lexer
@@ -26,7 +27,7 @@ namespace Terumi.Lexer
 		{
 			var end = 0;
 
-			for(; end < source.Length; end++)
+			for (; end < source.Length; end++)
 			{
 				if (!_predicate(source[end]))
 				{

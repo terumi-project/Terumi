@@ -15,7 +15,7 @@ namespace Terumi.Lexer
 			var from = Copy();
 			from.BinaryOffset += consumed.Length;
 
-			for(var i = 0; i < consumed.Length; i++)
+			for (var i = 0; i < consumed.Length; i++)
 			{
 				var current = consumed[i];
 
@@ -42,11 +42,15 @@ namespace Terumi.Lexer
 		};
 
 		public override string ToString() => $"on line {Line}, column {Column} (binary offset {BinaryOffset}) in file {File}.";
+
 		public override bool Equals(object obj) => obj is LexerMetadata metadata && Equals(metadata);
+
 		public bool Equals([AllowNull] LexerMetadata other) => Line == other.Line && Column == other.Column && BinaryOffset == other.BinaryOffset && File == other.File;
+
 		public override int GetHashCode() => HashCode.Combine(Line, Column, BinaryOffset, File);
 
 		public static bool operator ==(LexerMetadata left, LexerMetadata right) => left.Equals(right);
+
 		public static bool operator !=(LexerMetadata left, LexerMetadata right) => !(left == right);
 	}
 }

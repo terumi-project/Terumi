@@ -1,6 +1,4 @@
-﻿using System.Numerics;
-
-namespace Terumi.SyntaxTree.Expressions
+﻿namespace Terumi.SyntaxTree.Expressions
 {
 	public class BooleanLiteralExpression : LiteralExpression<bool>
 	{

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+
 using Terumi.Binder;
 
 namespace Terumi.Ast
@@ -73,7 +73,7 @@ namespace Terumi.Ast
 
 		public static MethodBind MatchMethod(string name, IEnumerable<InfoItem> parameters)
 		{
-			foreach(var i in Gen())
+			foreach (var i in Gen())
 			{
 				if (i.Name != name)
 				{
@@ -82,7 +82,7 @@ namespace Terumi.Ast
 
 				int j = 0;
 				bool f = false;
-				foreach(var p in parameters)
+				foreach (var p in parameters)
 				{
 					if (p != Conv(i.Params[j++]))
 					{

@@ -25,15 +25,15 @@ namespace Terumi
 
 			new KeywordPattern(new KeyValuePair<string, Keyword>[]
 			{
-				KeyValuePair.Create("contract", Keyword.Contract),
-				KeyValuePair.Create("class", Keyword.Class),
-				KeyValuePair.Create("readonly", Keyword.Readonly),
-				KeyValuePair.Create("namespace", Keyword.Namespace),
-				KeyValuePair.Create("using", Keyword.Using),
-				KeyValuePair.Create("return", Keyword.Return),
 				KeyValuePair.Create("this", Keyword.This),
 				KeyValuePair.Create("true", Keyword.True),
+				KeyValuePair.Create("using", Keyword.Using),
 				KeyValuePair.Create("false", Keyword.False),
+				KeyValuePair.Create("class", Keyword.Class),
+				KeyValuePair.Create("return", Keyword.Return),
+				KeyValuePair.Create("contract", Keyword.Contract),
+				KeyValuePair.Create("readonly", Keyword.Readonly),
+				KeyValuePair.Create("namespace", Keyword.Namespace),
 			}),
 
 			new CharacterPattern(';', '@', '=', ',', '.', '(', ')', '[', ']', '{', '}', '+', '-', '/', '*'),

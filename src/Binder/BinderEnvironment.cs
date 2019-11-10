@@ -46,13 +46,13 @@ namespace Terumi.Binder
 						Name = x.Name.Identifier,
 						Type = TypeInformation.TryGetType(bind, x.Type.TypeName, out var paramType)
 									? paramType
-									: throw new Exception($"Couldn't find paramter type '{x.Type.TypeName.Identifier}'")
+									: throw new Exception($"Couldn't find paramter type '{x.Type.TypeName}'")
 					}).ToList();
 
 					// check if anything similar already exists
 					if (TypeInformation.Binds.Any(x => x.Name == bind.Name && x.Namespace.SequenceEqual(bind.Namespace)))
 					{
-						throw new Exception("Duplicate declaration: " + bind.Namespace.Aggregate((a, b) => $"{a}.{b}") + " '" + bind.Name + "'");
+						throw new Exception($"Duplicate declaration: {bind.Namespace} '{bind.Name}'");
 					}
 
 					TypeInformation.Binds.Add(bind);

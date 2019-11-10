@@ -75,7 +75,7 @@ namespace Terumi.Binder
 
 		public List<ParameterBind> Parameters { get; set; }
 
-		public Func<string[], string> Generate { get; set; }
+		public Func<List<string>, string> Generate { get; set; }
 	}
 
 	public class CompilerType : IType

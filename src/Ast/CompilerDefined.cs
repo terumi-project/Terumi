@@ -45,7 +45,7 @@ namespace Terumi.Ast
 		private static ParameterBind P(IType type, string name)
 			=> new ParameterBind { Type = type, Name = name };
 
-		private static CompilerMethod New(Func<string[], string> generate, IType returnType, string name, params ParameterBind[] parameters)
+		private static CompilerMethod New(Func<List<string>, string> generate, IType returnType, string name, params ParameterBind[] parameters)
 			=> new CompilerMethod
 			{
 				Name = name,

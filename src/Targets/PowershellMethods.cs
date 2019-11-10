@@ -109,6 +109,11 @@ namespace Terumi.Targets
 
 		private string HandleMethodCallExpression(MethodCallExpression methodCallExpression)
 		{
+			if (methodCallExpression.CallingMethod is CompilerMethod compilerMethod)
+			{
+				return HandleCompilerMethod(compilerMethod, methodCallExpression.Parameters);
+			}
+
 			var parameters = new List<string>();
 
 			foreach (var expr in methodCallExpression.Parameters)
@@ -127,6 +132,18 @@ namespace Terumi.Targets
 
 			strb.Append(')');
 			return strb.ToString();
+		}
+
+		private string HandleCompilerMethod(CompilerMethod compilerMethod, List<ICodeExpression> expressions)
+		{
+			var strings = new List<string>();
+
+			foreach (var expression in expressions)
+			{
+				strings.Add(HandleExpression(expression));
+			}
+
+			return compilerMethod.Generate(strings);
 		}
 
 		private string HandleConstantLiteralExpressionString(ConstantLiteralExpression<string> constantLiteralExpressionString)

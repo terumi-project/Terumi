@@ -6,7 +6,7 @@ using Terumi.Tokens;
 
 namespace Terumi.Parser
 {
-	public class StreamParser : IAstNotificationReceiver
+	public class StreamParser
 	{
 		private readonly MethodCallParameterGroupPattern _methodCallParameterGroupPattern;
 		private readonly MethodCallPattern _methodCallPattern;
@@ -73,28 +73,6 @@ namespace Terumi.Parser
 
 			_compilerUnitItem = new CompilerUnitItemPattern(_methodPattern, _packageReferencePattern);
 			_compilerUnit = new CompilerUnitPattern(_compilerUnitItem);
-		}
-
-		public void AstCreated<T>(ReaderFork<IToken> fork, T ast)
-		{
-			// Log.Debug("ast: " + ast.GetType().FullName);
-		}
-
-		public void DebugPrint(ReaderFork<IToken> fork)
-		{
-#if DEBUG
-			using var tmp = fork.Fork();
-			for (var i = 0; i < 5 && tmp.TryNext(out var tkn); i++)
-			{
-				Log.Debug("debug print - tkn " + tkn.GetType().FullName + " - " + tkn.ToString());
-				int c = 1; // for debug breakpoint
-			}
-#endif
-		}
-
-		public void Throw(string message)
-		{
-			Log.Warn("AST got 'Throw': " + message);
 		}
 
 		public bool TryParse(Memory<IToken> tokens, out CompilerUnit compilerUnit)

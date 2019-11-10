@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using Terumi.Binder;
@@ -12,32 +13,51 @@ namespace Terumi.Ast
 		public static IType Number { get; } = new CompilerType { Name = "number" };
 		public static IType Boolean { get; } = new CompilerType { Name = "bool" };
 
+		// TODO: CompilerDefined as an instance that will generate code according to the target language stuff
+
+		public static CompilerMethod[] CompilerFunctions { get; } = new CompilerMethod[]
+		{
+			New(Void, "println", P(String, "value")),
+			New(Void, "println", P(String, "value")),
+			New(Void, "println", P(String, "value")),
+			New(String, "concat", P(String, "a"), P(String, "b")),
+			New(Number, "add", P(Number, "a"), P(Number, "b"))
+		};
+
+		private static ParameterBind P(IType type, string name)
+			=> new ParameterBind { Type = type, Name = name };
+
+		private static CompilerMethod New(IType returnType, string name, params ParameterBind[] parameters)
+			=> new CompilerMethod
+			{
+				Name = name,
+				ReturnType = returnType,
+				Parameters = new List<ParameterBind>(parameters)
+			};
+
 		// TODO: delete this
 		[Obsolete("Please use the newer MatchMethod method")]
-		public static MethodBind? MatchMethod(string name, params UserType[] parameters)
+		public static MethodBind? MatchMethod(string name, params IType[] parameters)
 		{
 			foreach (var func in CompilerFunctions)
 			{
 				if (func.Name == name)
 				{
-					if (func.Parameters.Length != parameters.Length) continue;
+					if (func.Parameters.Count != parameters.Length) continue;
 
-					bool flag = false;
-					for(var i = 0; i < parameters.Length; i++)
-					{
-						if (parameters[i].Name != func.Parameters[i].Name)
+					var f = false;
+					for (var i = 0; i < parameters.Length; i++)
+						if (func.Parameters[i].Type != parameters[i])
 						{
-							flag = true;
+							f = true;
 							break;
 						}
-					}
-
-					if (flag) continue;
+					if (f) continue;
 
 					return new MethodBind
 					{
 						Name = func.Name,
-						Parameters = func.Parameters.Select((i, x) => new MethodBind.Parameter
+						Parameters = func.Parameters.Select((i, x) => new ParameterBind
 						{
 							Type = new UserType { IsCompilerDefined = true, Name = i.Name },
 							Name = $"k{x}"
@@ -49,7 +69,7 @@ namespace Terumi.Ast
 			return null;
 		}
 
-		public static CompilerMethod? MatchMethod(string name, params IType[] parameters)
+		public static CompilerMethod? MatchMethod(string name, params ParameterBind[] parameters)
 		{
 			foreach (var func in CompilerFunctions)
 			{
@@ -62,22 +82,5 @@ namespace Terumi.Ast
 
 			return null;
 		}
-
-		public static CompilerMethod[] CompilerFunctions { get; } = new CompilerMethod[]
-		{
-			New(Void, "println", String),
-			New(Void, "println", Number),
-			New(Void, "println", Boolean),
-			New(String, "concat", String, String),
-			New(Number, "add", Number, Number)
-		};
-
-		private static CompilerMethod New(IType returnType, string name, params IType[] parameters)
-			=> new CompilerMethod
-			{
-				Name = name,
-				ReturnType = returnType,
-				Parameters = parameters
-			};
 	}
 }

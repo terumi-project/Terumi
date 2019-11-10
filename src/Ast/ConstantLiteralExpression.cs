@@ -29,6 +29,6 @@ namespace Terumi.Ast
 
 		public T Value { get; }
 
-		public UserType Type { get; }
+		public IType Type { get; }
 	}
 }

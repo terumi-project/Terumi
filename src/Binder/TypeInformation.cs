@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Terumi.Binder
 {
@@ -30,49 +31,28 @@ namespace Terumi.Binder
 
 		public List<IBind> Binds { get; set; } = new List<IBind>();
 
-		public IEnumerable<IBind> AllReferenceableTypes(IBind mainType)
+		public IEnumerable<IType> AllReferenceableTypes(IBind mainBind)
+			=> AllReferenceableBinds(mainBind).OfType<IType>();
+
+		public IEnumerable<IBind> AllReferenceableBinds(IBind mainBind)
 		{
-			var namespaces = new List<PackageLevel>(mainType.References);
-			namespaces.Add(mainType.Namespace);
+			var namespaces = new List<PackageLevel>(mainBind.References);
+			namespaces.Add(mainBind.Namespace);
 
-			foreach (var item in Binds)
+			foreach (var method in Binds)
 			{
-				if (!namespaces.Contains(item.Namespace))
+				if (!namespaces.Contains(method.Namespace))
 				{
 					continue;
 				}
 
-				/*
-				TODO: figure out why this was put here
-				// if the type is itself, skip it
-				if (item.Equals(mainType))
-				{
-					continue;
-				}
-				*/
-
-				yield return item;
+				yield return method;
 			}
 
 			yield return Void;
 			yield return String;
 			yield return Number;
 			yield return Boolean;
-		}
-
-		public bool TryGetItem(IBind mainType, string typeName, out IBind type)
-		{
-			foreach (var item in AllReferenceableTypes(mainType))
-			{
-				if (item.Name == typeName)
-				{
-					type = item;
-					return true;
-				}
-			}
-
-			type = default;
-			return false;
 		}
 
 		public bool TryGetType(IBind mainType, string typeName, out UserType type)

@@ -128,11 +128,12 @@ namespace Terumi.Targets
 
 					var strb = new StringBuilder();
 
-					if (methodCallExpression.CallingMethod.TerumiBacking == null)
+					if (methodCallExpression.CallingMethod is CompilerMethod compilerMethod)
 					{
+						// TODO: better compiler defined intrinsics
 						// compiler defined method
 
-						switch (methodCallExpression.CallingMethod.Name)
+						switch (compilerMethod.Name)
 						{
 							case "println":
 							{

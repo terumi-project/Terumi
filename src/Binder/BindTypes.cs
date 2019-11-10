@@ -4,19 +4,26 @@ namespace Terumi.Binder
 {
 	public interface IBind
 	{
-		PackageLevel Namespace { get; set; }
+		PackageLevel Namespace { get; }
 
-		List<PackageLevel> References { get; set; }
+		List<PackageLevel> References { get; }
 
-		string Name { get; set; }
+		string Name { get; }
 	}
 
-	public interface IType
+	public interface IType : IBind
 	{
-		string Name { get; set; }
+		// TODO: fields, methods, ...
 	}
 
-	public class MethodBind : IBind
+	public interface IMethod : IBind
+	{
+		public IType ReturnType { get; }
+
+		public List<ParameterBind> Parameters { get; }
+	}
+
+	public class MethodBind : IMethod
 	{
 		public PackageLevel Namespace { get; set; }
 
@@ -24,20 +31,21 @@ namespace Terumi.Binder
 
 		public string Name { get; set; }
 
-		public SyntaxTree.Method TerumiBacking { get; set; }
+		public IType ReturnType { get; set; }
 
-		// specific to method
-		public UserType ReturnType { get; set; }
+		public List<ParameterBind> Parameters { get; set; } = new List<ParameterBind>();
 
-		public List<Parameter> Parameters { get; set; } = new List<Parameter>();
+		// MethodBind specific
+		public SyntaxTree.Method? TerumiBacking { get; set; }
+
 		public List<Ast.CodeStatement> Statements { get; set; } = new List<Ast.CodeStatement>();
+	}
 
-		public class Parameter
-		{
-			public UserType Type { get; set; }
+	public class ParameterBind
+	{
+		public IType Type { get; set; }
 
-			public string Name { get; set; }
-		}
+		public string Name { get; set; }
 	}
 
 	public class UserType : IBind, IType
@@ -54,17 +62,29 @@ namespace Terumi.Binder
 		public string Name { get; set; }
 	}
 
-	public class CompilerMethod
+	public class CompilerMethod : IMethod
 	{
+		public PackageLevel Namespace { get; }
+
+		public List<PackageLevel> References => EmptyList<PackageLevel>.Instance;
+
 		public IType ReturnType { get; set; }
 
 		public string Name { get; set; }
 
-		public IType[] Parameters { get; set; }
+		public List<ParameterBind> Parameters { get; set; }
+
+		// TODO: some kind of delegate for generating code to the target language...
 	}
 
 	public class CompilerType : IType
 	{
 		public string Name { get; set; }
+
+		public PackageLevel Namespace { get; }
+
+		public List<PackageLevel> References => EmptyList<PackageLevel>.Instance;
+
+		// TODO: fields...
 	}
 }

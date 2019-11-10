@@ -9,6 +9,6 @@ namespace Terumi.Ast
 			Type = type;
 		}
 
-		public UserType Type { get; }
+		public IType Type { get; }
 	}
 }

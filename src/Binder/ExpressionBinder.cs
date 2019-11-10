@@ -10,7 +10,7 @@ namespace Terumi.Binder
 	public class ExpressionBinder
 	{
 		private readonly TypeInformation _typeInformation;
-		private readonly List<(string name, UserType type)> _vars = new List<(string name, UserType type)>();
+		private readonly List<(string name, IType type)> _vars = new List<(string name, IType type)>();
 		private readonly MethodBind _method;
 
 		public ExpressionBinder(TypeInformation typeInformation, MethodBind method)
@@ -230,7 +230,7 @@ namespace Terumi.Binder
 
 		private bool ParametersMatch
 		(
-			ICollection<MethodBind.Parameter> parametersDefinition,
+			ICollection<ParameterBind> parametersDefinition,
 			ICollection<ICodeExpression> passedExpressions,
 			out List<ICodeExpression> parameters
 		)

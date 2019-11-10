@@ -47,7 +47,7 @@ namespace Terumi.Binder
 					}
 
 					bind.ReturnType = returnType;
-					bind.Parameters = method.Parameters.Select(x => new MethodBind.Parameter
+					bind.Parameters = method.Parameters.Select(x => new ParameterBind
 					{
 						Name = x.Name.Identifier,
 						Type = TypeInformation.TryGetType(bind, x.Type.TypeName, out var paramType)

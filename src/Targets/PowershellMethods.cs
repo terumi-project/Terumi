@@ -116,7 +116,7 @@ namespace Terumi.Targets
 				parameters.Add(HandleExpression(expr));
 			}
 
-			var strb = new StringBuilder('(');
+			var strb = new StringBuilder("(");
 			strb.Append(methodCallExpression.CallingMethod.Name);
 
 			foreach (var param in parameters)

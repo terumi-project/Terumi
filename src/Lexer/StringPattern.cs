@@ -57,11 +57,11 @@ namespace Terumi.Lexer
 				if (current == '"')
 				{
 					token = new StringToken(meta, strb.ToString());
-					return i;
+					return i + 1;
 				}
 
 				// TODO: could optimize this if we needed to, but EH
-				strb.Append(current);
+				strb.Append((char)current);
 			}
 
 			throw new Exception($"String didn't end. String began {meta} String ended {meta.FromConsumed(source.Slice(0, i))}");

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,40 +11,79 @@ using Terumi.Binder;
 
 namespace Terumi.Targets
 {
-	public class PowershellTarget
+	public class PowershellMethods : ICompilerMethods
 	{
-		private readonly TypeInformation _info;
+		public ICompilerTarget MakeTarget(TypeInformation typeInformation) => new PowershellTarget(typeInformation);
 
-		public PowershellTarget(TypeInformation info)
+		public string println_string(string value) => $"Write-Host {value}";
+		public string println_number(string value) => $"Write-Host {value}";
+		public string println_bool(string value) => $"Write-Host {value}";
+		public string concat_string_string(string a, string b) => $"\"$({a})$({b})\"";
+		public string add_number_number(string a, string b) => $"{a}+{b}";
+	}
+
+	public class PowershellTarget : ICompilerTarget
+	{
+		private readonly TypeInformation _typeInformation;
+
+		public PowershellTarget(TypeInformation typeInformation) => _typeInformation = typeInformation;
+
+		public void Post(IndentedTextWriter writer) => writer.WriteLine("main");
+
+		public void Write(IndentedTextWriter writer, IBind bind)
 		{
-			_info = info;
+			switch(bind)
+			{
+				case UserType userType: WriteUserType(writer, userType); return;
+				case MethodBind methodBind: WriteMethodBind(writer, methodBind); return;
+				default: throw new NotImplementedException();
+			}
 		}
 
-		public void Write(TextWriter writer, IBind bind)
+		private void WriteUserType(IndentedTextWriter writer, UserType userType)
 		{
-			if (bind is MethodBind methodBind)
-			{
-				WriteMethod(writer, methodBind);
-			}
-			else
-			{
-				throw new NotImplementedException();
-			}
+			throw new NotImplementedException();
 		}
 
-		public void WriteMethod(TextWriter writer, MethodBind method)
+		private void WriteMethodBind(IndentedTextWriter writer, MethodBind methodBind)
 		{
-			writer.WriteLine($@"function {method.Name}({Parameters(method)})
+			writer.WriteLine(@$"function {methodBind.Name}({GenMethodParameters(methodBind.Parameters)})
 {{");
+			writer.Indent++;
 
-			foreach (var loc in method.Statements)
+			foreach (var statement in methodBind.Statements)
 			{
-				HandleStatement(writer, loc);
+				WriteMethodStatement(writer, statement);
 			}
 
+			writer.Indent--;
 			writer.WriteLine("}");
 		}
 
+		private string GenMethodParameters(List<ParameterBind> parameters)
+		{
+			if (parameters.Count == 0) return "";
+			if (parameters.Count == 1) return "$" + parameters.First().Name;
+
+			return parameters.Select(x => "$" + x.Name).Aggregate((a, b) => a + ", " + b);
+		}
+
+		private void WriteMethodStatement(IndentedTextWriter writer, CodeStatement statement)
+		{
+			switch (statement)
+			{
+				case MethodCallExpression methodCallExpression:
+				{
+					
+				}
+				break;
+			}
+		}
+	}
+
+	/*
+	public class PowershellTarget : IPowershellTarget
+	{
 		private void HandleStatement(TextWriter writer, CodeStatement statement)
 		{
 			switch (statement)
@@ -302,4 +342,5 @@ namespace Terumi.Targets
 			writer.WriteLine("main");
 		}
 	}
+	*/
 }

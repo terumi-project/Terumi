@@ -1,11 +1,16 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Terumi.Ast;
+using Terumi.Targets;
 
 namespace Terumi.Binder
 {
 	public class TypeInformation
 	{
+		private readonly ICompilerMethods _target;
+
+		public TypeInformation(ICompilerMethods target) => _target = target;
+
 		public List<IBind> Binds { get; set; } = new List<IBind>();
 
 		public IEnumerable<IType> AllReferenceableTypes(IBind mainBind)
@@ -36,7 +41,7 @@ namespace Terumi.Binder
 			yield return CompilerDefined.Number;
 			yield return CompilerDefined.Boolean;
 
-			foreach (var method in CompilerDefined.CompilerFunctions)
+			foreach (var method in CompilerDefined.CompilerFunctions(_target))
 			{
 				yield return method;
 			}

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Terumi.Binder
 {
@@ -74,7 +75,7 @@ namespace Terumi.Binder
 
 		public List<ParameterBind> Parameters { get; set; }
 
-		// TODO: some kind of delegate for generating code to the target language...
+		public Func<string[], string> Generate { get; set; }
 	}
 
 	public class CompilerType : IType

@@ -2,18 +2,22 @@
 using System.Collections.Generic;
 using System.Linq;
 using Terumi.Ast;
+using Terumi.Targets;
 using Terumi.Workspace;
 
 namespace Terumi.Binder
 {
 	public class BinderEnvironment
 	{
-		public TypeInformation TypeInformation { get; set; } = new TypeInformation();
+		public TypeInformation TypeInformation { get; set; }
 
 		private readonly List<ParsedProjectFile> _sourceFiles;
 
-		public BinderEnvironment(List<ParsedProjectFile> sourceFiles)
-			=> _sourceFiles = sourceFiles;
+		public BinderEnvironment(ICompilerMethods target, List<ParsedProjectFile> sourceFiles)
+		{
+			TypeInformation = new TypeInformation(target);
+			_sourceFiles = sourceFiles;
+		}
 
 		public void PassOverTypeDeclarations()
 		{

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Terumi.Binder;
+using Terumi.Targets;
 
 namespace Terumi.Ast
 {
@@ -15,63 +16,47 @@ namespace Terumi.Ast
 
 		// TODO: CompilerDefined as an instance that will generate code according to the target language stuff
 
-		public static CompilerMethod[] CompilerFunctions { get; } = new CompilerMethod[]
+		public static CompilerMethod[] CompilerFunctions(ICompilerMethods target)
+			=> new CompilerMethod[]
 		{
-			New(Void, "println", P(String, "value")),
-			New(Void, "println", P(Number, "value")),
-			New(Void, "println", P(Boolean, "value")),
-			New(String, "concat", P(String, "a"), P(String, "b")),
-			New(Number, "add", P(Number, "a"), P(Number, "b"))
+			New(args => target.println_string(args[0]),
+				Void, "println",
+				P(String,  "value")),
+
+			New(args => target.println_number(args[0]),
+				Void, "println",
+				P(Number,  "value")),
+
+			New(args => target.println_bool(args[0]),
+				Void, "println",
+				P(Boolean, "value")),
+
+			New(args => target.concat_string_string(args[0], args[1]),
+				String, "concat",
+				P(String,  "a"),
+				P(String, "b")),
+
+			New(args => target.add_number_number(args[0], args[1]),
+				Number, "add",
+				P(Number,  "a"),
+				P(Number, "b"))
 		};
 
 		private static ParameterBind P(IType type, string name)
 			=> new ParameterBind { Type = type, Name = name };
 
-		private static CompilerMethod New(IType returnType, string name, params ParameterBind[] parameters)
+		private static CompilerMethod New(Func<string[], string> generate, IType returnType, string name, params ParameterBind[] parameters)
 			=> new CompilerMethod
 			{
 				Name = name,
 				ReturnType = returnType,
-				Parameters = new List<ParameterBind>(parameters)
+				Parameters = new List<ParameterBind>(parameters),
+				Generate = generate
 			};
 
-		// TODO: delete this
-		[Obsolete("Please use the newer MatchMethod method")]
-		public static MethodBind? MatchMethod(string name, params IType[] parameters)
+		public static CompilerMethod? MatchMethod(ICompilerMethods target, string name, params ParameterBind[] parameters)
 		{
-			foreach (var func in CompilerFunctions)
-			{
-				if (func.Name == name)
-				{
-					if (func.Parameters.Count != parameters.Length) continue;
-
-					var f = false;
-					for (var i = 0; i < parameters.Length; i++)
-						if (func.Parameters[i].Type != parameters[i])
-						{
-							f = true;
-							break;
-						}
-					if (f) continue;
-
-					return new MethodBind
-					{
-						Name = func.Name,
-						Parameters = func.Parameters.Select((i, x) => new ParameterBind
-						{
-							Type = new UserType { IsCompilerDefined = true, Name = i.Name },
-							Name = $"k{x}"
-						}).ToList()
-					};
-				}
-			}
-
-			return null;
-		}
-
-		public static CompilerMethod? MatchMethod(string name, params ParameterBind[] parameters)
-		{
-			foreach (var func in CompilerFunctions)
+			foreach (var func in CompilerFunctions(target))
 			{
 				if (func.Name == name
 					&& func.Parameters.SequenceEqual(parameters))

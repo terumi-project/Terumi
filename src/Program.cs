@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.CodeDom.Compiler;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -44,7 +45,7 @@ namespace Terumi
 			new StringPattern(),
 		};
 
-		public static bool Compile(string projectName)
+		public static bool Compile(string projectName, ICompilerMethods setupTarget)
 		{
 			Log.Stage("SETUP", $"Loading project {projectName}");
 			if (!Project.TryLoad(Directory.GetCurrentDirectory(), projectName, out var project))
@@ -58,7 +59,7 @@ namespace Terumi
 
 			Log.Stage("BINDING", "Binding parsed source files to in memory representations");
 
-			var binder = new BinderEnvironment(parsedFiles);
+			var binder = new BinderEnvironment(setupTarget, parsedFiles);
 			binder.PassOverTypeDeclarations();
 			binder.PassOverMethodBodies();
 
@@ -71,14 +72,17 @@ namespace Terumi
 			using var fs = File.OpenWrite("out.ps1");
 			using var sw = new StreamWriter(fs);
 
-			var target = new PowershellTarget(binder.TypeInformation);
+			// tabs <3
+			using var indentedWriter = new IndentedTextWriter(sw, "\t");
+
+			var target = setupTarget.MakeTarget(binder.TypeInformation); // new PowershellTarget(binder.TypeInformation);
 
 			foreach (var item in binder.TypeInformation.Binds)
 			{
-				target.Write(sw, item);
+				target.Write(indentedWriter, item);
 			}
 
-			target.Post(sw);
+			target.Post(indentedWriter);
 
 			Log.StageEnd();
 			return true;
@@ -91,7 +95,7 @@ namespace Terumi
 		{
 #if DEBUG
 			Directory.SetCurrentDirectory("D:\\test");
-			Compile("sample_project");
+			Compile("sample_project", new PowershellMethods());
 #endif
 		}
 	}

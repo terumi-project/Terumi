@@ -21,7 +21,7 @@ namespace Terumi
 
 		public bool TryPeek(out T value, int ahead = 1)
 		{
-			if (_memory.Length < Position + ahead - 1)
+			if (_memory.Length <= Position + ahead - 1)
 			{
 				value = default;
 				return false;
@@ -42,11 +42,8 @@ namespace Terumi
 
 		public int Advance(int forward)
 		{
-			var i = 0;
-
-			for (; i < forward && TryNext(out _); i++) ;
-
-			return i;
+			Position += forward;
+			return forward;
 		}
 
 		public bool Commit { get; set; }

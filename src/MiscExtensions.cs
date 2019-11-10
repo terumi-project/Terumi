@@ -22,7 +22,8 @@ namespace Terumi
 			for(var i = 0; i < source.Length; i++)
 			{
 				if (source[i].IsWhitespace()) continue;
-				if (!(source[i] is T tToken)) continue;
+				// if the next non whitespace token isn't T, we're done
+				if (!(source[i] is T tToken)) return 0;
 				token = tToken;
 				return i + 1;
 			}

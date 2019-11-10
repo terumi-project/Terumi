@@ -83,20 +83,19 @@ namespace Terumi
 		{
 			using var fork = source.Fork();
 
-			peeked = 1;
+			peeked = 0;
 			while (fork.TryNext(out var nextToken))
 			{
+				peeked++;
 				if (predicate(nextToken))
 				{
 					continue;
 				}
 
-				peeked--;
 				token = nextToken;
 				return true;
 			}
 
-			peeked--;
 			token = default;
 			return false;
 		}

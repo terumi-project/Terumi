@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+
 using Terumi.Tokens;
 
 namespace Terumi.SyntaxTree

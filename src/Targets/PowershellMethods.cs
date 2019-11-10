@@ -15,9 +15,13 @@ namespace Terumi.Targets
 		public ICompilerTarget MakeTarget(TypeInformation typeInformation) => new PowershellTarget(typeInformation);
 
 		public string println_string(string value) => $"Write-Host {value}";
+
 		public string println_number(string value) => $"Write-Host {value}";
+
 		public string println_bool(string value) => $"Write-Host {value}";
+
 		public string concat_string_string(string a, string b) => $"\"$({a})$({b})\"";
+
 		public string add_number_number(string a, string b) => $"{a}+{b}";
 	}
 

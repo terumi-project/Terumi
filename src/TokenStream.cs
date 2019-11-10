@@ -1,4 +1,5 @@
 ﻿using System;
+
 using Terumi.Parser;
 using Terumi.Tokens;
 
@@ -23,9 +24,13 @@ namespace Terumi
 		public string TopInfo => $"{Top.Start} Ends {Top.End}";
 
 		public bool NextKeyword(Keyword keyword) => NextNoWhitespace<KeywordToken>(out var token) && token.Keyword == keyword;
+
 		public bool NextChar(char character) => 0 != Tokens.NextChar(character).IncButCmp(ref _read);
+
 		public bool NextNoWhitespace<T>(out T token) where T : IToken => 0 != Tokens.NextNoWhitespace<T>(out token).IncButCmp(ref _read);
+
 		public bool NextNoWhitespace(out IToken token) => 0 != Tokens.NextNoWhitespace(out token).IncButCmp(ref _read);
+
 		public bool PeekNextNoWhitespace(out IToken token) => 0 != Tokens.NextNoWhitespace(out token);
 
 		public TokenStream Child() => new TokenStream(Tokens);
@@ -53,6 +58,7 @@ namespace Terumi
 		}
 
 		public static implicit operator TokenStream(Span<IToken> tokens) => new TokenStream(tokens);
+
 		public static implicit operator TokenStream(ReadOnlySpan<IToken> tokens) => new TokenStream(tokens);
 
 		// if we return TokenStream, we want to return -1 if we've parsed nothing to represent success

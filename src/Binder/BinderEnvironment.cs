@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using Terumi.Ast;
 using Terumi.Workspace;
 
 namespace Terumi.Binder
@@ -10,12 +10,9 @@ namespace Terumi.Binder
 	{
 		public TypeInformation TypeInformation { get; set; } = new TypeInformation();
 
-		private readonly IReadOnlyCollection<ParsedProjectFile> _sourceFiles;
+		private readonly List<ParsedProjectFile> _sourceFiles;
 
-		public BinderEnvironment
-		(
-			IReadOnlyCollection<ParsedProjectFile> sourceFiles
-		)
+		public BinderEnvironment(List<ParsedProjectFile> sourceFiles)
 			=> _sourceFiles = sourceFiles;
 
 		public void PassOverTypeDeclarations()
@@ -30,23 +27,16 @@ namespace Terumi.Binder
 					var bind = new MethodBind
 					{
 						Namespace = file.Namespace,
-						Name = method.Identifier,
 						References = file.Usings,
+						Name = method.Identifier,
+
+						// ReturnType <handled below>
+						// Parameters <handled below>
 						TerumiBacking = method,
+						// Statements <handled at a later step>
 					};
 
-					UserType returnType;
-
-					if (method.Type == null)
-					{
-						returnType = TypeInformation.Void;
-					}
-					else if (!TypeInformation.TryGetType(bind, method.Type, out returnType))
-					{
-						throw new Exception($"Couldn't find method return type '{method.Type}'");
-					}
-
-					bind.ReturnType = returnType;
+					bind.ReturnType = GetType(method, bind);
 					bind.Parameters = method.Parameters.Select(x => new ParameterBind
 					{
 						Name = x.Name.Identifier,
@@ -87,6 +77,20 @@ namespace Terumi.Binder
 			// we're good :D
 		}
 
+		private IType GetType(SyntaxTree.Method method, MethodBind bind)
+		{
+			if (method.Type == null)
+			{
+				return CompilerDefined.Void;
+			}
+			else if (TypeInformation.TryGetType(bind, method.Type, out var returnType))
+			{
+				return returnType;
+			}
+
+			throw new Exception($"Couldn't find method return type '{method.Type}'");
+		}
+
 		// now that we've passed over both the type declarations, method declarations,
 		// we can start to parse the method bodies themselves.
 		public void PassOverMethodBodies()
@@ -95,9 +99,9 @@ namespace Terumi.Binder
 			{
 				if (bind is MethodBind methodBind)
 				{
-					var examiner = new ExpressionBinder(TypeInformation, methodBind);
+					var examiner = new ExpressionBinder(TypeInformation);
 
-					examiner.Bind();
+					examiner.Bind(methodBind);
 				}
 			}
 		}

@@ -4,7 +4,7 @@ namespace Terumi.Ast
 {
 	public class ThisExpression : ICodeExpression
 	{
-		public ThisExpression(UserType type)
+		public ThisExpression(IType type)
 		{
 			Type = type;
 		}

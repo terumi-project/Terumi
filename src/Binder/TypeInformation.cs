@@ -1,68 +1,55 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Terumi.Ast;
 
 namespace Terumi.Binder
 {
 	public class TypeInformation
 	{
-		public static UserType Void { get; } = new UserType
-		{
-			IsCompilerDefined = true,
-			Name = "void"
-		};
-
-		public static UserType String { get; } = new UserType
-		{
-			IsCompilerDefined = true,
-			Name = "string"
-		};
-
-		public static UserType Number { get; } = new UserType
-		{
-			IsCompilerDefined = true,
-			Name = "number"
-		};
-
-		public static UserType Boolean { get; } = new UserType
-		{
-			IsCompilerDefined = true,
-			Name = "bool"
-		};
-
 		public List<IBind> Binds { get; set; } = new List<IBind>();
 
 		public IEnumerable<IType> AllReferenceableTypes(IBind mainBind)
 			=> AllReferenceableBinds(mainBind).OfType<IType>();
 
+		public IEnumerable<IMethod> AllReferenceableMethods(IBind mainBind)
+			=> AllReferenceableBinds(mainBind).OfType<IMethod>();
+
 		public IEnumerable<IBind> AllReferenceableBinds(IBind mainBind)
 		{
-			var namespaces = new List<PackageLevel>(mainBind.References);
-			namespaces.Add(mainBind.Namespace);
-
-			foreach (var method in Binds)
+			var namespaces = new List<PackageLevel>(mainBind.References)
 			{
-				if (!namespaces.Contains(method.Namespace))
+				mainBind.Namespace
+			};
+
+			foreach (var bind in Binds)
+			{
+				if (!namespaces.Contains(bind.Namespace))
 				{
 					continue;
 				}
 
-				yield return method;
+				yield return bind;
 			}
 
-			yield return Void;
-			yield return String;
-			yield return Number;
-			yield return Boolean;
+			yield return CompilerDefined.Void;
+			yield return CompilerDefined.String;
+			yield return CompilerDefined.Number;
+			yield return CompilerDefined.Boolean;
+
+			foreach (var method in CompilerDefined.CompilerFunctions)
+			{
+				yield return method;
+			}
 		}
 
-		public bool TryGetType(IBind mainType, string typeName, out UserType type)
+		public bool TryGetType(IBind bind, string typeName, out IType type)
 		{
-			foreach (var item in AllReferenceableTypes(mainType))
+			foreach (var item in AllReferenceableTypes(bind))
 			{
-				if (item is UserType infoItem
+				if (item is IType tType
 					&& item.Name == typeName)
 				{
-					type = infoItem;
+					type = tType;
 					return true;
 				}
 			}

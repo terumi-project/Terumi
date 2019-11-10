@@ -14,15 +14,15 @@ namespace Terumi.Ast
 			switch (value)
 			{
 				case string _:
-					Type = TypeInformation.String;
+					Type = CompilerDefined.String;
 					break;
 
 				case BigInteger _:
-					Type = TypeInformation.Number;
+					Type = CompilerDefined.Number;
 					break;
 
 				case bool _:
-					Type = TypeInformation.Boolean;
+					Type = CompilerDefined.Boolean;
 					break;
 			}
 		}

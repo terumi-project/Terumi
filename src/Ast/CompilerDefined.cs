@@ -18,8 +18,8 @@ namespace Terumi.Ast
 		public static CompilerMethod[] CompilerFunctions { get; } = new CompilerMethod[]
 		{
 			New(Void, "println", P(String, "value")),
-			New(Void, "println", P(String, "value")),
-			New(Void, "println", P(String, "value")),
+			New(Void, "println", P(Number, "value")),
+			New(Void, "println", P(Boolean, "value")),
 			New(String, "concat", P(String, "a"), P(String, "b")),
 			New(Number, "add", P(Number, "a"), P(Number, "b"))
 		};

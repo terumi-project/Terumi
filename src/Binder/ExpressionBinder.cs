@@ -7,255 +7,191 @@ using Terumi.SyntaxTree.Expressions;
 
 namespace Terumi.Binder
 {
-	public class ExpressionBinder
+	public class ExpressionBindingState
 	{
 		private readonly TypeInformation _typeInformation;
-		private readonly List<(string name, IType type)> _vars = new List<(string name, IType type)>();
-		private readonly MethodBind _method;
+		private readonly UserType? _type;
+		private readonly MethodBind _methodBind;
 
-		public ExpressionBinder(TypeInformation typeInformation, MethodBind method)
+		private readonly List<(string Name, IType Type)> _vars = new List<(string Name, IType Type)>();
+
+		public ExpressionBindingState(TypeInformation typeInformation, UserType? type, MethodBind methodBind)
 		{
 			_typeInformation = typeInformation;
-			_method = method;
+			_type = type;
+			_methodBind = methodBind;
 		}
 
-		public void Bind()
+		public ICodeExpression TopLevelBind(IBind entity, Expression expression)
 		{
-			foreach (var expression in _method.TerumiBacking.Body.Expressions)
+			// things like literals can take this shortcut and become a codeexpr fast
+			if (expression is ICodeExpression codeExpression) return codeExpression;
+
+			return expression switch
 			{
-				HandleExpression(expression);
-			}
+				MethodCall methodCall => BindMethodCall(entity, methodCall),
+				AccessExpression accessExpression => BindAccessExpression(entity, accessExpression),
+				ReferenceExpression referenceExpression => BindReferenceExpression(entity, referenceExpression),
+				SyntaxTree.Expressions.ThisExpression thisExpression => BindThisExpression(entity, thisExpression),
+				VariableExpression variableExpression => BindVariableExpression(entity, variableExpression),
+				_ => throw new Exception("Unparab")
+			};
+		}
 
-			if (_method.ReturnType != TypeInformation.Void)
+		// method call stuffs:
+		public MethodCallExpression BindMethodCall(IBind entity, MethodCall methodCall)
+		{
+			var methodCallParams = ParseMethodCallParameterGroup(entity, methodCall.Parameters)
+				.ToList();
+
+			foreach (var referencable in _typeInformation.AllReferenceableMethods(entity))
 			{
-				var isReturn = false;
-
-				// TODO: verify that for each branch there is a way to exit.
-
-				// make sure it returns the proper type
-				foreach (var statement in _method.Statements)
+				if (referencable.Name == methodCall.MethodName
+					&& MethodParametersMatch(referencable.Parameters, methodCallParams))
 				{
-					if (statement is ReturnStatement returnStatement)
-					{
-						isReturn = true;
-
-						if (returnStatement.ReturnOn.Type != _method.ReturnType)
-						{
-							throw new Exception($"Returning on a '{returnStatement.ReturnOn.Type.Name}' - suppose to return on a '{_method.ReturnType.Name}'.");
-						}
-					}
-				}
-
-				if (!isReturn)
-				{
-					throw new Exception($"Method {_method.Name} expected to return a {_method.ReturnType.Name}, but doesn't return anything at all.");
+					return new MethodCallExpression(referencable, methodCallParams);
 				}
 			}
 
-			void HandleExpression(Expression expression)
+			Log.Error($"Unable to find matching method call for '{methodCall}' in method {entity}");
+			throw new Exception("Binding Exception");
+		}
+
+		private IEnumerable<ICodeExpression> ParseMethodCallParameterGroup(IBind entity, MethodCallParameterGroup callParams)
+		{
+			foreach (var parameter in callParams.Expressions)
 			{
-				switch (expression)
-				{
-					case ReturnExpression returnExpression:
-					{
-						_method.Statements.Add(new ReturnStatement(TopLevelBind(returnExpression.Expression)));
-					}
-					break;
-
-					case MethodCall methodCall:
-					{
-						_method.Statements.Add((MethodCallExpression)TopLevelBind(methodCall));
-					}
-					break;
-
-					case AccessExpression accessExpression:
-					{
-						var predecessor = TopLevelBind(accessExpression.Predecessor);
-
-						var action = TopLevelBind(accessExpression.Access, predecessor);
-
-						switch (action)
-						{
-							case MethodCallExpression methodCallExpression:
-							{
-								_method.Statements.Add(methodCallExpression);
-							}
-							break;
-
-							default:
-							{
-								throw new Exception("Invalid access expression in code body: " + action.GetType().FullName);
-							}
-						}
-					}
-					break;
-
-					case VariableExpression variableExpression:
-					{
-						var expr = TopLevelBind(variableExpression);
-
-						_method.Statements.Add(new AssignmentStatement(expr as VariableAssignment));
-					}
-					break;
-
-					default:
-					{
-						throw new Exception("Invalid expression in code body: " + expression.GetType().FullName);
-					}
-				}
+				yield return TopLevelBind(entity, parameter);
 			}
 		}
 
-		public ICodeExpression TopLevelBind(Expression expression, ICodeExpression entityReference = null)
+		private bool MethodParametersMatch(List<ParameterBind> bindParams, List<ICodeExpression> callParams)
 		{
-			// primarily used for literals
-			if (expression is ICodeExpression codeExpression)
+			if (bindParams.Count != callParams.Count) return false;
+
+			for (var i = 0; i < bindParams.Count; i++)
 			{
-				return codeExpression;
-			}
+				var bindParam = bindParams[i];
+				var callParam = callParams[i];
 
-			switch (expression)
-			{
-				case MethodCall methodCall:
-				{
-					return HandleMethodCall(methodCall, entityReference);
-				}
-
-				case AccessExpression accessExpression:
-				{
-					var predecessor = TopLevelBind(accessExpression.Predecessor);
-
-					return TopLevelBind(accessExpression.Access, predecessor);
-				}
-
-				case ReferenceExpression referenceExpression:
-				{
-					// the only named things we should be able to reference are variables and parameters
-					var varName = _vars.Find(x => x.name == referenceExpression.ReferenceName);
-
-					if (varName != default)
-					{
-						// TODOdoododododoojiiiiiiiiiiiiiiiiijoiiiiiiiiiiiiiijoooooooooooojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojojo
-						return new VariableReferenceExpression(varName.name, varName.type);
-					}
-
-					// now check for parameters
-					if (!_method.Parameters.Any(x => x.Name == referenceExpression.ReferenceName))
-					{
-						// nowhere else to look
-						throw new Exception("Unresolved reference '" + referenceExpression.ReferenceName + "'");
-					}
-
-					return new ParameterReferenceExpression(_method.Parameters.First(x => x.Name == referenceExpression.ReferenceName));
-				}
-
-				case SyntaxTree.Expressions.ThisExpression _:
-				{
-					throw new NotImplementedException();
-					// return new Ast.ThisExpression(_type);
-				}
-
-				case VariableExpression variableExpression:
-				{
-					var valueExpr = TopLevelBind(variableExpression.Value);
-
-					var name = variableExpression.Identifier.Identifier;
-
-					if (variableExpression.Type != null)
-					{
-						if (!_typeInformation.TryGetType(_method, variableExpression.Type.TypeName.Identifier, out var type))
-						{
-							throw new Exception($"Unable to find variable type '{variableExpression.Type.TypeName.Identifier}' for variable '{name}'");
-						}
-
-						if (_vars.Any(x => x.name == name))
-						{
-							throw new Exception($"Variable '{name}' already defined.");
-						}
-
-						_vars.Add((name, type));
-					}
-					else
-					{
-						if (!_vars.Any(x => x.name == name))
-						{
-							_vars.Add((name, valueExpr.Type));
-						}
-					}
-
-					return new VariableAssignment(name, valueExpr);
-				}
-
-				default:
-				{
-					throw new Exception("Unsupported expression value type " + expression.GetType().FullName);
-				}
-			}
-		}
-
-		private ICodeExpression HandleMethodCall(MethodCall methodCall, ICodeExpression entity = null)
-		{
-			var expressions = ParseMethodCallExpressions(methodCall);
-
-			if (methodCall.IsCompilerMethodCall)
-			{
-				var call = CompilerDefined.MatchMethod(methodCall.MethodName.Identifier, expressions.Select(x => x.Type).ToArray());
-
-				return new MethodCallExpression(entity, call, expressions.ToList());
-			}
-
-			foreach (var referencedItem in _typeInformation.AllReferenceableTypes(entity.Type).OfType<MethodBind>())
-			{
-				if (referencedItem.Name == methodCall.MethodName.Identifier
-					&& ParametersMatch(referencedItem.Parameters, expressions, out var parameters))
-				{
-					return new MethodCallExpression(entity, referencedItem, parameters.AsReadOnly());
-				}
-			}
-
-			throw new InvalidOperationException("Couldn't parse MethodCallExpression");
-		}
-
-		private ICollection<ICodeExpression> ParseMethodCallExpressions(MethodCall methodCall)
-		{
-			var expressions = new List<ICodeExpression>();
-
-			foreach (var expression in methodCall.Parameters.Expressions)
-			{
-				expressions.Add(TopLevelBind(expression));
-			}
-
-			return expressions;
-		}
-
-		private bool ParametersMatch
-		(
-			ICollection<ParameterBind> parametersDefinition,
-			ICollection<ICodeExpression> passedExpressions,
-			out List<ICodeExpression> parameters
-		)
-		{
-			if (parametersDefinition.Count != passedExpressions.Count)
-			{
-				parameters = default;
-				return false;
-			}
-
-			parameters = new List<ICodeExpression>();
-
-			for (var i = 0; i < passedExpressions.Count; i++)
-			{
-				var parameter = passedExpressions.ElementAt(i);
-
-				parameters.Add(parameter);
-
-				if (parameter.Type != parametersDefinition.ElementAt(i).Type)
-				{
-					return false;
-				}
+				if (bindParam.Type != callParam.Type) return false;
 			}
 
 			return true;
+		}
+
+		// access expr:
+		private ICodeExpression BindAccessExpression(IBind entity, AccessExpression accessExpression)
+		{
+			// TODO: get access exprs working
+			Log.Warn("Using not working access expressions");
+			throw new NotImplementedException();
+
+			var predecessor = TopLevelBind(entity, accessExpression.Predecessor);
+
+			return TopLevelBind(predecessor.Type, accessExpression.Access);
+		}
+
+		// ref expr:
+		private ICodeExpression BindReferenceExpression(IBind entity, ReferenceExpression referenceExpression)
+		{
+			// we should first try to reference a variable
+			var var = _vars.Find(x => x.Name == referenceExpression.ReferenceName);
+
+			if (var != default)
+			{
+				return new VariableReferenceExpression(var.Name, var.Type);
+			}
+
+			// then try to reference a parameter
+			var param = _methodBind.Parameters.Find(x => x.Name == referenceExpression.ReferenceName);
+
+			if (param != default)
+			{
+				return new ParameterReferenceExpression(param);
+			}
+
+			Log.Error($"Unresolved reference '{referenceExpression.ReferenceName}' in {_methodBind}");
+			throw new Exception("Binding Exception");
+		}
+
+		// this expr:
+		private ICodeExpression BindThisExpression(IBind entity, SyntaxTree.Expressions.ThisExpression thisExpression)
+		{
+			if (_type == null)
+			{
+				Log.Error($"Attempted to return `this` from within a top level method outside of a class/contract.");
+				throw new Exception("Binding Exception");
+			}
+
+			return new Ast.ThisExpression(_type);
+		}
+
+		// var expr:
+		private ICodeExpression BindVariableExpression(IBind entity, VariableExpression variableExpression)
+		{
+			var value = TopLevelBind(entity, variableExpression);
+			var name = variableExpression.Identifier;
+			var similar = _vars.Find(x => x.Name == name);
+
+			if (similar != default)
+			{
+				// if a variable of the same type already exists,
+				// make sure the assigment can work
+
+				if (similar.Type != value.Type)
+				{
+					Log.Error($"Attempt to assign an expression of type {value.Type} to {name}, which is a {similar.Type} type.");
+					throw new Exception("Binding Exception");
+				}
+			}
+			else
+			{
+				// otherwise, create the variable if we can find the type
+				if (!_typeInformation.TryGetType(entity, variableExpression.Type.TypeName, out var type))
+				{
+					Log.Error($"Unable to find type '{variableExpression.Type.TypeName}' for variable '{variableExpression.Identifier}' in {_methodBind}");
+					throw new Exception("Binding Exception");
+				}
+
+				_vars.Add((variableExpression.Identifier, type));
+			}
+
+			return new VariableAssignment(name, value);
+		}
+	}
+
+	public class ExpressionBinder
+	{
+		private readonly TypeInformation _typeInformation;
+
+		public ExpressionBinder(TypeInformation typeInformation)
+			=> _typeInformation = typeInformation;
+
+		public void Bind(MethodBind method)
+		{
+			if (method.TerumiBacking.Body == null)
+			{
+				Log.Warn($"Attempting to expression bind a method with no body {method.Name} in {method.Namespace}");
+				return;
+			}
+
+			var state = new ExpressionBindingState(_typeInformation, null, method);
+
+			foreach (var expression in method.TerumiBacking.Body.Expressions)
+			{
+				var codeExpression = state.TopLevelBind(method, expression);
+
+				if (codeExpression is CodeStatement statement)
+				{
+					method.Statements.Add(statement);
+				}
+				else
+				{
+					Log.Error($"Couldn't parse expression into statement {method.Name} with expression {expression}");
+					return;
+				}
+			}
 		}
 	}
 }

@@ -26,6 +26,7 @@ namespace Terumi
 		public bool NextChar(char character) => 0 != Tokens.NextChar(character).IncButCmp(ref _read);
 		public bool NextNoWhitespace<T>(out T token) where T : IToken => 0 != Tokens.NextNoWhitespace<T>(out token).IncButCmp(ref _read);
 		public bool NextNoWhitespace(out IToken token) => 0 != Tokens.NextNoWhitespace(out token).IncButCmp(ref _read);
+		public bool PeekNextNoWhitespace(out IToken token) => 0 != Tokens.NextNoWhitespace(out token);
 
 		public TokenStream Child() => new TokenStream(Tokens);
 

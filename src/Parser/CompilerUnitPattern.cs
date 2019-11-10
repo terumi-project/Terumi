@@ -6,52 +6,32 @@ using Terumi.Tokens;
 
 namespace Terumi.Parser
 {
-	public class CompilerUnitPattern : IPattern<CompilerUnit>
+	public class CompilerUnitPattern : INewPattern<CompilerUnit>
 	{
-		private readonly IPattern<CompilerUnitItem> _pattern;
-		private readonly IAstNotificationReceiver _astNotificationReceiver;
+		private readonly INewPattern<CompilerUnitItem> _pattern;
 
-		public CompilerUnitPattern
-		(
-			IAstNotificationReceiver astNotificationReceiver,
-			IPattern<CompilerUnitItem> pattern
-		)
-		{
-			_pattern = pattern;
-			_astNotificationReceiver = astNotificationReceiver;
-		}
+		public CompilerUnitPattern(INewPattern<CompilerUnitItem> pattern)
+			=> _pattern = pattern;
 
-		public bool TryParse(ReaderFork<IToken> source, out CompilerUnit compilerUnit)
+		public int TryParse(TokenStream stream, ref CompilerUnit item)
 		{
+			if (!stream.PeekNextNoWhitespace(out _)) return 0;
+
 			var items = new List<CompilerUnitItem>();
-
-			// EOF
-			if (!source.TryPeekNonWhitespace(out _, out _))
+			while (stream.TryParse(_pattern, out var compilerUnitItem))
 			{
-				goto NOTHING_NOTEWORTHY;
-			}
+				items.Add(compilerUnitItem);
 
-			while (_pattern.TryParse(source, out var item))
-			{
-				items.Add(item);
-
-				// EOF
-				if (!source.TryPeekNonWhitespace(out _, out var peeked))
+				if (!stream.PeekNextNoWhitespace(out _))
 				{
-					source.Advance(peeked);
-
-					compilerUnit = new CompilerUnit(items.ToArray());
-					_astNotificationReceiver.AstCreated(source, compilerUnit);
-					return true;
+					item = new CompilerUnit(items);
+					return stream;
 				}
 			}
 
-		// maybe we didn't have anything
-
-		NOTHING_NOTEWORTHY:
-			compilerUnit = new CompilerUnit(Array.Empty<CompilerUnitItem>());
-			_astNotificationReceiver.AstCreated(source, compilerUnit);
-			return true;
+			Log.Error($"Failed parsing compiler unit {stream.TopInfo}");
+			item = new CompilerUnit(items);
+			return stream;
 		}
 	}
 }

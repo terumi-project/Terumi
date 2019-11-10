@@ -20,18 +20,20 @@ namespace Terumi.Parser
 		private readonly ConstantLiteralExpressionBooleanPattern _booleanPattern;
 		private readonly VariableExpressionPattern _variablePattern;
 
-		private readonly IPattern<PackageReference> _packageLevelPattern;
+		private readonly INewPattern<PackageLevel> _packageLevelPattern;
+		private readonly INewPattern<PackageReference> _packageReferencePattern;
 		private readonly INewPattern<ParameterType> _parameterTypePattern;
-		private readonly IPattern<ParameterGroup> _parameterGroupPattern;
-		private readonly IPattern<CodeBody> _codeBodyPattern;
-		private readonly IPattern<Method> _methodPattern;
-		private readonly IPattern<CompilerUnitItem> _compilerUnitItem;
-		private readonly IPattern<CompilerUnit> _compilerUnit;
+		private readonly INewPattern<ParameterGroup> _parameterGroupPattern;
+		private readonly INewPattern<CodeBody> _codeBodyPattern;
+		private readonly INewPattern<Method> _methodPattern;
+		private readonly INewPattern<CompilerUnitItem> _compilerUnitItem;
+		private readonly INewPattern<CompilerUnit> _compilerUnit;
 
 		public StreamParser()
 		{
 			_parameterTypePattern = new ParameterTypePattern();
-			_packageLevelPattern = new PackageLevelPattern(this);
+			_packageLevelPattern = new PackageLevelPattern();
+			_packageReferencePattern = new PackageReferencePattern(_packageLevelPattern);
 			_parameterGroupPattern = new ParameterGroupPattern(_parameterTypePattern);
 
 			// expressions oh no
@@ -66,11 +68,11 @@ namespace Terumi.Parser
 
 			// then other code stuff
 
-			_codeBodyPattern = new CodeBodyPattern(this, _expressionPattern);
-			_methodPattern = new MethodPattern(this, _parameterGroupPattern, _codeBodyPattern);
+			_codeBodyPattern = new CodeBodyPattern(_expressionPattern);
+			_methodPattern = new MethodPattern(_parameterGroupPattern, _codeBodyPattern);
 
-			_compilerUnitItem = new CompilerUnitItemPattern(_methodPattern, _packageLevelPattern);
-			_compilerUnit = new CompilerUnitPattern(this, _compilerUnitItem);
+			_compilerUnitItem = new CompilerUnitItemPattern(_methodPattern, _packageReferencePattern);
+			_compilerUnit = new CompilerUnitPattern(_compilerUnitItem);
 		}
 
 		public void AstCreated<T>(ReaderFork<IToken> fork, T ast)

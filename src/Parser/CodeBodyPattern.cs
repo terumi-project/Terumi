@@ -2,67 +2,44 @@
 
 using Terumi.SyntaxTree;
 using Terumi.SyntaxTree.Expressions;
-using Terumi.Tokens;
 
 namespace Terumi.Parser
 {
-	public class CodeBodyPattern : IPattern<CodeBody>
+	public class CodeBodyPattern : INewPattern<CodeBody>
 	{
-		private readonly IAstNotificationReceiver _astNotificationReceiver;
-		private readonly IPattern<Expression> _expressionPattern;
+		private readonly INewPattern<Expression> _expressionPattern;
 
-		public CodeBodyPattern
-		(
-			IAstNotificationReceiver astNotificationReceiver,
-			IPattern<Expression> expressionPattern
-		)
-		{
-			_astNotificationReceiver = astNotificationReceiver;
-			_expressionPattern = expressionPattern;
-		}
+		public CodeBodyPattern(INewPattern<Expression> expressionPattern)
+			=> _expressionPattern = expressionPattern;
 
-		public bool TryParse(ReaderFork<IToken> source, out CodeBody item)
+		public int TryParse(TokenStream stream, ref CodeBody item)
 		{
-			if (!(source.TryNextNonWhitespace<CharacterToken>(out var openBrace)
-				&& openBrace.IsChar('{')))
+			if (!stream.NextChar('{'))
 			{
-				// TODO: exception here, or let consumers throw an exception?
-				// opting for the latter currently
-				_astNotificationReceiver.Throw("code body expected {");
-				item = default;
-				return false;
+				Log.Error($"Expected a code body to start with a {{, didn't get one {stream.TopInfo}");
+				return 0;
 			}
 
-			var codeBody = new List<Expression>();
-			int peeked;
+			var body = new List<Expression>();
 
-			while (!source.TryPeekCharacter('}', out peeked))
+			while (!stream.NextChar('}'))
 			{
-				if (!_expressionPattern.TryParse(source, out var expression))
+				if (!stream.TryParse(_expressionPattern, out var expression))
 				{
-					// TODO: throw exception - expected expression or end of code body,
-					// found neither
-					_astNotificationReceiver.Throw("code body expected expression or end of code body, found neither");
-					item = default;
-					return false;
+					Log.Error($"Unable to parse expression {stream.TopInfo}");
+					return 0;
 				}
 
-				codeBody.Add(expression);
+				body.Add(expression);
 
-				if (!source.TryNextNewline())
+				if (!stream.NextChar('\n'))
 				{
-					// TODO: throw exception - expected \n to signify end of statement, found nothing
-					_astNotificationReceiver.Throw("code body expected \\n to signify end of statement, did not find it.");
-					item = default;
-					return false;
+					Log.Warn($"All expression statements should end with a newline (\\n) {stream.TopInfo}");
 				}
 			}
 
-			source.Advance(peeked);
-
-			item = new CodeBody(codeBody.ToArray());
-			_astNotificationReceiver.AstCreated(source, item);
-			return true;
+			item = new CodeBody(body);
+			return stream;
 		}
 	}
 }

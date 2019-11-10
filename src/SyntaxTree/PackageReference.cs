@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Terumi.Tokens;
 
 namespace Terumi.SyntaxTree
 {
@@ -11,7 +12,13 @@ namespace Terumi.SyntaxTree
 
 	public class PackageReference : CompilerUnitItem, IEquatable<PackageReference>
 	{
-		public PackageReference(PackageAction action, string[] levels)
+		public PackageReference(Keyword keyword, PackageLevel levels)
+		{
+			Action = keyword == Keyword.Using ? PackageAction.Using : keyword == Keyword.Namespace ? PackageAction.Namespace : throw new Exception("Invlaid action");
+			Levels = levels;
+		}
+
+		public PackageReference(PackageAction action, PackageLevel levels)
 		{
 			Action = action;
 			Levels = levels;

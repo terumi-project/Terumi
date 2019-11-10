@@ -16,7 +16,7 @@ namespace Terumi.Lexer
 
 			var strb = new StringBuilder();
 
-			const int initialValue = 1;
+			var initialValue = 1;
 			var i = initialValue;
 
 			for (; i < source.Length; i++)
@@ -24,7 +24,12 @@ namespace Terumi.Lexer
 				var current = source[i];
 
 				// ignore all '\r's
-				if (current == '\r') continue;
+				if (current == '\r')
+				{
+					// increment initialValue so that we can still skip the first \n
+					initialValue++;
+					continue;
+				}
 
 				// if the string starts with a '\n', we want to ignore that
 				/*

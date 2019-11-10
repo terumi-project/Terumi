@@ -19,6 +19,10 @@ namespace Terumi.Ast
 		public static CompilerMethod[] CompilerFunctions(ICompilerMethods target)
 			=> new CompilerMethod[]
 		{
+			New(args => target.supports_string(args[0]),
+				Boolean, "supports",
+				P(String, "feature")),
+
 			New(args => target.println_string(args[0]),
 				Void, "println",
 				P(String,  "value")),

@@ -6,6 +6,8 @@ namespace Terumi.Targets
 	{
 		ICompilerTarget MakeTarget(TypeInformation typeInformation);
 
+		string supports_string(string feature);
+
 		string println_string(string value);
 
 		string println_number(string value);

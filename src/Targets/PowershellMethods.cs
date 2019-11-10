@@ -14,6 +14,8 @@ namespace Terumi.Targets
 	{
 		public ICompilerTarget MakeTarget(TypeInformation typeInformation) => new PowershellTarget(typeInformation);
 
+		public string supports_string(string feature) => "$TRUE"; // TODO: lol, make sure to be specific about this
+
 		public string println_string(string value) => $"Write-Host {value}";
 
 		public string println_number(string value) => $"Write-Host {value}";
@@ -66,7 +68,7 @@ namespace Terumi.Targets
 		private string GenMethodParameters(List<ParameterBind> parameters)
 		{
 			if (parameters.Count == 0) return "";
-			if (parameters.Count == 1) return "$" + parameters.First().Name;
+			if (parameters.Count == 1) return "$" + parameters[0].Name;
 
 			return parameters.Select(x => "$" + x.Name).Aggregate((a, b) => a + ", " + b);
 		}

@@ -22,8 +22,8 @@ namespace Terumi.Parser
 
 		private static int HasBrackets(TokenStream stream)
 		{
-			if (stream.NextChar('[')) return 0;
-			if (stream.NextChar(']')) return 0;
+			if (!stream.NextChar('[')) return 0;
+			if (!stream.NextChar(']')) return 0;
 			return stream;
 		}
 	}

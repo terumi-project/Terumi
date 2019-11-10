@@ -41,7 +41,7 @@ namespace Terumi.Lexer
 		{
 			var i = 1;
 
-			while (i < source.Length || source[i] == (byte)'\n')
+			while (i < source.Length && source[i] != (byte)'\n')
 			{
 				i++;
 			}

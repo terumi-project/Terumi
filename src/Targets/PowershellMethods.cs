@@ -89,6 +89,12 @@ namespace Terumi.Targets
 					writer.WriteLine("}");
 				}
 				return;
+
+				case ReturnStatement returnStatement:
+				{
+					writer.WriteLine($"return {HandleExpression(returnStatement.ReturnOn)}");
+				}
+				return;
 			}
 
 			writer.WriteLine(HandleExpression(statement as ICodeExpression));

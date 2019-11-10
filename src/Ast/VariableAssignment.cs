@@ -2,7 +2,7 @@
 
 namespace Terumi.Ast
 {
-	public class VariableAssignment : ICodeExpression
+	public class VariableAssignment : CodeStatement, ICodeExpression
 	{
 		public VariableAssignment(string variableName, ICodeExpression value)
 		{

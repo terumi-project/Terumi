@@ -16,7 +16,7 @@ namespace Terumi.Parser.Expressions
 
 			if (!stream.TryParse(ExpressionPattern, out var expression))
 			{
-				Log.Error($"Expected an expression to return on, but couldn't parse an expression {stream.TopInfo}");
+				Log.Error($"Expected an expression to return on, but tt parse an expression {stream.TopInfo}");
 				return 0;
 			}
 

@@ -20,7 +20,12 @@ namespace Terumi
 		/// </summary>
 		public static int IncButCmp(this int result, ref int read)
 		{
-			read += result;
+			if (result > 0)
+			{
+				// we don't want -1 to affect the read
+				read += result;
+			}
+
 			return result;
 		}
 

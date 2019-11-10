@@ -30,6 +30,12 @@ namespace Terumi.Parser
 			}
 			else if (stream.NextNoWhitespace<IdentifierToken>(out var identifier))
 			{
+				if (!stream.NextChar('('))
+				{
+					Log.Error($"Expected opening parenthesis on method definition, but didn't get one {stream.TopInfo}");
+					return 0;
+				}
+
 				return ParameterParsingStage(ref stream, identifierOrType, identifier, ref item);
 			}
 

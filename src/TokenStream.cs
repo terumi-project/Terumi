@@ -10,6 +10,7 @@ namespace Terumi
 	public ref struct TokenStream
 	{
 		private readonly ReadOnlySpan<IToken> _tokens;
+
 		private int _read;
 
 		public TokenStream(ReadOnlySpan<IToken> tokens)
@@ -53,7 +54,11 @@ namespace Terumi
 		{
 			var read = predicate(Child());
 
-			_read += read;
+			if (read > 0)
+			{
+				_read += read;
+			}
+
 			return read != 0;
 		}
 

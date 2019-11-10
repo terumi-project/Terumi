@@ -35,6 +35,7 @@ namespace Terumi.Binder
 				SyntaxTree.Expressions.ThisExpression thisExpression => BindThisExpression(entity, thisExpression),
 				VariableExpression variableExpression => BindVariableExpression(entity, variableExpression),
 				IfExpression ifExpression => BindIfExpression(entity, ifExpression),
+				ReturnExpression returnExpression => new ReturnStatement(TopLevelBind(entity, returnExpression.Expression)),
 				_ => throw new Exception("Unparab")
 			};
 		}
@@ -131,7 +132,7 @@ namespace Terumi.Binder
 		// var expr:
 		private ICodeExpression BindVariableExpression(IBind entity, VariableExpression variableExpression)
 		{
-			var value = TopLevelBind(entity, variableExpression);
+			var value = TopLevelBind(entity, variableExpression.Value);
 			var name = variableExpression.Identifier;
 			var similar = _vars.Find(x => x.Name == name);
 

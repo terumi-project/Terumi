@@ -1,6 +1,8 @@
-﻿namespace Terumi.Ast
+﻿using Terumi.Binder;
+
+namespace Terumi.Ast
 {
-	public class ReturnStatement : CodeStatement
+	public class ReturnStatement : CodeStatement, ICodeExpression
 	{
 		public ReturnStatement(ICodeExpression returnOn)
 		{
@@ -8,5 +10,7 @@
 		}
 
 		public ICodeExpression ReturnOn { get; }
+
+		public IType Type => ReturnOn.Type;
 	}
 }

@@ -34,6 +34,7 @@ namespace Terumi.Binder
 				ReferenceExpression referenceExpression => BindReferenceExpression(entity, referenceExpression),
 				SyntaxTree.Expressions.ThisExpression thisExpression => BindThisExpression(entity, thisExpression),
 				VariableExpression variableExpression => BindVariableExpression(entity, variableExpression),
+				IfExpression ifExpression => BindIfExpression(entity, ifExpression),
 				_ => throw new Exception("Unparab")
 			};
 		}
@@ -158,6 +159,29 @@ namespace Terumi.Binder
 			}
 
 			return new VariableAssignment(name, value);
+		}
+
+		// if expr:
+		private IfStatement BindIfExpression(IBind entity, IfExpression ifExpression)
+		{
+			var comparison = TopLevelBind(entity, ifExpression.Comparison);
+
+			var expressions = new List<CodeStatement>();
+
+			foreach (var expression in ifExpression.True.Expressions)
+			{
+				var boundExpr = TopLevelBind(entity, expression);
+
+				if (!(boundExpr is CodeStatement statement))
+				{
+					Log.Error($"Expected CodeStatement while parsing if statement, didn't get one.");
+					throw new Exception("Binding Exception");
+				}
+
+				expressions.Add(statement);
+			}
+
+			return new IfStatement(comparison, expressions);
 		}
 	}
 

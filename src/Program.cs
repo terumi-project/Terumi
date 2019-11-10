@@ -26,6 +26,7 @@ namespace Terumi
 
 			new KeywordPattern(new KeyValuePair<string, Keyword>[]
 			{
+				KeyValuePair.Create("if", Keyword.If),
 				KeyValuePair.Create("this", Keyword.This),
 				KeyValuePair.Create("true", Keyword.True),
 				KeyValuePair.Create("using", Keyword.Using),

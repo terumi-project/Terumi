@@ -15,6 +15,7 @@ namespace Terumi.Parser.Expressions
 		private readonly IPattern<ReferenceExpression> _referencePattern;
 		private readonly IPattern<Terumi.Ast.ConstantLiteralExpression<bool>> _booleanPattern;
 		private readonly IPattern<VariableExpression> _variablePattern;
+		private readonly IPattern<IfExpression> _ifPattern;
 
 		public ExpressionPattern
 		(
@@ -26,7 +27,8 @@ namespace Terumi.Parser.Expressions
 			IPattern<ThisExpression> thisPattern,
 			IPattern<ReferenceExpression> referencePattern,
 			IPattern<Terumi.Ast.ConstantLiteralExpression<bool>> booleanPattern,
-			IPattern<VariableExpression> variablePattern
+			IPattern<VariableExpression> variablePattern,
+			IPattern<IfExpression> ifPattern
 		)
 		{
 			_methodCallPattern = methodCallPattern;
@@ -38,6 +40,7 @@ namespace Terumi.Parser.Expressions
 			_referencePattern = referencePattern;
 			_booleanPattern = booleanPattern;
 			_variablePattern = variablePattern;
+			_ifPattern = ifPattern;
 		}
 
 		public int TryParse(TokenStream stream, ref Expression item)
@@ -49,7 +52,8 @@ namespace Terumi.Parser.Expressions
 			|| TryParse(ref stream, _thisPattern, ref item)
 			|| TryParse(ref stream, _booleanPattern, ref item)
 			|| TryParse(ref stream, _variablePattern, ref item)
-			|| TryParse(ref stream, _referencePattern, ref item))
+			|| TryParse(ref stream, _referencePattern, ref item)
+			|| TryParse(ref stream, _ifPattern, ref item))
 			{
 				return stream;
 			}

@@ -72,7 +72,27 @@ namespace Terumi.Targets
 		}
 
 		private void WriteMethodStatement(IndentedTextWriter writer, CodeStatement statement)
-			=> writer.WriteLine(HandleExpression(statement as ICodeExpression));
+		{
+			switch (statement)
+			{
+				case IfStatement ifStatement:
+				{
+					writer.WriteLine($"If ({HandleExpression(ifStatement.Comparison)}) {{");
+					writer.Indent++;
+
+					foreach (var bodyStatement in ifStatement.Statements)
+					{
+						WriteMethodStatement(writer, bodyStatement);
+					}
+
+					writer.Indent--;
+					writer.WriteLine("}");
+				}
+				return;
+			}
+
+			writer.WriteLine(HandleExpression(statement as ICodeExpression));
+		}
 
 		private string HandleExpression(ICodeExpression codeExpression)
 			=> codeExpression switch

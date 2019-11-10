@@ -19,6 +19,7 @@ namespace Terumi.Parser
 		private readonly ReferenceExpressionPattern _referencePattern;
 		private readonly ConstantLiteralExpressionBooleanPattern _booleanPattern;
 		private readonly VariableExpressionPattern _variablePattern;
+		private readonly IfExpressionPattern _ifExpressionPattern;
 
 		private readonly IPattern<PackageLevel> _packageLevelPattern;
 		private readonly IPattern<PackageReference> _packageReferencePattern;
@@ -47,6 +48,7 @@ namespace Terumi.Parser
 			_referencePattern = new ReferenceExpressionPattern();
 			_booleanPattern = new ConstantLiteralExpressionBooleanPattern();
 			_variablePattern = new VariableExpressionPattern(_parameterTypePattern);
+			_ifExpressionPattern = new IfExpressionPattern();
 
 			_expressionPattern = new ExpressionPattern
 			(
@@ -58,17 +60,21 @@ namespace Terumi.Parser
 				_thisPattern,
 				_referencePattern,
 				_booleanPattern,
-				_variablePattern
+				_variablePattern,
+				_ifExpressionPattern
 			);
 
 			_methodCallParameterGroupPattern.ExpressionPattern = _expressionPattern;
 			_returnPattern.ExpressionPattern = _expressionPattern;
 			_accessPattern.ExpressionPattern = _expressionPattern;
 			_variablePattern.ExpressionPattern = _expressionPattern;
+			_ifExpressionPattern.ExpressionPattern = _expressionPattern;
 
 			// then other code stuff
 
 			_codeBodyPattern = new CodeBodyPattern(_expressionPattern);
+			_ifExpressionPattern.CodeBodyPattern = _codeBodyPattern;
+
 			_methodPattern = new MethodPattern(_parameterGroupPattern, _codeBodyPattern);
 
 			_compilerUnitItem = new CompilerUnitItemPattern(_methodPattern, _packageReferencePattern);

@@ -4,6 +4,6 @@ namespace Terumi.Ast
 {
 	public interface ICodeExpression
 	{
-		public InfoItem Type { get; }
+		public IType Type { get; }
 	}
 }

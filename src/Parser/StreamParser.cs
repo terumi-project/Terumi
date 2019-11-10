@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using System;
 
 using Terumi.Parser.Expressions;
 using Terumi.SyntaxTree;
@@ -6,47 +6,47 @@ using Terumi.Tokens;
 
 namespace Terumi.Parser
 {
-	public class StreamParser : IAstNotificationReceiver
+	public class StreamParser
 	{
 		private readonly MethodCallParameterGroupPattern _methodCallParameterGroupPattern;
 		private readonly MethodCallPattern _methodCallPattern;
 		private readonly ReturnExpressionPattern _returnPattern;
 		private readonly AccessExpressionPattern _accessPattern;
-		private readonly NumericLiteralExpressionPattern _numericPattern;
-		private readonly StringLiteralExpressionPattern _stringPattern;
+		private readonly ConstantLiteralExpressionBigIntegerPattern _numericPattern;
+		private readonly ConstantLiteralExpressionStringPattern _stringPattern;
 		private readonly ExpressionPattern _expressionPattern;
 		private readonly ThisExpressionPattern _thisPattern;
 		private readonly ReferenceExpressionPattern _referencePattern;
-		private readonly BooleanLiteralExpressionPattern _booleanPattern;
+		private readonly ConstantLiteralExpressionBooleanPattern _booleanPattern;
 		private readonly VariableExpressionPattern _variablePattern;
 
 		private readonly IPattern<PackageLevel> _packageLevelPattern;
+		private readonly IPattern<PackageReference> _packageReferencePattern;
 		private readonly IPattern<ParameterType> _parameterTypePattern;
 		private readonly IPattern<ParameterGroup> _parameterGroupPattern;
 		private readonly IPattern<CodeBody> _codeBodyPattern;
 		private readonly IPattern<Method> _methodPattern;
-		private readonly IPattern<TypeDefinition> _topLevelMethodPattern;
-		private readonly IPattern<TypeDefinition> _typeDefinitionPattern;
 		private readonly IPattern<CompilerUnitItem> _compilerUnitItem;
 		private readonly IPattern<CompilerUnit> _compilerUnit;
 
 		public StreamParser()
 		{
-			_parameterTypePattern = new ParameterTypePattern(this);
-			_packageLevelPattern = new PackageLevelPattern(this);
-			_parameterGroupPattern = new ParameterGroupPattern(this, _parameterTypePattern);
+			_parameterTypePattern = new ParameterTypePattern();
+			_packageLevelPattern = new PackageLevelPattern();
+			_packageReferencePattern = new PackageReferencePattern(_packageLevelPattern);
+			_parameterGroupPattern = new ParameterGroupPattern(_parameterTypePattern);
 
 			// expressions oh no
-			_methodCallParameterGroupPattern = new MethodCallParameterGroupPattern(this);
-			_methodCallPattern = new MethodCallPattern(this, _methodCallParameterGroupPattern);
-			_returnPattern = new ReturnExpressionPattern(this);
-			_accessPattern = new AccessExpressionPattern(this);
-			_numericPattern = new NumericLiteralExpressionPattern(this);
-			_stringPattern = new StringLiteralExpressionPattern(this);
-			_thisPattern = new ThisExpressionPattern(this);
-			_referencePattern = new ReferenceExpressionPattern(this);
-			_booleanPattern = new BooleanLiteralExpressionPattern(this);
-			_variablePattern = new VariableExpressionPattern(this, _parameterTypePattern);
+			_methodCallParameterGroupPattern = new MethodCallParameterGroupPattern();
+			_methodCallPattern = new MethodCallPattern(_methodCallParameterGroupPattern);
+			_returnPattern = new ReturnExpressionPattern();
+			_accessPattern = new AccessExpressionPattern();
+			_numericPattern = new ConstantLiteralExpressionBigIntegerPattern();
+			_stringPattern = new ConstantLiteralExpressionStringPattern();
+			_thisPattern = new ThisExpressionPattern();
+			_referencePattern = new ReferenceExpressionPattern();
+			_booleanPattern = new ConstantLiteralExpressionBooleanPattern();
+			_variablePattern = new VariableExpressionPattern(_parameterTypePattern);
 
 			_expressionPattern = new ExpressionPattern
 			(
@@ -68,58 +68,17 @@ namespace Terumi.Parser
 
 			// then other code stuff
 
-			_codeBodyPattern = new CodeBodyPattern(this, _expressionPattern);
-			_methodPattern = new MethodPattern(this, _parameterGroupPattern, _codeBodyPattern);
+			_codeBodyPattern = new CodeBodyPattern(_expressionPattern);
+			_methodPattern = new MethodPattern(_parameterGroupPattern, _codeBodyPattern);
 
-			_topLevelMethodPattern = new TopLevelMethodPattern(this, _methodPattern);
-
-			_typeDefinitionPattern = _topLevelMethodPattern;
-
-			_compilerUnitItem = new CompilerUnitItemPattern(_typeDefinitionPattern, _packageLevelPattern);
-			_compilerUnit = new CompilerUnitPattern(this, _compilerUnitItem);
+			_compilerUnitItem = new CompilerUnitItemPattern(_methodPattern, _packageReferencePattern);
+			_compilerUnit = new CompilerUnitPattern(_compilerUnitItem);
 		}
 
-		public void AstCreated<T>(ReaderFork<Token> fork, T ast)
+		public bool TryParse(Memory<IToken> tokens, out CompilerUnit compilerUnit)
 		{
-			// Log.Debug("ast: " + ast.GetType().FullName);
-		}
-
-		public void DebugPrint(ReaderFork<Token> fork)
-		{
-#if DEBUG
-			using var tmp = fork.Fork();
-			for (var i = 0; i < 5 && tmp.TryNext(out var tkn); i++)
-			{
-				Log.Debug("debug print - tkn " + tkn.GetType().FullName + " - " + tkn.ToString());
-				int c = 1; // for debug breakpoint
-			}
-#endif
-		}
-
-		public void Throw(string message)
-		{
-			Log.Warn("AST got 'Throw': " + message);
-		}
-
-		public bool TryParse(IEnumerable<Token> tokens, out CompilerUnit compilerUnit)
-		{
-			using var enumerator = tokens.GetEnumerator();
-
-			var head = new ReaderHead<Token>((amt) =>
-			{
-				var result = new List<Token>(amt);
-
-				for (var i = 0; i < amt && enumerator.MoveNext(); i++)
-				{
-					result.Add(enumerator.Current);
-				}
-
-				return result.ToArray();
-			});
-
-			using var fork = head.Fork();
-			fork.Commit = true;
-			return _compilerUnit.TryParse(fork, out compilerUnit);
+			compilerUnit = default;
+			return 0 != _compilerUnit.TryParse(new TokenStream(tokens.Span), ref compilerUnit);
 		}
 	}
 }

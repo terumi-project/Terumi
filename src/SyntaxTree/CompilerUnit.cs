@@ -1,10 +1,12 @@
-﻿namespace Terumi.SyntaxTree
+﻿using System.Collections.Generic;
+
+namespace Terumi.SyntaxTree
 {
 	public class CompilerUnit
 	{
-		public CompilerUnit(CompilerUnitItem[] compilerUnitItem)
+		public CompilerUnit(List<CompilerUnitItem> compilerUnitItem)
 			=> CompilerUnitItems = compilerUnitItem;
 
-		public CompilerUnitItem[] CompilerUnitItems { get; }
+		public List<CompilerUnitItem> CompilerUnitItems { get; }
 	}
 }

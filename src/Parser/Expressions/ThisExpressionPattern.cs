@@ -5,28 +5,16 @@ namespace Terumi.Parser.Expressions
 {
 	public class ThisExpressionPattern : IPattern<ThisExpression>
 	{
-		private readonly IAstNotificationReceiver _astNotificationReceiver;
-
-		public ThisExpressionPattern
-		(
-			IAstNotificationReceiver astNotificationReceiver
-		)
-			=> _astNotificationReceiver = astNotificationReceiver;
-
-		public bool TryParse(ReaderFork<Token> source, out ThisExpression item)
+		public int TryParse(TokenStream stream, ref ThisExpression item)
 		{
-			if (!source.TryPeekNonWhitespace<KeywordToken>(out var token, out var peeked)
-				|| token.Keyword != Keyword.This)
+			if (stream.NextNoWhitespace<KeywordToken>(out var token)
+				&& token.Keyword == Keyword.This)
 			{
-				item = default;
-				return false;
+				item = ThisExpression.Instance;
+				return stream;
 			}
 
-			source.Advance(peeked);
-
-			item = ThisExpression.Instance;
-			_astNotificationReceiver.AstCreated(source, item);
-			return true;
+			return 0;
 		}
 	}
 }

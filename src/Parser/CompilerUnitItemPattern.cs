@@ -1,26 +1,38 @@
 ﻿using Terumi.SyntaxTree;
-using Terumi.Tokens;
 
 namespace Terumi.Parser
 {
 	public class CompilerUnitItemPattern : IPattern<CompilerUnitItem>
 	{
-		private readonly IPattern<CompilerUnitItem> _coagulation;
+		private readonly IPattern<Method> _methodPattern;
+		private readonly IPattern<PackageReference> _packagePattern;
 
 		public CompilerUnitItemPattern
 		(
-			IPattern<TypeDefinition> typeDefinitionPattern,
-			IPattern<PackageLevel> packagePattern
+			IPattern<Method> methodPattern,
+			IPattern<PackageReference> packagePattern
 		)
 		{
-			_coagulation = new CoagulatedPattern<TypeDefinition, PackageLevel, CompilerUnitItem>
-			(
-				typeDefinitionPattern,
-				packagePattern
-			);
+			_methodPattern = methodPattern;
+			_packagePattern = packagePattern;
 		}
 
-		public bool TryParse(ReaderFork<Token> source, out CompilerUnitItem item)
-			=> _coagulation.TryParse(source, out item);
+		public int TryParse(TokenStream stream, ref CompilerUnitItem item)
+		{
+			if (stream.TryParse(_methodPattern, out var method))
+			{
+				item = method;
+			}
+			else if (stream.TryParse(_packagePattern, out var packageReference))
+			{
+				item = packageReference;
+			}
+			else
+			{
+				return 0;
+			}
+
+			return stream;
+		}
 	}
 }

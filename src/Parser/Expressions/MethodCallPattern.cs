@@ -5,64 +5,33 @@ namespace Terumi.Parser.Expressions
 {
 	public class MethodCallPattern : IPattern<MethodCall>
 	{
-		private readonly IAstNotificationReceiver _astNotificationReceiver;
 		private readonly IPattern<MethodCallParameterGroup> _pattern;
 
-		public MethodCallPattern
-		(
-			IAstNotificationReceiver astNotificationReceiver,
-			IPattern<MethodCallParameterGroup> pattern
-		)
+		public MethodCallPattern(IPattern<MethodCallParameterGroup> pattern)
+			=> _pattern = pattern;
+
+		public int TryParse(TokenStream stream, ref MethodCall item)
 		{
-			_astNotificationReceiver = astNotificationReceiver;
-			_pattern = pattern;
-		}
+			var isCompilerCall = stream.NextChar('@');
 
-		public bool TryParse(ReaderFork<Token> source, out MethodCall item)
-		{
-			bool isCompilerCall = false;
+			if (!stream.NextNoWhitespace<IdentifierToken>(out var identifier)) return 0;
+			if (identifier.IdentifierCase != IdentifierCase.SnakeCase) return 0;
+			if (!stream.NextChar('(')) return 0;
 
-			if (source.TryPeekCharacter('@', out var peeked))
+			if (!stream.TryParse(_pattern, out var methodCallParameterGroup))
 			{
-				isCompilerCall = true;
-				source.Advance(peeked);
+				Log.Error($"While parsing method call, attempted to parse method call parameter group but failed {stream.TopInfo}");
+				return 0;
 			}
 
-			if (!source.TryNextNonWhitespace<IdentifierToken>(out var target)
-				|| target.IdentifierCase != IdentifierCase.SnakeCase)
+			if (!stream.NextChar(')'))
 			{
-				item = default;
-				return false;
+				Log.Error($"No closing paranthesis on method call {stream.TopInfo}");
+				return 0;
 			}
 
-			if (!source.TryNextCharacter('('))
-			{
-				_astNotificationReceiver.Throw("Expected open parenthesis");
-				// TODO: exception - expected open parenthesis
-				item = default;
-				return false;
-			}
-
-			if (!_pattern.TryParse(source, out var methodCallParameterGroup))
-			{
-				// TODO: exception - expected method parameter call group
-				// this pattern should handle no expressions fine though.
-				_astNotificationReceiver.Throw("Expected method parameter call group");
-				item = default;
-				return false;
-			}
-
-			if (!source.TryNextCharacter(')'))
-			{
-				_astNotificationReceiver.Throw("Expected close parenthesis");
-				// TODO: exception - expected close parenthesis
-				item = default;
-				return false;
-			}
-
-			item = new MethodCall(isCompilerCall, target, methodCallParameterGroup);
-			_astNotificationReceiver.AstCreated(source, item);
-			return true;
+			item = new MethodCall(isCompilerCall, identifier, methodCallParameterGroup);
+			return stream;
 		}
 	}
 }

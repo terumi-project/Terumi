@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
 
 using Terumi.Tokens;
 
@@ -6,36 +7,29 @@ namespace Terumi.Lexer
 {
 	public class WhitespacePattern : IPattern
 	{
-		public bool TryParse(ReaderFork<byte> source, out Token token)
+		public int TryParse(Span<byte> source, LexerMetadata meta, ref IToken token)
 		{
-			if (!source.TryNext(out var value)
-			|| !IsWhitespace(value))
+			// short circuit if we don't have any data
+			if (!IsWhitespace(source[0]))
 			{
-				token = default;
-				return false;
+				return 0;
 			}
 
-			int start = source.Position;
+			var i = 1;
 
-			while (source.TryNext(out value))
+			while (IsWhitespace(source[i]))
 			{
-				if (!IsWhitespace(value))
-				{
-					source.Back(1);
-
-					token = new WhitespaceToken(start, source.Position);
-					return true;
-				}
+				i++;
 			}
 
-			token = default;
-			return false;
+			token = new WhitespaceToken(meta);
+			return i;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		private static bool IsWhitespace(byte value)
-			=> value == ' '
-			|| value == '\t'
-			|| value == '\r';
+			=> value == (byte)' '
+			|| value == (byte)'\t'
+			|| value == (byte)'\r';
 	}
 }

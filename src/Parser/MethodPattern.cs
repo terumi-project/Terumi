@@ -5,110 +5,80 @@ namespace Terumi.Parser
 {
 	public class MethodPattern : IPattern<Method>
 	{
-		private readonly IAstNotificationReceiver _astNotificationReceiver;
 		private readonly IPattern<ParameterGroup> _parameterPattern;
 		private readonly IPattern<CodeBody>? _codeBodyPattern;
 
 		public MethodPattern
 		(
-			IAstNotificationReceiver astNotificationReceiver,
 			IPattern<ParameterGroup> parameterPattern,
 			IPattern<CodeBody>? codeBodyPattern
 		)
 		{
-			_astNotificationReceiver = astNotificationReceiver;
 			_parameterPattern = parameterPattern;
 			_codeBodyPattern = codeBodyPattern;
 		}
 
-		public bool TryParse(ReaderFork<Token> source, out Method item)
+		public int TryParse(TokenStream stream, ref Method item)
 		{
-			if (!source.TryNextNonWhitespace<IdentifierToken>(out var identifierOrType))
+			// we might have 'my_method() { ... }' or 'number my_method() { ... }', so we need to handle that
+
+			if (!stream.NextNoWhitespace<IdentifierToken>(out var identifierOrType)) return 0;
+
+			if (stream.NextChar('('))
 			{
-				item = default;
-				return false;
+				return ParameterParsingStage(ref stream, null, identifierOrType, ref item);
+			}
+			else if (stream.NextNoWhitespace<IdentifierToken>(out var identifier))
+			{
+				return ParameterParsingStage(ref stream, identifierOrType, identifier, ref item);
 			}
 
-			int peeked;
-			CharacterToken characterToken;
-
-			if (source.TryPeekNonWhitespace<CharacterToken>(out characterToken, out peeked)
-				&& characterToken.IsChar('('))
-			{
-				// TODO: incorrect identifier for identifierOrType exception if != snake case
-
-				// we don't advance because the parameter parsing stage expects an open parenthesis
-				source.Advance(peeked);
-
-				// now it's method body time
-				return ParameterParsingStage(source, new IdentifierToken("void", IdentifierCase.SnakeCase), identifierOrType, out item);
-			}
-			else if (source.TryPeekNonWhitespace<IdentifierToken>(out var identifierToken, out peeked))
-			{
-				// TODO: incorrect identifier for identifierToken exception if != snake case
-				source.Advance(peeked);
-
-				if (!(source.TryNextNonWhitespace<CharacterToken>(out characterToken)
-					&& characterToken.IsChar('(')))
-				{
-					// TODO: exception for no open parenthesis
-					item = default;
-					return false;
-				}
-
-				return ParameterParsingStage(source, identifierOrType, identifierToken, out item);
-			}
-
-			// TODO: exception - fields should've gone first so this *has* to be a method, or it's invalid
-			item = default;
-			return false;
+			Log.Warn($"Unable to parse method {stream.TopInfo}");
+			return 0;
 		}
 
-		private bool ParameterParsingStage(ReaderFork<Token> source, IdentifierToken type, IdentifierToken name, out Method item)
+		private int ParameterParsingStage(ref TokenStream stream, IdentifierToken? type, IdentifierToken name, ref Method method)
 		{
-			if (!_parameterPattern.TryParse(source, out var parameterGroup))
+			if (!stream.TryParse(_parameterPattern, out var parameterGroup))
 			{
-				// TODO: throw an exception, we couldn't've possibly've gotten this far without parsing something
-				item = default;
-				return false;
+				Log.Error($"Unable to parse method parameters, {stream.TopInfo}");
+				return 0;
 			}
 
-			if (!(source.TryNextNonWhitespace<CharacterToken>(out var characterToken)
-				&& characterToken.IsChar(')')))
+			if (!stream.NextChar(')'))
 			{
-				// TODO: throw exception, must have a closing parenthesis on a contract method
-				item = default;
-				return false;
+				Log.Error($"Expected closing parenthesis on parameter group, didn't get one {stream.TopInfo}");
+				return 0;
 			}
 
-			CodeBody? body = null;
+			var result = GetCodeBody(ref stream, out var body);
+			method = new Method(type, name, parameterGroup, body);
+			return result;
+		}
 
+		private int GetCodeBody(ref TokenStream stream, out CodeBody? body)
+		{
 			if (_codeBodyPattern == null)
 			{
-				if (!(source.TryNextNonPredicate(tkn => tkn is WhitespaceToken, out var tkn)
-					&& tkn.IsNewline()))
+				// contracts don't have bodies
+				body = null;
+
+				if (!stream.NextChar('\n'))
 				{
-					// TODO: throw exception
-					// you must have a newline to end contract method
-					item = default;
-					return false;
+					Log.Error($"You must have a newline to end a method in a contract {stream.TopInfo}");
+					return 0;
 				}
 			}
 			else
 			{
-				if (!_codeBodyPattern.TryParse(source, out var codeBody))
+				if (!stream.TryParse(_codeBodyPattern, out body))
 				{
-					// TODO: exception - expected a valid code body
-					item = default;
-					return false;
+					Log.Error($"Couldn't parse code body {stream.TopInfo}");
+					return 0;
 				}
-
-				body = codeBody;
 			}
 
-			item = new Method(type, name, parameterGroup, body);
-			_astNotificationReceiver.AstCreated(source, item);
-			return true;
+			return stream;
 		}
 	}
 }

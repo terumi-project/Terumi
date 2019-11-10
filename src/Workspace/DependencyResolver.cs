@@ -52,11 +52,9 @@ namespace Terumi.Workspace
 
 			return Resolve(reference.Projects, libraryPath);
 
-
-
 			static IEnumerable<Project> Resolve(string[] projectNames, string path)
 			{
-				foreach(var projectName in projectNames)
+				foreach (var projectName in projectNames)
 				{
 					if (!Project.TryLoad(path, projectName, out var project))
 					{

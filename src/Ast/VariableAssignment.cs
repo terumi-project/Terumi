@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Terumi.Binder;
+﻿using Terumi.Binder;
 
 namespace Terumi.Ast
 {
@@ -13,7 +10,7 @@ namespace Terumi.Ast
 			Value = value;
 		}
 
-		public InfoItem Type => Value.Type;
+		public IType Type => Value.Type;
 
 		public string VariableName { get; }
 		public ICodeExpression Value { get; }

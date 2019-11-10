@@ -1,7 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System.Numerics;
 
 using Terumi.SyntaxTree.Expressions;
-using Terumi.Tokens;
 
 namespace Terumi.Parser.Expressions
 {
@@ -10,11 +9,11 @@ namespace Terumi.Parser.Expressions
 		private readonly IPattern<MethodCall> _methodCallPattern;
 		private readonly IPattern<ReturnExpression> _returnPattern;
 		private readonly IPattern<AccessExpression> _accessPattern;
-		private readonly IPattern<NumericLiteralExpression> _numericPattern;
-		private readonly IPattern<StringLiteralExpression> _stringPattern;
+		private readonly IPattern<Terumi.Ast.ConstantLiteralExpression<BigInteger>> _numericPattern;
+		private readonly IPattern<Terumi.Ast.ConstantLiteralExpression<string>> _stringPattern;
 		private readonly IPattern<ThisExpression> _thisPattern;
 		private readonly IPattern<ReferenceExpression> _referencePattern;
-		private readonly IPattern<BooleanLiteralExpression> _booleanPattern;
+		private readonly IPattern<Terumi.Ast.ConstantLiteralExpression<bool>> _booleanPattern;
 		private readonly IPattern<VariableExpression> _variablePattern;
 
 		public ExpressionPattern
@@ -22,11 +21,11 @@ namespace Terumi.Parser.Expressions
 			IPattern<MethodCall> methodCallPattern,
 			IPattern<ReturnExpression> returnPattern,
 			IPattern<AccessExpression> accessPattern,
-			IPattern<NumericLiteralExpression> numericPattern,
-			IPattern<StringLiteralExpression> stringPattern,
+			IPattern<Terumi.Ast.ConstantLiteralExpression<BigInteger>> numericPattern,
+			IPattern<Terumi.Ast.ConstantLiteralExpression<string>> stringPattern,
 			IPattern<ThisExpression> thisPattern,
 			IPattern<ReferenceExpression> referencePattern,
-			IPattern<BooleanLiteralExpression> booleanPattern,
+			IPattern<Terumi.Ast.ConstantLiteralExpression<bool>> booleanPattern,
 			IPattern<VariableExpression> variablePattern
 		)
 		{
@@ -41,16 +40,39 @@ namespace Terumi.Parser.Expressions
 			_variablePattern = variablePattern;
 		}
 
-		public bool TryParse(ReaderFork<Token> source, out Expression item)
-			=> TryParse(source, _methodCallPattern, out item)
-			|| TryParse(source, _returnPattern, out item)
-			|| TryParse(source, _numericPattern, out item)
-			|| TryParse(source, _stringPattern, out item)
-			|| TryParse(source, _thisPattern, out item)
-			|| TryParse(source, _booleanPattern, out item)
-			|| TryParse(source, _variablePattern, out item)
-			|| TryParse(source, _referencePattern, out item)
-			;
+		public int TryParse(TokenStream stream, ref Expression item)
+		{
+			if (TryParse(ref stream, _methodCallPattern, ref item)
+			|| TryParse(ref stream, _returnPattern, ref item)
+			|| TryParse(ref stream, _numericPattern, ref item)
+			|| TryParse(ref stream, _stringPattern, ref item)
+			|| TryParse(ref stream, _thisPattern, ref item)
+			|| TryParse(ref stream, _booleanPattern, ref item)
+			|| TryParse(ref stream, _variablePattern, ref item)
+			|| TryParse(ref stream, _referencePattern, ref item))
+			{
+				return stream;
+			}
+
+			return 0;
+		}
+
+		private bool TryParse<TExpression>
+		(
+			ref TokenStream stream,
+			IPattern<TExpression> pattern,
+			ref Expression expression
+		)
+			where TExpression : Expression
+		{
+			if (stream.TryParse(pattern, out var tExpr))
+			{
+				expression = TryDeeperExpressionParse(ref stream, tExpr);
+				return true;
+			}
+
+			return false;
+		}
 
 		// || TryParse(source, _accessPattern, out item);
 
@@ -64,16 +86,14 @@ namespace Terumi.Parser.Expressions
 		//
 		// which will be elegant for figuring out
 		// stuff about type safety
-		private Expression TryDeeperExpressionParse
-		(
-			ReaderFork<Token> source,
-			Expression start
-		)
+		private Expression TryDeeperExpressionParse(ref TokenStream stream, Expression start)
 		{
 			var totalExpression = start;
 
-			foreach (var expression in ContinueParseDeeper(source))
+			while (stream.TryParse(_accessPattern, out var expr))
 			{
+				var expression = expr.Access;
+
 				totalExpression = new AccessExpression
 				{
 					// Access = expression
@@ -88,52 +108,6 @@ namespace Terumi.Parser.Expressions
 			}
 
 			return totalExpression;
-		}
-
-		private IEnumerable<Expression> ContinueParseDeeper(ReaderFork<Token> source)
-		{
-			while (TryParseToTExpression(source, _accessPattern, out var expr))
-			{
-				yield return expr.Access;
-			}
-		}
-
-		private bool TryParse<TExpresion>
-		(
-			ReaderFork<Token> source,
-			IPattern<TExpresion> pattern,
-			out Expression expression
-		)
-			where TExpresion : Expression
-		{
-			if (TryParseToTExpression(source, pattern, out var tExpr))
-			{
-				expression = TryDeeperExpressionParse(source, tExpr);
-				return true;
-			}
-
-			expression = default;
-			return false;
-		}
-
-		private static bool TryParseToTExpression<TExpression>
-		(
-			ReaderFork<Token> source,
-			IPattern<TExpression> pattern,
-			out TExpression expression
-		)
-			where TExpression : Expression
-		{
-			using var fork = source.Fork();
-
-			if (pattern.TryParse(fork, out expression))
-			{
-				fork.Commit = true;
-				return true;
-			}
-
-			expression = default;
-			return false;
 		}
 	}
 }

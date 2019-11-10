@@ -1,4 +1,6 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
+using System.Text;
 
 using Terumi.Tokens;
 
@@ -6,34 +8,38 @@ namespace Terumi.Lexer
 {
 	public class NumericPattern : IPattern
 	{
-		public bool TryParse(ReaderFork<byte> source, out Token token)
+		public int TryParse(Span<byte> source, LexerMetadata meta, ref IToken token)
 		{
-			var number = new BigInteger(0);
-			bool consumedNumber = false;
+			var end = 0;
 
-			while (source.TryPeek(out var value))
+			for (; end < source.Length; end++)
 			{
-				if (!(value >= '0' && value <= '9'))
+				var value = source[end];
+
+				if (
+					// if it starts with -
+					(end == 0 && value == '-')
+
+					// or the char goes from 0 to 9
+					|| (value >= '0' && value <= '9'))
 				{
-					break;
+					// it is valid
+					continue;
 				}
 
-				consumedNumber = true;
-
-				number *= 10;
-				number += (int)value - '0';
-
-				source.Advance(1);
+				// invalid char
+				break;
 			}
 
-			if (consumedNumber)
+			if (end == 0)
 			{
-				token = new NumericToken(number);
-				return true;
+				return 0;
 			}
 
-			token = default;
-			return false;
+			var number = BigInteger.Parse(Encoding.UTF8.GetString(source.Slice(0, end)));
+
+			token = new NumericToken(meta, number);
+			return end;
 		}
 	}
 }

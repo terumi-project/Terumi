@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+
+using Terumi.Tokens;
 
 namespace Terumi
 {
@@ -15,24 +15,51 @@ namespace Terumi
 			return newArray;
 		}
 
-		public static string ToNamespace(this string[] levels)
-			=> levels.Aggregate((a, b) => $"{a}.{b}");
-
-		public static bool TryFirst<T>(this IEnumerable<T> enumerable, out T item, Predicate<T> isItem)
+		/// <summary>
+		/// Increments 'read' by the result, but returns 'result' for comparing.
+		/// </summary>
+		public static int IncButCmp(this int result, ref int read)
 		{
-			using var enumerator = enumerable.GetEnumerator();
+			read += result;
+			return result;
+		}
 
-			while (enumerator.MoveNext())
+		public static int NextChar(this ReadOnlySpan<IToken> source, char character)
+		{
+			int read;
+			if (0 == (read = source.NextNoWhitespace<CharacterToken>(out var token))) return 0;
+			if (token.Character != character) return 0;
+
+			return read;
+		}
+
+		public static int NextNoWhitespace<T>(this ReadOnlySpan<IToken> source, out T token)
+			where T : IToken
+		{
+			var read = NextNoWhitespace(source, out var iToken);
+
+			if (iToken is T tToken)
 			{
-				if (isItem(enumerator.Current))
-				{
-					item = enumerator.Current;
-					return true;
-				}
+				token = tToken;
+				return read;
 			}
 
-			item = default;
-			return false;
+			token = default;
+			return 0;
+		}
+
+		public static int NextNoWhitespace(this ReadOnlySpan<IToken> source, out IToken token)
+		{
+			token = default;
+
+			for (var i = 0; i < source.Length; i++)
+			{
+				if (source[i].IsWhitespace()) continue;
+				token = source[i];
+				return i + 1;
+			}
+
+			return 0;
 		}
 	}
 }

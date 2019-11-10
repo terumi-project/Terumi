@@ -1,16 +1,17 @@
-﻿namespace Terumi.Tokens
+﻿using Terumi.Lexer;
+
+namespace Terumi.Tokens
 {
-	public class CharacterToken : Token
+	public class CharacterToken : IToken
 	{
-		public CharacterToken(char character, int position)
+		public CharacterToken(LexerMetadata meta, char character)
 		{
+			Start = meta;
 			Character = character;
-			Position = position;
 		}
 
+		public LexerMetadata Start { get; }
+		public LexerMetadata End { get; set; }
 		public char Character { get; }
-		public int Position { get; }
-
-		public override string ToString() => $"CharacterToken - '{Character}', @:{Position}";
 	}
 }

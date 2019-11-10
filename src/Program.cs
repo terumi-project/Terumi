@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,108 +17,74 @@ namespace Terumi
 		private static readonly StreamLexer _lexer = new StreamLexer(GetPatterns());
 		private static readonly StreamParser _parser = new StreamParser();
 
-		private static IEnumerable<IPattern> GetPatterns()
+		private static IPattern[] GetPatterns()
+			=> new IPattern[]
 		{
-			yield return new CharacterPattern('\n');
-			yield return new WhitespacePattern();
-			yield return new CommentPattern();
+			new CharacterPattern('\n'),
+			new WhitespacePattern(),
+			new CommentPattern(),
 
-			yield return new KeywordPattern(new KeyValuePair<string, Keyword>[]
+			new KeywordPattern(new KeyValuePair<string, Keyword>[]
 			{
-				KeyValuePair.Create("contract", Keyword.Contract),
-				KeyValuePair.Create("class", Keyword.Class),
-				KeyValuePair.Create("readonly", Keyword.Readonly),
-				KeyValuePair.Create("namespace", Keyword.Namespace),
-				KeyValuePair.Create("using", Keyword.Using),
-				KeyValuePair.Create("return", Keyword.Return),
 				KeyValuePair.Create("this", Keyword.This),
 				KeyValuePair.Create("true", Keyword.True),
+				KeyValuePair.Create("using", Keyword.Using),
 				KeyValuePair.Create("false", Keyword.False),
-			});
+				KeyValuePair.Create("class", Keyword.Class),
+				KeyValuePair.Create("return", Keyword.Return),
+				KeyValuePair.Create("contract", Keyword.Contract),
+				KeyValuePair.Create("readonly", Keyword.Readonly),
+				KeyValuePair.Create("namespace", Keyword.Namespace),
+			}),
 
-			yield return new CharacterPattern(';');
-			yield return new CharacterPattern('@');
+			new CharacterPattern(';', '@', '=', ',', '.', '(', ')', '[', ']', '{', '}', '+', '-', '/', '*'),
 
-			yield return new CharacterPattern('=');
-			yield return new CharacterPattern(',');
-			yield return new CharacterPattern('.');
+			new IdentifierPattern(IdentifierCase.SnakeCase),
+			new IdentifierPattern(IdentifierCase.PascalCase),
+			new NumericPattern(),
+			new StringPattern(),
+		};
 
-			yield return new CharacterPattern('(');
-			yield return new CharacterPattern(')');
-
-			yield return new CharacterPattern('[');
-			yield return new CharacterPattern(']');
-
-			yield return new CharacterPattern('{');
-			yield return new CharacterPattern('}');
-
-			yield return new CharacterPattern('+');
-			yield return new CharacterPattern('-');
-			yield return new CharacterPattern('/');
-			yield return new CharacterPattern('*');
-
-			yield return new IdentifierPattern(IdentifierCase.SnakeCase);
-			yield return new IdentifierPattern(IdentifierCase.PascalCase);
-			yield return new NumericPattern();
-			yield return new StringPattern();
-		}
-
-		public static bool Compile(string projectName)
+		public static bool Compile(string projectName, ICompilerMethods setupTarget)
 		{
-			Project project;
-
-			using (var _ = Log.Stage("SETUP", $"Loading project {projectName}"))
+			Log.Stage("SETUP", $"Loading project {projectName}");
+			if (!Project.TryLoad(Directory.GetCurrentDirectory(), projectName, out var project))
 			{
-				if (!Project.TryLoad(Directory.GetCurrentDirectory(), projectName, out project))
-				{
-					Log.Error("Unable to load project");
-					return false;
-				}
+				Log.Error("Unable to load project");
+				return false;
 			}
 
-			List<ParsedProjectFile> parsedFiles;
+			Log.Stage("PARSE", "Parsing project source code");
+			var parsedFiles = project.ParseProject(_lexer, _parser).ToList();
 
-			using (var _ = Log.Stage("PARSE", "Parsing project source code"))
+			Log.Stage("BINDING", "Binding parsed source files to in memory representations");
+
+			var binder = new BinderEnvironment(setupTarget, parsedFiles);
+			binder.PassOverTypeDeclarations();
+			binder.PassOverMethodBodies();
+
+			Log.Stage("WRITING", "Writing input code to target powershell file.");
+
+			// try/catching to delete files w/ IOException is a good practice
+			try { File.Delete("out.ps1"); } catch (IOException __) { }
+
+			// looks ugly but meh
+			using var fs = File.OpenWrite("out.ps1");
+			using var sw = new StreamWriter(fs);
+
+			// tabs <3
+			using var indentedWriter = new IndentedTextWriter(sw, "\t");
+
+			var target = setupTarget.MakeTarget(binder.TypeInformation); // new PowershellTarget(binder.TypeInformation);
+
+			foreach (var item in binder.TypeInformation.Binds)
 			{
-				parsedFiles = project.ParseProject(_lexer, _parser)
-					.ToList();
+				target.Write(indentedWriter, item);
 			}
 
-			BinderEnvironment binder;
+			target.Post(indentedWriter);
 
-			using (var _ = Log.Stage("BINDING", "Binding parsed source files to in memory representations"))
-			{
-				binder = new BinderEnvironment(parsedFiles);
-
-				binder.PassOverTypeDeclarations();
-				binder.PassOverMembers();
-				binder.PassOverMethodBodies();
-			}
-
-			using (var _ = Log.Stage("WRITING", "Writing input code to target powershell file."))
-			{
-				// try/catching to delete files w/ IOException is a good practice
-				try { File.Delete("out.ps1"); } catch (IOException __) { }
-
-				// looks ugly but meh
-				using var fs = File.OpenWrite("out.ps1");
-				using var sw = new StreamWriter(fs);
-
-				var target = new PowershellTarget(binder.TypeInformation);
-
-				foreach (var item in binder.TypeInformation.InfoItems)
-				{
-					if (item.IsCompilerDefined)
-					{
-						continue;
-					}
-
-					target.Write(sw, item);
-				}
-
-				target.Post(sw);
-			}
-
+			Log.StageEnd();
 			return true;
 		}
 
@@ -129,7 +95,7 @@ namespace Terumi
 		{
 #if DEBUG
 			Directory.SetCurrentDirectory("D:\\test");
-			Compile("sample_project");
+			Compile("sample_project", new PowershellMethods());
 #endif
 		}
 	}

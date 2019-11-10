@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
 
 using Terumi.Tokens;
 
@@ -15,44 +13,42 @@ namespace Terumi.Lexer
 		public StreamLexer(IEnumerable<IPattern> patterns)
 			=> _patterns = patterns.ToArray();
 
-		public IEnumerable<Token> ParseTokens(Stream source)
+		/// <param name="filename">Used purely as metadata.</param>
+		public IEnumerable<IToken> ParseTokens(Memory<byte> source, string filename)
 		{
-			using var reader = new BinaryReader(source, Encoding.UTF8, true);
-
-			var readerHead = new ReaderHead<byte>(reader.ReadBytes);
+			var meta = new LexerMetadata { Line = 1, Column = 1, File = filename };
 
 			while (true)
 			{
+			next: // jumped to after a successful yield <token>
+
 				// make sure there are items
-				using (var fork = readerHead.Fork())
+				if (source.Length == 0)
 				{
-					if (!fork.TryNext(out _))
-					{
-						// if there's nothing left, exit
-						break;
-					}
+					yield break;
 				}
 
-				var hasCommit = false;
-
+				IToken token = default;
 				foreach (var pattern in _patterns)
 				{
-					using var fork = readerHead.Fork();
+					var result = pattern.TryParse(source.Span, meta, ref token);
 
-					if (!pattern.TryParse(fork, out var token))
+					// trust that the pattern doesn't return anything less than 1 ever
+					if (result == 0)
 					{
 						continue;
 					}
 
-					hasCommit = fork.Commit = true;
+					meta = meta.FromConsumed(source.Slice(0, result).Span);
+					source = source.Slice(result);
+
+					token.End = meta;
+
 					yield return token;
-					break;
+					goto next; // goes to beginning of while loop
 				}
 
-				if (!hasCommit)
-				{
-					throw new Exception("Unrecognized sequence beginning at " + readerHead.Position);
-				}
+				throw new LexingException($"Unlexable character discovered: {source.Span[0]:X2} {meta}");
 			}
 		}
 	}

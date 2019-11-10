@@ -10,16 +10,19 @@ namespace Terumi.Workspace
 		(
 			string[] @namespace,
 			List<PackageLevel> usings,
-			List<TypeDefinition> typeDefinitions
+			List<TypeDefinition> typeDefinitions,
+			List<Method> methods
 		)
 		{
 			Namespace = @namespace;
 			Usings = usings;
 			TypeDefinitions = typeDefinitions;
+			Methods = methods;
 		}
 
 		public string[] Namespace { get; }
 		public List<PackageLevel> Usings { get; }
 		public List<TypeDefinition> TypeDefinitions { get; }
+		public List<Method> Methods { get; }
 	}
 }

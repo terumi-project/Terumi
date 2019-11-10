@@ -1,14 +1,12 @@
-﻿using System;
+﻿// use this while benchmarking
+// #define NO_LOG
+
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Terumi
 {
-	public struct DisposableLoggerEvent : IDisposable
-	{
-		public void Dispose() => Log.StageEnd();
-	}
-
 	// static logger makes code neater, but unit testing harder /shrug
 	// don't think we'll be testing anyways lol
 	public static class Log
@@ -46,15 +44,16 @@ namespace Terumi
 			message
 		);
 
-		public static DisposableLoggerEvent Stage(string stageName, string message)
+		public static void Stage(string stageName, string message)
 		{
+			if (_stageName != "STOP") StageEnd();
+
 			_stageName = stageName;
 			_stopwatch = null;
 
 			DisplayMessage(ConsoleColor.Cyan, "START", message);
 
 			_stopwatch = Stopwatch.StartNew();
-			return default;
 		}
 
 		public static void StageEnd()
@@ -65,8 +64,10 @@ namespace Terumi
 
 			_stageName = "NONE";
 		}
+
 		private static void DisplayMessage(ConsoleColor color, string characterized, string message)
 		{
+#if !NO_LOG
 			DisplayStage();
 
 			Console.ForegroundColor = ConsoleColor.DarkGray;
@@ -80,6 +81,7 @@ namespace Terumi
 
 			Console.ForegroundColor = ConsoleColor.White;
 			Console.WriteLine(message);
+#endif
 		}
 
 		private static void DisplayStage()

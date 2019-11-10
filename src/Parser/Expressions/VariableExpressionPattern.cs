@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Terumi.SyntaxTree;
+﻿using Terumi.SyntaxTree;
 using Terumi.SyntaxTree.Expressions;
 using Terumi.Tokens;
 
@@ -9,62 +6,36 @@ namespace Terumi.Parser.Expressions
 {
 	public class VariableExpressionPattern : IPattern<VariableExpression>
 	{
-		private readonly IAstNotificationReceiver _astNotificationReceiver;
 		private readonly IPattern<ParameterType> _parameterTypePattern;
 
-		public VariableExpressionPattern
-		(
-			IAstNotificationReceiver astNotificationReceiver,
-			IPattern<ParameterType> parameterTypePattern
-		)
-		{
-			_astNotificationReceiver = astNotificationReceiver;
-			_parameterTypePattern = parameterTypePattern;
-		}
+		public VariableExpressionPattern(IPattern<ParameterType> parameterTypePattern)
+			=> _parameterTypePattern = parameterTypePattern;
 
 		public IPattern<Expression> ExpressionPattern { get; set; }
 
-		public bool TryParse(ReaderFork<Token> source, out VariableExpression item)
+		public int TryParse(TokenStream stream, ref VariableExpression item)
 		{
-			using (var fork = source.Fork())
-			{
-				if (_parameterTypePattern.TryParse(fork, out var type))
-				{
-					fork.Commit = true;
-					return Parse(fork, type, out item);
-				}
-			}
-
-			return Parse(source, null, out item);
+			ParameterType type = default;
+			stream.TryParse(_parameterTypePattern, out type);
+			return Parse(ref stream, type, ref item);
 		}
 
-		private bool Parse(ReaderFork<Token> source, ParameterType type, out VariableExpression item)
+		private int Parse(ref TokenStream stream, ParameterType type, ref VariableExpression item)
 		{
-			if (!source.TryNextNonWhitespace<IdentifierToken>(out var identifier))
-			{
-				item = default;
-				return false;
-			}
-
-			if (!source.TryNextCharacter('='))
-			{
-				item = default;
-				return false;
-			}
+			if (!stream.NextNoWhitespace<IdentifierToken>(out var identifier)) return 0;
+			if (!stream.NextChar('=')) return 0;
 
 			// ok, now we've assigned a variable and we should be able to deduce what we want
 			// start throwing here
 
-			if (!ExpressionPattern.TryParse(source, out var value))
+			if (!stream.TryParse(ExpressionPattern, out var expression))
 			{
-				_astNotificationReceiver.Throw("Variable assignment didn't return value.");
-				item = default;
-				return false;
+				Log.Error($"Expected valid expression when parsing variable, but didn't get one {stream.TopInfo}");
+				return 0;
 			}
 
-			item = new VariableExpression(type, identifier, value);
-			_astNotificationReceiver.AstCreated(source, item);
-			return true;
+			item = new VariableExpression(type, identifier, expression);
+			return stream;
 		}
 	}
 }

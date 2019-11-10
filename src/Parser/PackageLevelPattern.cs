@@ -1,93 +1,38 @@
 ﻿using System.Collections.Generic;
 
-using Terumi.SyntaxTree;
 using Terumi.Tokens;
 
 namespace Terumi.Parser
 {
 	public class PackageLevelPattern : IPattern<PackageLevel>
 	{
-		private readonly IAstNotificationReceiver _astNotificationReceiver;
-
-		public PackageLevelPattern(IAstNotificationReceiver astNotificationReceiver)
+		public int TryParse(TokenStream stream, ref PackageLevel item)
 		{
-			_astNotificationReceiver = astNotificationReceiver;
-		}
+			if (!stream.NextNoWhitespace<IdentifierToken>(out var identifier)) return 0;
 
-		public bool TryParse(ReaderFork<Token> source, out PackageLevel item)
-		{
-			if (!source.TryNextNonWhitespace<KeywordToken>(out var keywordToken))
+			if (identifier.IdentifierCase != IdentifierCase.SnakeCase)
 			{
-				item = default;
-				return false;
+				Log.Error($"Namespace levels must be in snake_case {stream.TopInfo}");
+				return 0;
 			}
 
-			if (keywordToken.Keyword == Keyword.Using)
+			var levels = new List<string> { identifier };
+
+			while (stream.NextChar('.'))
 			{
-				if (!TryParseLevels(source, out var levels))
-				{
-					// TODO: exception - expected namespace levels
-					item = default;
-					return false;
-				}
-
-				item = new PackageLevel(PackageAction.Using, levels.ToArray());
-				_astNotificationReceiver.AstCreated(source, item);
-				return true;
-			}
-			else if (keywordToken.Keyword == Keyword.Namespace)
-			{
-				if (!TryParseLevels(source, out var levels))
-				{
-					// TODO: exception - expected namespace levels
-					item = default;
-					return false;
-				}
-
-				item = new PackageLevel(PackageAction.Namespace, levels.ToArray());
-				_astNotificationReceiver.AstCreated(source, item);
-				return true;
-			}
-
-			item = default;
-			return false;
-		}
-
-		private bool TryParseLevels(ReaderFork<Token> source, out List<string> levels)
-		{
-			levels = new List<string>();
-
-			do
-			{
-				if (!source.TryNextNonWhitespace<IdentifierToken>(out var identifier))
-				{
-					// TODO: exception - expected identifier
-					return false;
-				}
+				if (!stream.NextNoWhitespace<IdentifierToken>(out identifier)) return 0;
 
 				if (identifier.IdentifierCase != IdentifierCase.SnakeCase)
 				{
-					// TODO: exception - namespaces must be in snakecase
-					return false;
+					Log.Error($"Namespace levels must be in snake_case {stream.TopInfo}");
+					return 0;
 				}
 
-				levels.Add(identifier.Identifier);
-			}
-			while (TryParseAccessLevel(source));
-
-			return true;
-		}
-
-		private bool TryParseAccessLevel(ReaderFork<Token> source)
-		{
-			if (!(source.TryPeekNonWhitespace<CharacterToken>(out var characterToken, out int peeked)
-				&& characterToken.Character == '.'))
-			{
-				return false;
+				levels.Add(identifier);
 			}
 
-			source.Advance(peeked);
-			return true;
+			item = new PackageLevel(levels);
+			return stream;
 		}
 	}
 }

@@ -37,38 +37,36 @@ namespace Terumi.Lexer
 			}
 		}
 
-		public bool TryParse(ReaderFork<byte> source, out Token token)
+		public int TryParse(Span<byte> source, LexerMetadata meta, ref IToken token)
 		{
-			Span<byte> buffer = stackalloc byte[_maxSize];
+			var i = 0;
 
-			int i = 0;
-
-			while (source.TryNext(out var value) && i < _maxSize)
+			for (; i < source.Length; i++)
 			{
-				buffer[i++] = value;
+				var sourceKeyword = source.Slice(0, i);
 
 				for (var patternIndex = 0; patternIndex < _keywords.Length; patternIndex++)
 				{
 					Span<byte> pattern = _patterns[patternIndex];
-					var keyword = _keywords[patternIndex];
 
 					if (pattern.Length != i)
 					{
 						continue;
 					}
 
-					if (!pattern.SequenceEqual(buffer.Slice(0, i)))
+					var keyword = _keywords[patternIndex];
+
+					if (!pattern.SequenceEqual(sourceKeyword))
 					{
 						continue;
 					}
 
-					token = new KeywordToken(keyword);
-					return true;
+					token = new KeywordToken(meta, keyword);
+					return i;
 				}
 			}
 
-			token = default;
-			return false;
+			return 0;
 		}
 	}
 }

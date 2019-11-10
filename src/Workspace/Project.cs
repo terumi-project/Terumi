@@ -81,7 +81,7 @@ namespace Terumi.Workspace
 
 		public IEnumerable<ProjectFile> GetSources()
 		{
-			foreach(var file in GetSourceFiles(ProjectPath))
+			foreach (var file in GetSourceFiles(ProjectPath))
 			{
 				var source = File.ReadAllText(file);
 

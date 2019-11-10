@@ -6,17 +6,15 @@ namespace Terumi.Ast
 {
 	public class MethodCallExpression : CodeStatement, ICodeExpression
 	{
-		public MethodCallExpression(ICodeExpression entity, InfoItem.Method callingMethod, IReadOnlyCollection<ICodeExpression> parameters)
+		public MethodCallExpression(IMethod callingMethod, List<ICodeExpression> parameters)
 		{
-			Entity = entity;
 			CallingMethod = callingMethod;
 			Parameters = parameters;
 		}
 
-		public ICodeExpression Entity { get; }
-		public InfoItem.Method CallingMethod { get; }
-		public IReadOnlyCollection<ICodeExpression> Parameters { get; }
+		public IMethod CallingMethod { get; }
+		public List<ICodeExpression> Parameters { get; }
 
-		public InfoItem Type => CallingMethod.ReturnType;
+		public IType Type => CallingMethod.ReturnType;
 	}
 }

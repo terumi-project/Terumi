@@ -1,14 +1,15 @@
-﻿namespace Terumi.Tokens
+﻿using Terumi.Lexer;
+
+namespace Terumi.Tokens
 {
-	public class WhitespaceToken : Token
+	public class WhitespaceToken : IToken
 	{
-		public WhitespaceToken(int start, int end)
+		public WhitespaceToken(LexerMetadata start)
 		{
 			Start = start;
-			End = end;
 		}
 
-		public int Start { get; }
-		public int End { get; }
+		public LexerMetadata Start { get; }
+		public LexerMetadata End { get; set; }
 	}
 }

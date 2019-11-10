@@ -4,11 +4,11 @@ namespace Terumi.Ast
 {
 	public class ThisExpression : ICodeExpression
 	{
-		public ThisExpression(InfoItem type)
+		public ThisExpression(IType type)
 		{
 			Type = type;
 		}
 
-		public InfoItem Type { get; }
+		public IType Type { get; }
 	}
 }

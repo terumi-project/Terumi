@@ -1,26 +1,16 @@
-﻿using Terumi.SyntaxTree.Expressions;
+﻿using Terumi.Ast;
 using Terumi.Tokens;
 
 namespace Terumi.Parser.Expressions
 {
-	public class StringLiteralExpressionPattern : IPattern<StringLiteralExpression>
+	public class ConstantLiteralExpressionStringPattern : IPattern<ConstantLiteralExpression<string>>
 	{
-		private readonly IAstNotificationReceiver _astNotificationReceiver;
-
-		public StringLiteralExpressionPattern(IAstNotificationReceiver astNotificationReceiver)
-			=> _astNotificationReceiver = astNotificationReceiver;
-
-		public bool TryParse(ReaderFork<Token> source, out StringLiteralExpression item)
+		public int TryParse(TokenStream stream, ref ConstantLiteralExpression<string> item)
 		{
-			if (!source.TryNextNonWhitespace<StringToken>(out var @string))
-			{
-				item = default;
-				return false;
-			}
+			if (!stream.NextNoWhitespace<StringToken>(out var @string)) return 0;
 
-			item = new StringLiteralExpression(@string.String);
-			_astNotificationReceiver.AstCreated(source, item);
-			return true;
+			item = new ConstantLiteralExpression<string>(@string.String);
+			return stream;
 		}
 	}
 }

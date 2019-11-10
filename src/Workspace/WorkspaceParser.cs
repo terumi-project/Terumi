@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+
 using Terumi.Lexer;
 using Terumi.Parser;
 using Terumi.SyntaxTree;
@@ -15,10 +17,9 @@ namespace Terumi.Workspace
 			{
 				// TODO: use string directly and rid all the code of reader head/fork stuff
 
-				using var ms = new MemoryStream(Encoding.UTF8.GetBytes(code.Source));
-				var tokens = lexer.ParseTokens(ms);
+				var tokens = lexer.ParseTokens(Encoding.UTF8.GetBytes(code.Source).AsMemory(), code.Path);
 
-				if (!parser.TryParse(tokens, out var compilerUnit))
+				if (!parser.TryParse(tokens.ToArray().AsMemory(), out var compilerUnit))
 				{
 					throw new WorkspaceParserException($"Unable to parse source code into compiler unit: in '{project.ProjectName}', at '{code.Path}'.");
 				}
@@ -33,23 +34,24 @@ namespace Terumi.Workspace
 
 			var usings = new List<PackageLevel>();
 			var typeDefinitions = new List<TypeDefinition>();
+			var methods = new List<Method>();
 
 			var parsedTypeDefinition = false;
 
-			for (var i = 0; i < compilerUnit.CompilerUnitItems.Length; i++)
+			for (var i = 0; i < compilerUnit.CompilerUnitItems.Count; i++)
 			{
 				var item = compilerUnit.CompilerUnitItems[i];
 
 				switch (item)
 				{
-					case PackageLevel packageLevel:
+					case PackageReference packageLevel:
 					{
 						// ensure only using/namespace at top
 						if (parsedTypeDefinition)
 						{
 							var error = $"A package statement other than 'using'/'namespace' has been parsed. " +
 	$"You may not specify any more package statements after a different kind of statement is parsed. " +
-	$"Error when using '{packageLevel.Levels.ToNamespace()}' at '{source.Path}'.";
+	$"Error when using '{packageLevel}' at '{source.Path}'.";
 
 							Log.Error(error);
 							break;
@@ -58,7 +60,7 @@ namespace Terumi.Workspace
 						// if it's a using, add it
 						if (packageLevel.Action == PackageAction.Using)
 						{
-							usings.Add(packageLevel);
+							usings.Add(packageLevel.Levels);
 							break;
 						}
 
@@ -66,7 +68,7 @@ namespace Terumi.Workspace
 						if (i != 0)
 						{
 							var error = $"The first item in the file must specify the namespace of the file. " +
-	$"The namespace of the file '{source.Path}' will remain as '{mainLevel.ToNamespace()}', and not '{packageLevel.Levels.ToNamespace()}'.";
+	$"The namespace of the file '{source.Path}' will remain as '{mainLevel}', and not '{packageLevel.Levels}'.";
 
 							Log.Error(error);
 							break;
@@ -83,6 +85,13 @@ namespace Terumi.Workspace
 						typeDefinitions.Add(typeDefinition);
 					}
 					break;
+
+					case Method method:
+					{
+						parsedTypeDefinition = true;
+						methods.Add(method);
+					}
+					break;
 				}
 			}
 
@@ -92,7 +101,8 @@ namespace Terumi.Workspace
 				@namespace: mainLevel,
 
 				usings: usings,
-				typeDefinitions: typeDefinitions
+				typeDefinitions: typeDefinitions,
+				methods: methods
 			);
 		}
 	}

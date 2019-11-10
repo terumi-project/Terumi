@@ -1,10 +1,12 @@
-﻿namespace Terumi.SyntaxTree.Expressions
+﻿using System.Collections.Generic;
+
+namespace Terumi.SyntaxTree.Expressions
 {
 	public class MethodCallParameterGroup
 	{
-		public MethodCallParameterGroup(Expression[] expressions)
+		public MethodCallParameterGroup(List<Expression> expressions)
 			=> Expressions = expressions;
 
-		public Expression[] Expressions { get; }
+		public List<Expression> Expressions { get; }
 	}
 }

@@ -2,21 +2,23 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using Terumi.Ast;
+using Terumi.Targets;
 using Terumi.Workspace;
 
 namespace Terumi.Binder
 {
 	public class BinderEnvironment
 	{
-		public TypeInformation TypeInformation { get; set; } = new TypeInformation();
+		public TypeInformation TypeInformation { get; set; }
 
-		private readonly IReadOnlyCollection<ParsedProjectFile> _sourceFiles;
+		private readonly List<ParsedProjectFile> _sourceFiles;
 
-		public BinderEnvironment
-		(
-			IReadOnlyCollection<ParsedProjectFile> sourceFiles
-		)
-			=> _sourceFiles = sourceFiles;
+		public BinderEnvironment(ICompilerMethods target, List<ParsedProjectFile> sourceFiles)
+		{
+			TypeInformation = new TypeInformation(target);
+			_sourceFiles = sourceFiles;
+		}
 
 		public void PassOverTypeDeclarations()
 		{
@@ -25,89 +27,87 @@ namespace Terumi.Binder
 
 			foreach (var file in _sourceFiles)
 			{
-				foreach (var item in file.TypeDefinitions)
+				foreach (var method in file.Methods)
 				{
-					var infoItem = new InfoItem
+					var bind = new MethodBind
 					{
-						IsCompilerDefined = false, // explicit for readability
 						Namespace = file.Namespace,
-						Name = item.Identifier,
-						NamespaceReferences = file.Usings.Select(x => (ICollection<string>)x.Levels).ToList(),
-						TerumiBacking = item
+						References = file.Usings,
+						Name = method.Identifier,
+
+						// ReturnType <handled below>
+						// Parameters <handled below>
+						TerumiBacking = method,
+						// Statements <handled at a later step>
 					};
 
-					if (!TypeInformation.TryGetItem(infoItem, item.Method.Type.Identifier, out var returnType))
+					bind.ReturnType = GetType(method, bind);
+					bind.Parameters = method.Parameters.Select(x => new ParameterBind
 					{
-						throw new Exception($"Couldn't find method return type '{item.Method.Type.Identifier}'");
-					}
-
-					infoItem.Code = new InfoItem.Method
-					{
-						Name = item.Identifier,
-						ReturnType = returnType,
-						Parameters = item.Method.Parameters.Parameters.Select(x => new InfoItem.Method.Parameter
-						{
-							Name = x.Name.Identifier,
-							Type = TypeInformation.TryGetItem(infoItem, x.Type.TypeName.Identifier, out var paramType)
+						Name = x.Name.Identifier,
+						Type = TypeInformation.TryGetType(bind, x.Type.TypeName, out var paramType)
 									? paramType
-									: throw new Exception($"Couldn't find paramter type '{x.Type.TypeName.Identifier}'")
-						}).ToList(),
-						TerumiBacking = item.Method
-					};
+									: throw new Exception($"Couldn't find paramter type '{x.Type.TypeName}'")
+					}).ToList();
 
 					// check if anything similar already exists
-					if (TypeInformation.InfoItems.Any(x => x.Name == infoItem.Name && x.Namespace.SequenceEqual(infoItem.Namespace)))
+					if (TypeInformation.Binds.Any(x => x.Name == bind.Name && x.Namespace.SequenceEqual(bind.Namespace)))
 					{
-						throw new Exception("Duplicate declaration: " + infoItem.Namespace.Aggregate((a, b) => $"{a}.{b}") + " '" + infoItem.Name + "'");
+						throw new Exception($"Duplicate declaration: {bind.Namespace} '{bind.Name}'");
 					}
 
-					TypeInformation.InfoItems.Add(infoItem);
+					TypeInformation.Binds.Add(bind);
 				}
 			}
 
 			// now, we ensure that every type we parsed can't reference 2+ of the same named type
 			// eg. if there was `Parser` in dep_a and `Parser` in dep_b, we wouldn't want anything to be using dep_a and using dep_b
 
-			foreach (var definition in TypeInformation.InfoItems)
+			foreach (var bind in TypeInformation.Binds)
 			{
-				var namespaces = new List<ICollection<string>>(definition.NamespaceReferences)
+				var namespaces = new List<PackageLevel>(bind.References)
 				{
-					definition.Namespace
+					bind.Namespace
 				};
 
-				if (TypeInformation.InfoItems.Where(x => namespaces.Contains(x.Namespace, SequenceEqualsEqualityComparer<string>.Instance))
-					.Count(x => x.Name == definition.Name) > 1)
+				if (TypeInformation.Binds.Where(x => namespaces.Contains(x.Namespace))
+					.Count(x => x.Name == bind.Name) > 1)
 				{
 					// so, in the main namespace OR in the namespaces references
 					// there are more than 1 definitions of the same name from within the references namespaces or the same namespace
-					throw new Exception($"Duplicate definition - the same name exists either within the namespace, or referenced namespaces: '{definition.Name}'.");
+					throw new Exception($"Duplicate definition - the same name exists either within the namespace, or referenced namespaces: '{bind.Name}'.");
 				}
 			}
 
 			// we're good :D
 		}
 
-		public void PassOverMembers()
+		private IType GetType(SyntaxTree.Method method, MethodBind bind)
 		{
-			// so now we want to pass over every field/method
-			// we want to consume in the type declarations of them
-			// we can also refer to all the types we declared in the previous step
+			if (method.Type == null)
+			{
+				return CompilerDefined.Void;
+			}
+			else if (TypeInformation.TryGetType(bind, method.Type, out var returnType))
+			{
+				return returnType;
+			}
+
+			throw new Exception($"Couldn't find method return type '{method.Type}'");
 		}
 
 		// now that we've passed over both the type declarations, method declarations,
 		// we can start to parse the method bodies themselves.
 		public void PassOverMethodBodies()
 		{
-			foreach (var infoItem in TypeInformation.InfoItems)
+			foreach (var bind in TypeInformation.Binds)
 			{
-				if (infoItem.IsCompilerDefined)
+				if (bind is MethodBind methodBind)
 				{
-					continue;
+					var examiner = new ExpressionBinder(TypeInformation);
+
+					examiner.Bind(methodBind);
 				}
-
-				var examiner = new ExpressionBinder(TypeInformation, infoItem);
-
-				examiner.Bind(infoItem.Code);
 			}
 		}
 	}

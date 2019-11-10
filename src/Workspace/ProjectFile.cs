@@ -2,7 +2,7 @@
 {
 	public class ProjectFile
 	{
-		public ProjectFile(string path, string source, string[] packageLevel)
+		public ProjectFile(string path, string source, PackageLevel packageLevel)
 		{
 			Path = path;
 			Source = source;
@@ -10,7 +10,7 @@
 		}
 
 		public string Source { get; }
-		public string[] PackageLevel { get; }
+		public PackageLevel PackageLevel { get; }
 		public string Path { get; }
 	}
 }

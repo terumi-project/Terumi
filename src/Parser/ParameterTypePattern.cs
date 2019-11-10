@@ -5,60 +5,26 @@ namespace Terumi.Parser
 {
 	public class ParameterTypePattern : IPattern<ParameterType>
 	{
-		private readonly IAstNotificationReceiver _astNotificationReceiver;
-
-		public ParameterTypePattern(IAstNotificationReceiver astNotificationReceiver)
+		public int TryParse(TokenStream stream, ref ParameterType item)
 		{
-			_astNotificationReceiver = astNotificationReceiver;
-		}
+			if (!stream.NextNoWhitespace<IdentifierToken>(out var identifier)) return 0;
 
-		public bool TryParse(ReaderFork<Token> source, out ParameterType item)
-		{
-			if (!source.TryNextNonWhitespace<IdentifierToken>(out var identifier)
-				) // || identifier.IdentifierCase != IdentifierCase.PascalCase)
-				  // we don't want to specifically test for PascalCase because SnakeCase counts as type (number, string, etc)
-			{
-				item = default;
-				return false;
-			}
+			var hasBrackets = stream.Parse(HasBrackets);
+			item = new ParameterType(identifier, hasBrackets);
 
-			if (HasBrackets(source))
-			{
-				item = new ParameterType(identifier, true);
-			}
-			else
-			{
-				item = new ParameterType(identifier, false);
-			}
-
-			while (HasBrackets(source))
+			while (stream.Parse(HasBrackets))
 			{
 				item = new ParameterType(item, true);
 			}
 
-			_astNotificationReceiver.AstCreated(source, item);
-
-			return true;
+			return stream;
 		}
 
-		private static bool HasBrackets(ReaderFork<Token> source)
+		private static int HasBrackets(TokenStream stream)
 		{
-			if (source.TryPeekNonWhitespace<CharacterToken>(out var openBracket, out var peeked)
-				&& openBracket.Character == '[')
-			{
-				source.Advance(peeked);
-
-				if (!source.TryNextNonWhitespace<CharacterToken>(out var closeBracket)
-					|| closeBracket.Character != ']')
-				{
-					// TODO: throw exception, expecting close bracket (or commas)
-					return false;
-				}
-
-				return true;
-			}
-
-			return false;
+			if (stream.NextChar('[')) return 0;
+			if (stream.NextChar(']')) return 0;
+			return stream;
 		}
 	}
 }

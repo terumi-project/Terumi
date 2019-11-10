@@ -1,17 +1,10 @@
-﻿using System;
-
-namespace Terumi.SyntaxTree
+﻿namespace Terumi.SyntaxTree
 {
 	public class TypeDefinition : CompilerUnitItem
 	{
-		public TypeDefinition(string identifier, Method method)
-		{
-			Identifier = identifier;
-			Method = method;
-		}
+		public TypeDefinition(string identifier)
+			=> Identifier = identifier;
 
 		public string Identifier { get; }
-
-		public Method Method { get; }
 	}
 }

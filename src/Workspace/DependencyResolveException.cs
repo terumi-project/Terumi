@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Runtime.Serialization;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace Terumi.Workspace
 {
-
 	[Serializable]
 	public class DependencyResolveException : Exception
 	{

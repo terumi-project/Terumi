@@ -2,54 +2,44 @@
 using System.Collections.Generic;
 
 using Terumi.SyntaxTree.Expressions;
-using Terumi.Tokens;
 
 namespace Terumi.Parser.Expressions
 {
 	public class MethodCallParameterGroupPattern : IPattern<MethodCallParameterGroup>
 	{
-		private readonly IAstNotificationReceiver _astNotificationReceiver;
-
-		public MethodCallParameterGroupPattern(IAstNotificationReceiver astNotificationReceiver)
-			=> _astNotificationReceiver = astNotificationReceiver;
-
 		public IPattern<Expression> ExpressionPattern { get; set; }
 
-		public bool TryParse(ReaderFork<Token> source, out MethodCallParameterGroup item)
+		public int TryParse(TokenStream stream, ref MethodCallParameterGroup item)
 		{
 			if (ExpressionPattern == null)
 			{
-				throw new Exception("Must set ExpressionPattern.");
+				throw new Exception("Must set ExpressionPattern");
 			}
 
-			var expressions = new List<Expression>();
-			bool couldParse;
-
-			do
+			if (!stream.TryParse(ExpressionPattern, out var expression))
 			{
-				using var fork = source.Fork();
-
-				couldParse = ExpressionPattern.TryParse(fork, out var expression);
-
-				if (couldParse)
-				{
-					fork.Commit = true;
-
-					expressions.Add(expression);
-
-					if (!fork.TryPeekCharacter(',', out var peeked))
-					{
-						break;
-					}
-
-					fork.Advance(peeked);
-				}
+				item = new MethodCallParameterGroup(EmptyList<Expression>.Instance);
+				return stream;
 			}
-			while (couldParse);
 
-			item = new MethodCallParameterGroup(expressions.ToArray());
-			_astNotificationReceiver.AstCreated(source, item);
-			return true;
+			var expressions = new List<Expression>(1)
+			{
+				expression
+			};
+
+			while (stream.NextChar(','))
+			{
+				if (!stream.TryParse(ExpressionPattern, out expression))
+				{
+					Log.Error($"Expected to be able to parse another expression, but failed {stream.Top.Start}");
+					return 0;
+				}
+
+				expressions.Add(expression);
+			}
+
+			item = new MethodCallParameterGroup(expressions);
+			return stream;
 		}
 	}
 }

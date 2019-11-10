@@ -1,83 +1,61 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+
+using Terumi.Ast;
+using Terumi.Targets;
 
 namespace Terumi.Binder
 {
 	public class TypeInformation
 	{
-		public static InfoItem Void { get; } = new InfoItem
+		private readonly ICompilerMethods _target;
+
+		public TypeInformation(ICompilerMethods target) => _target = target;
+
+		public List<IBind> Binds { get; set; } = new List<IBind>();
+
+		public IEnumerable<IType> AllReferenceableTypes(IBind mainBind)
+			=> AllReferenceableBinds(mainBind).OfType<IType>();
+
+		public IEnumerable<IMethod> AllReferenceableMethods(IBind mainBind)
+			=> AllReferenceableBinds(mainBind).OfType<IMethod>();
+
+		public IEnumerable<IBind> AllReferenceableBinds(IBind mainBind)
 		{
-			IsCompilerDefined = true,
-			Name = "void"
-		};
-
-		public static InfoItem String { get; } = new InfoItem
-		{
-			IsCompilerDefined = true,
-			Name = "string"
-		};
-
-		public static InfoItem Number { get; } = new InfoItem
-		{
-			IsCompilerDefined = true,
-			Name = "number"
-		};
-
-		public static InfoItem Boolean { get; } = new InfoItem
-		{
-			IsCompilerDefined = true,
-			Name = "bool"
-		};
-
-		public TypeInformation()
-		{
-			// add built in types
-			InfoItems.Add(Void);
-			InfoItems.Add(String);
-			InfoItems.Add(Number);
-			InfoItems.Add(Boolean);
-		}
-
-		public ICollection<InfoItem> InfoItems { get; set; } = new List<InfoItem>();
-
-		public IEnumerable<InfoItem> AllReferenceableTypes(InfoItem mainType)
-		{
-			var namespaces = new List<ICollection<string>>(mainType.NamespaceReferences);
-			namespaces.Add(mainType.Namespace);
-
-			foreach (var item in InfoItems)
+			var namespaces = new List<PackageLevel>(mainBind.References)
 			{
-				if (item.IsCompilerDefined)
-				{
-					yield return item;
-				}
+				mainBind.Namespace
+			};
 
-				if (!namespaces.Contains(item.Namespace, SequenceEqualsEqualityComparer<string>.Instance))
-				{
-					continue;
-				}
-
-				/*
-				TODO: figure out why this was put here
-				// if the type is itself, skip it
-				if (item.Equals(mainType))
+			foreach (var bind in Binds)
+			{
+				if (!namespaces.Contains(bind.Namespace))
 				{
 					continue;
 				}
-				*/
 
-				yield return item;
+				yield return bind;
+			}
+
+			yield return CompilerDefined.Void;
+			yield return CompilerDefined.String;
+			yield return CompilerDefined.Number;
+			yield return CompilerDefined.Boolean;
+
+			foreach (var method in CompilerDefined.CompilerFunctions(_target))
+			{
+				yield return method;
 			}
 		}
 
-		public bool TryGetItem(InfoItem mainType, string typeName, out InfoItem type)
+		public bool TryGetType(IBind bind, string typeName, out IType type)
 		{
-			foreach (var item in AllReferenceableTypes(mainType))
+			foreach (var item in AllReferenceableTypes(bind))
 			{
-				if (item.Name == typeName)
+				if (item is IType tType
+					&& item.Name == typeName)
 				{
-					type = item;
+					type = tType;
 					return true;
 				}
 			}

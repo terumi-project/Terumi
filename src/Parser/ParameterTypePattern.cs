@@ -7,7 +7,7 @@ namespace Terumi.Parser
 	{
 		public int TryParse(TokenStream stream, ref ParameterType item)
 		{
-			if (stream.NextNoWhitespace<IdentifierToken>(out var identifier)) return 0;
+			if (!stream.NextNoWhitespace<IdentifierToken>(out var identifier)) return 0;
 
 			var hasBrackets = stream.Parse(HasBrackets);
 			item = new ParameterType(identifier, hasBrackets);

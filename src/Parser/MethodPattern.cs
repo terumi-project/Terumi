@@ -107,6 +107,9 @@ namespace Terumi.Parser
 			}
 
 			item = new Method(type, name, parameterGroup, body);
+
+			Log.Debug($"Parsed method {item}");
+
 			_astNotificationReceiver.AstCreated(source, item);
 			return true;
 		}

@@ -18,10 +18,11 @@ namespace Terumi.Parser
 			item = default;
 
 			var parsed = TryParse(source.Memory.Span, ref item);
+
 			if (parsed == 0) return false;
+			if (parsed < 0) return true;
 
 			source.Advance(parsed);
-
 			return true;
 		}
 	}

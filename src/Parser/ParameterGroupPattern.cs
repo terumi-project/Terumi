@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 using Terumi.SyntaxTree;
 using Terumi.Tokens;
@@ -20,7 +19,7 @@ namespace Terumi.Parser
 			if (!ParameterType(ref stream, out var parameterType)) return ParserConstants.ParseNothingButSuccess;
 			if (!IdentifierToken(ref stream, out var parameterName))
 			{
-				Log.Error($"Expected identifier while parsing parameter group, but didn't receive one at {stream.Top.Start} Ends at {stream.Top.End}");
+				Log.Error($"Expected identifier while parsing parameter group, {But(stream.Top)}");
 				return 0;
 			}
 
@@ -31,15 +30,13 @@ namespace Terumi.Parser
 			{
 				if (!ParameterType(ref stream, out parameterType))
 				{
-					var top = stream.Top;
-					Log.Error($"Expected another parameter type while parsing parameter group, but didn't receive one at {top.Start} Ends at {top.End}");
+					Log.Error($"Expected another parameter type while parsing parameter group, {But(stream.Top)}");
 					return 0;
 				}
 
 				if (!IdentifierToken(ref stream, out parameterName))
 				{
-					var top = stream.Top;
-					Log.Error($"Expected another identifier while parsing parameter group, but didn't receive one at {top.Start} Ends at {top.End}");
+					Log.Error($"Expected another identifier while parsing parameter group, {But(stream.Top)}");
 					return 0;
 				}
 
@@ -59,6 +56,8 @@ namespace Terumi.Parser
 
 			static bool IdentifierToken(ref TokenStream stream, out IdentifierToken identifierToken)
 				=> stream.NextNoWhitespace<IdentifierToken>(out identifierToken);
+
+			static string But(IToken top) => $"but didn't receive one at {top.Start} Ends at {top.End}";
 		}
 
 		private static bool HasMoreParameters(ref TokenStream stream) => stream.NextChar(',');

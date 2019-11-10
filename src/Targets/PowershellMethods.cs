@@ -32,7 +32,7 @@ namespace Terumi.Targets
 
 		public void Write(IndentedTextWriter writer, IBind bind)
 		{
-			switch(bind)
+			switch (bind)
 			{
 				case UserType userType: WriteUserType(writer, userType); return;
 				case MethodBind methodBind: WriteMethodBind(writer, methodBind); return;
@@ -69,84 +69,32 @@ namespace Terumi.Targets
 		}
 
 		private void WriteMethodStatement(IndentedTextWriter writer, CodeStatement statement)
-		{
-			switch (statement)
+			=> writer.WriteLine(HandleExpression(statement as ICodeExpression));
+
+		private string HandleExpression(ICodeExpression codeExpression)
+			=> codeExpression switch
 			{
-				case MethodCallExpression methodCallExpression:
-				{
-					
-				}
-				break;
-			}
-		}
+				MethodCallExpression methodCallExpression => HandleMethodCallExpression(methodCallExpression),
+				ConstantLiteralExpression<string> constantLiteralExpressionString => HandleConstantLiteralExpressionString(constantLiteralExpressionString),
+				ConstantLiteralExpression<BigInteger> constantLiteralExpressionNumber => HandleConstantLiteralExpressionNumber(constantLiteralExpressionNumber),
+				ConstantLiteralExpression<bool> constantLiteralExpressionBoolean => HandleConstantLiteralExpressionBoolean(constantLiteralExpressionBoolean),
+				ParameterReferenceExpression parameterReferenceExpression => HandleParameterReferenceExpression(parameterReferenceExpression),
+				VariableReferenceExpression variableReferenceExpression => HandleVariableReferenceExpression(variableReferenceExpression),
+				VariableAssignment variableAssignment => HandleVariableAssignment(variableAssignment)
+				_ => throw new NotSupportedException(codeExpression.ToString())
+			};
+		private string HandleVariableAssignment(VariableAssignment variableAssignment) => throw new NotImplementedException();
+		private string HandleVariableReferenceExpression(VariableReferenceExpression variableReferenceExpression) => throw new NotImplementedException();
+		private string HandleParameterReferenceExpression(ParameterReferenceExpression parameterReferenceExpression) => throw new NotImplementedException();
+		private string HandleConstantLiteralExpressionBoolean(ConstantLiteralExpression<bool> constantLiteralExpressionBoolean) => throw new NotImplementedException();
+		private string HandleConstantLiteralExpressionNumber(ConstantLiteralExpression<BigInteger> constantLiteralExpressionNumber) => throw new NotImplementedException();
+		private string HandleConstantLiteralExpressionString(ConstantLiteralExpression<string> constantLiteralExpressionString) => throw new NotImplementedException();
+		private string HandleMethodCallExpression(MethodCallExpression methodCallExpression) => throw new NotImplementedException();
 	}
 
 	/*
 	public class PowershellTarget : IPowershellTarget
 	{
-		private void HandleStatement(TextWriter writer, CodeStatement statement)
-		{
-			switch (statement)
-			{
-				case MethodCallExpression methodCallExpression:
-				{
-					if (TryHandleInlineExpression(methodCallExpression, out var result))
-					{
-						writer.WriteLine($"\t{result}");
-						return;
-					}
-
-					HandleExpression(writer, 0, methodCallExpression);
-				}
-				break;
-
-				case ReturnStatement returnStatement:
-				{
-					if (TryHandleInlineExpression(returnStatement.ReturnOn, out var result))
-					{
-						writer.WriteLine($"\treturn {result}");
-						return;
-					}
-
-					HandleExpression(writer, 0, returnStatement.ReturnOn);
-					writer.WriteLine($"\treturn $0");
-				}
-				break;
-
-				case AssignmentStatement assignmentStatement:
-				{
-					if (!TryHandleInlineExpression(assignmentStatement.VariableAssignment, out var result))
-					{
-						throw new Exception("Impossible for inline to not handle variable assignment");
-					}
-
-					writer.WriteLine($"\t{result}");
-				}
-				break;
-
-				default: throw new Exception("Unhandled statement " + statement);
-			}
-		}
-
-		private void HandleExpression(TextWriter writer, int resultVar, ICodeExpression expression)
-		{
-			int parameterVarCount = 0;
-			int parameterVar = resultVar + 1;
-
-			if (TryHandleInlineExpression(expression, out var result))
-			{
-				writer.WriteLine($"\t${resultVar} = {result}");
-				return;
-			}
-
-			// anything an inline can't do, we do
-
-			switch (expression)
-			{
-				default: throw new Exception("Unhandled expression: " + expression);
-			}
-		}
-
 		private bool TryHandleInlineExpression(ICodeExpression expression, out string result)
 		{
 			switch (expression)

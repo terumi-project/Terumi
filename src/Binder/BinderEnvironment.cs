@@ -35,7 +35,13 @@ namespace Terumi.Binder
 						TerumiBacking = method,
 					};
 
-					if (!TypeInformation.TryGetType(bind, method.Type, out var returnType))
+					InfoItem returnType;
+
+					if (method.Type == null)
+					{
+						returnType = TypeInformation.Void;
+					}
+					else if (!TypeInformation.TryGetType(bind, method.Type, out returnType))
 					{
 						throw new Exception($"Couldn't find method return type '{method.Type}'");
 					}

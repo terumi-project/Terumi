@@ -36,7 +36,11 @@ namespace Terumi
 
 			var read = tryParse.TryParse(Child(), ref token);
 
-			_read += read;
+			if (read > 0)
+			{
+				_read += read;
+			}
+
 			return read != 0;
 		}
 

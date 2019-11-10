@@ -99,7 +99,8 @@ namespace Terumi.Parser
 
 		public bool TryParse(Memory<IToken> tokens, out CompilerUnit compilerUnit)
 		{
-			return _compilerUnit.TryParse(new ReaderFork<IToken>(0, tokens, null), out compilerUnit);
+			compilerUnit = default;
+			return 0 != _compilerUnit.TryParse(new TokenStream(tokens.Span), ref compilerUnit);
 		}
 	}
 }

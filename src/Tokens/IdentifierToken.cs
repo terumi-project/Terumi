@@ -25,6 +25,6 @@ namespace Terumi.Tokens
 
 		public override string ToString() => $"IdentifierToken - \"{Identifier}\", in {IdentifierCase}";
 
-		public static implicit operator string(IdentifierToken token) => token.Identifier;
+		public static implicit operator string(IdentifierToken token) => token?.Identifier;
 	}
 }

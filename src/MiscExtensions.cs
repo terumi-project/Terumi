@@ -21,7 +21,7 @@ namespace Terumi
 		public static int IncButCmp(this int result, ref int read)
 		{
 			read += result;
-			return read;
+			return result;
 		}
 
 		public static int NextChar(this ReadOnlySpan<IToken> source, char character)

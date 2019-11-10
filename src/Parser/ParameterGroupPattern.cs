@@ -16,7 +16,7 @@ namespace Terumi.Parser
 		{
 			item = ParameterGroup.NoParameters;
 
-			if (!ParameterType(ref stream, out var parameterType)) return ParserConstants.ParseNothingButSuccess;
+			if (!ParameterType(ref stream, out var parameterType)) return stream;
 			if (!IdentifierToken(ref stream, out var parameterName))
 			{
 				Log.Error($"Expected identifier while parsing parameter group, {But(stream.Top)}");

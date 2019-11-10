@@ -35,16 +35,16 @@ namespace Terumi.Parser
 			_parameterGroupPattern = new ParameterGroupPattern(_parameterTypePattern);
 
 			// expressions oh no
-			_methodCallParameterGroupPattern = new MethodCallParameterGroupPattern(this);
-			_methodCallPattern = new MethodCallPattern(this, _methodCallParameterGroupPattern);
-			_returnPattern = new ReturnExpressionPattern(this);
-			_accessPattern = new AccessExpressionPattern(this);
+			_methodCallParameterGroupPattern = new MethodCallParameterGroupPattern();
+			_methodCallPattern = new MethodCallPattern(_methodCallParameterGroupPattern);
+			_returnPattern = new ReturnExpressionPattern();
+			_accessPattern = new AccessExpressionPattern();
 			_numericPattern = new ConstantLiteralExpressionBigIntegerPattern();
 			_stringPattern = new ConstantLiteralExpressionStringPattern();
 			_thisPattern = new ThisExpressionPattern();
-			_referencePattern = new ReferenceExpressionPattern(this);
+			_referencePattern = new ReferenceExpressionPattern();
 			_booleanPattern = new ConstantLiteralExpressionBooleanPattern();
-			_variablePattern = new VariableExpressionPattern(this, _parameterTypePattern);
+			_variablePattern = new VariableExpressionPattern(_parameterTypePattern);
 
 			_expressionPattern = new ExpressionPattern
 			(

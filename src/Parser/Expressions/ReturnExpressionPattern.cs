@@ -5,42 +5,23 @@ using Terumi.Tokens;
 
 namespace Terumi.Parser.Expressions
 {
-	public class ReturnExpressionPattern : IPattern<ReturnExpression>
+	public class ReturnExpressionPattern : INewPattern<ReturnExpression>
 	{
-		private readonly IAstNotificationReceiver _astNotificationReceiver;
+		public INewPattern<Expression> ExpressionPattern { get; set; }
 
-		public ReturnExpressionPattern(IAstNotificationReceiver astNotificationReceiver)
-			=> _astNotificationReceiver = astNotificationReceiver;
-
-		public IPattern<Expression> ExpressionPattern { get; set; }
-
-		public bool TryParse(ReaderFork<IToken> source, out ReturnExpression item)
+		public int TryParse(TokenStream stream, ref ReturnExpression item)
 		{
-			if (ExpressionPattern == null)
+			if (ExpressionPattern == null) throw new Exception("Must set ExpressionPattern.");
+			if (!stream.NextKeyword(Keyword.Return)) return 0;
+
+			if (!stream.TryParse(ExpressionPattern, out var expression))
 			{
-				throw new Exception("Must set ExpressionPattern.");
+				Log.Error($"Expected an expression to return on, but couldn't parse an expression {stream.TopInfo}");
+				return 0;
 			}
 
-			// if wwe don't have the return keyword this isn't a return expression
-			if (!(source.TryNextNonWhitespace<KeywordToken>(out var keywordToken)
-				&& keywordToken.Keyword == Keyword.Return))
-			{
-				item = default;
-				return false;
-			}
-
-			if (!ExpressionPattern.TryParse(source, out var expression))
-			{
-				// TODO: exception - expected expression, didn't get one.
-				_astNotificationReceiver.Throw("return expression - expected expression, didn't find one.");
-				item = default;
-				return false;
-			}
-
-			var returnExpression = new ReturnExpression(expression);
-			_astNotificationReceiver.AstCreated(source, returnExpression);
-			item = returnExpression;
-			return true;
+			item = new ReturnExpression(expression);
+			return stream;
 		}
 	}
 }

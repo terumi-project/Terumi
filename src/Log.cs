@@ -1,4 +1,7 @@
-﻿using System;
+﻿// use this while benchmarking
+// #define NO_LOG
+
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -64,6 +67,7 @@ namespace Terumi
 
 		private static void DisplayMessage(ConsoleColor color, string characterized, string message)
 		{
+#if !NO_LOG
 			DisplayStage();
 
 			Console.ForegroundColor = ConsoleColor.DarkGray;
@@ -77,6 +81,7 @@ namespace Terumi
 
 			Console.ForegroundColor = ConsoleColor.White;
 			Console.WriteLine(message);
+#endif
 		}
 
 		private static void DisplayStage()

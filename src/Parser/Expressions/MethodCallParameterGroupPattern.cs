@@ -18,7 +18,7 @@ namespace Terumi.Parser.Expressions
 
 			if (!stream.TryParse(ExpressionPattern, out var expression))
 			{
-				item = new MethodCallParameterGroup(Array.Empty<Expression>());
+				item = new MethodCallParameterGroup(EmptyList<Expression>.Instance);
 				return stream;
 			}
 

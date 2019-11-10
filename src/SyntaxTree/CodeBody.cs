@@ -6,8 +6,8 @@ namespace Terumi.SyntaxTree
 	public class CodeBody
 	{
 		public CodeBody(List<Expression> expressions)
-			=> Expressions = expressions.ToArray();
+			=> Expressions = expressions;
 
-		public Expression[] Expressions { get; }
+		public List<Expression> Expressions { get; }
 	}
 }

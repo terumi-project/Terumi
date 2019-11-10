@@ -38,7 +38,7 @@ namespace Terumi.Workspace
 
 			var parsedTypeDefinition = false;
 
-			for (var i = 0; i < compilerUnit.CompilerUnitItems.Length; i++)
+			for (var i = 0; i < compilerUnit.CompilerUnitItems.Count; i++)
 			{
 				var item = compilerUnit.CompilerUnitItems[i];
 

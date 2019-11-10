@@ -1,6 +1,6 @@
 ﻿namespace Terumi.SyntaxTree.Expressions
 {
-	public class Expression
+	public abstract class Expression
 	{
 	}
 }

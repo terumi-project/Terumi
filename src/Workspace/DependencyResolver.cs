@@ -32,7 +32,7 @@ namespace Terumi.Workspace
 		{
 			if (reference.Path != null)
 			{
-				if (File.Exists(reference.Path))
+				if (Directory.Exists(reference.Path))
 				{
 					return Resolve(reference.Projects, reference.Path);
 				}

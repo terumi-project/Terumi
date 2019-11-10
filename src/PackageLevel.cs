@@ -61,7 +61,7 @@ namespace Terumi
 			{
 				strb.Append(Levels.Span[i]);
 
-				if (i < Levels.Length + 1)
+				if (i < Levels.Length - 1)
 				{
 					strb.Append('.');
 				}

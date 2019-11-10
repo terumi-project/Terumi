@@ -94,6 +94,11 @@ namespace Terumi.Workspace
 					// now we should have something like 'terumi_sdk/json/reader.trm'
 					.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
 
+					// ensure no empty ones
+					// e.g. if we substring /a/b/c/proj to /c/proj we will end up having "" "c" "proj"
+					.Where(x => !string.IsNullOrEmpty(x))
+					.ToArray()
+
 					// get rid of 'reader.trm'
 					.ExcludeLast();
 

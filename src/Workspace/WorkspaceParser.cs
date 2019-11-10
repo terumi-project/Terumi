@@ -11,7 +11,14 @@ namespace Terumi.Workspace
 {
 	public static class WorkspaceParser
 	{
-		public static IEnumerable<ParsedProjectFile> ParseProject(this Project project, StreamLexer lexer, StreamParser parser)
+		// we resolve dependencies only in DEBUG
+		// because i have some pretty wacky dependency plans
+
+		public static IEnumerable<ParsedProjectFile> ParseProject(this Project project, StreamLexer lexer, StreamParser parser
+#if DEBUG
+		, DependencyResolver resolver
+#endif
+		)
 		{
 			foreach (var code in project.GetSources())
 			{
@@ -26,6 +33,16 @@ namespace Terumi.Workspace
 
 				yield return code.Analyze(compilerUnit);
 			}
+
+#if DEBUG
+			foreach (var dependency in project.ResolveDependencies(resolver))
+			{
+				foreach (var file in dependency.ParseProject(lexer, parser, resolver))
+				{
+					yield return file;
+				}
+			}
+#endif
 		}
 
 		public static ParsedProjectFile Analyze(this ProjectFile source, CompilerUnit compilerUnit)

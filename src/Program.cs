@@ -48,6 +48,8 @@ namespace Terumi
 
 		public static bool Compile(string projectName, ICompilerMethods setupTarget)
 		{
+			var resolver = new DependencyResolver(Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), projectName, ".libs")));
+
 			Log.Stage("SETUP", $"Loading project {projectName}");
 			if (!Project.TryLoad(Directory.GetCurrentDirectory(), projectName, out var project))
 			{
@@ -56,7 +58,7 @@ namespace Terumi
 			}
 
 			Log.Stage("PARSE", "Parsing project source code");
-			var parsedFiles = project.ParseProject(_lexer, _parser).ToList();
+			var parsedFiles = project.ParseProject(_lexer, _parser, resolver).ToList();
 
 			Log.Stage("BINDING", "Binding parsed source files to in memory representations");
 

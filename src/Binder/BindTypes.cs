@@ -27,14 +27,14 @@ namespace Terumi.Binder
 		public SyntaxTree.Method TerumiBacking { get; set; }
 
 		// specific to method
-		public IType ReturnType { get; set; }
+		public UserType ReturnType { get; set; }
 
 		public List<Parameter> Parameters { get; set; } = new List<Parameter>();
 		public List<Ast.CodeStatement> Statements { get; set; } = new List<Ast.CodeStatement>();
 
 		public class Parameter
 		{
-			public IType Type { get; set; }
+			public UserType Type { get; set; }
 
 			public string Name { get; set; }
 		}
@@ -52,6 +52,15 @@ namespace Terumi.Binder
 		public PackageLevel Namespace { get; set; } = default;
 
 		public string Name { get; set; }
+	}
+
+	public class CompilerMethod
+	{
+		public IType ReturnType { get; set; }
+
+		public string Name { get; set; }
+
+		public IType[] Parameters { get; set; }
 	}
 
 	public class CompilerType : IType

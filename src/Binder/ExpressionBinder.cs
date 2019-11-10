@@ -199,7 +199,7 @@ namespace Terumi.Binder
 
 			if (methodCall.IsCompilerMethodCall)
 			{
-				var call = CompilerEntity.MatchMethod(methodCall.MethodName.Identifier, expressions.Select(x => x.Type));
+				var call = CompilerDefined.MatchMethod(methodCall.MethodName.Identifier, expressions.Select(x => x.Type).ToArray());
 
 				return new MethodCallExpression(entity, call, expressions.ToList());
 			}

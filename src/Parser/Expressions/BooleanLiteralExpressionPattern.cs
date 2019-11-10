@@ -13,8 +13,8 @@ namespace Terumi.Parser.Expressions
 
 		public int TryParse(Span<IToken> source, ref ConstantLiteralExpression<bool> item)
 		{
-			int consumed;
-			if ((consumed = source.TryNextNonWhitespace<KeywordToken>(out var keywordToken)) == 0) return 0;
+			int read;
+			if (0 == (read = source.NextNoWhitespace<KeywordToken>(out var keywordToken))) return 0;
 
 			bool value;
 
@@ -27,7 +27,7 @@ namespace Terumi.Parser.Expressions
 
 			item = new ConstantLiteralExpression<bool>(value);
 			_astNotificationReceiver.AstCreated(source, item);
-			return consumed;
+			return read;
 		}
 	}
 }

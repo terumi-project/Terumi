@@ -13,12 +13,12 @@ namespace Terumi.Parser.Expressions
 
 		public int TryParse(Span<IToken> source, ref ConstantLiteralExpression<string> item)
 		{
-			int consumed;
-			if ((consumed = source.TryNextNonWhitespace<StringToken>(out var @string)) == 0) return 0;
+			int read;
+			if (0 == (read = source.NextNoWhitespace<StringToken>(out var @string))) return 0;
 
 			item = new ConstantLiteralExpression<string>(@string.String);
 			_astNotificationReceiver.AstCreated(source, item);
-			return consumed;
+			return read;
 		}
 	}
 }

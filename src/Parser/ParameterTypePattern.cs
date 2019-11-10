@@ -1,9 +1,10 @@
-﻿using Terumi.SyntaxTree;
+﻿using System;
+using Terumi.SyntaxTree;
 using Terumi.Tokens;
 
 namespace Terumi.Parser
 {
-	public class ParameterTypePattern : IPattern<ParameterType>
+	public class ParameterTypePattern : INewPattern<ParameterType>
 	{
 		private readonly IAstNotificationReceiver _astNotificationReceiver;
 
@@ -12,53 +13,30 @@ namespace Terumi.Parser
 			_astNotificationReceiver = astNotificationReceiver;
 		}
 
-		public bool TryParse(ReaderFork<IToken> source, out ParameterType item)
+		public int TryParse(Span<IToken> source, ref ParameterType item)
 		{
-			if (!source.TryNextNonWhitespace<IdentifierToken>(out var identifier)
-				) // || identifier.IdentifierCase != IdentifierCase.PascalCase)
-				  // we don't want to specifically test for PascalCase because SnakeCase counts as type (number, string, etc)
-			{
-				item = default;
-				return false;
-			}
+			int read;
+			if (0 == (read = source.NextNoWhitespace<IdentifierToken>(out var identifier))) return 0;
 
-			if (HasBrackets(source))
-			{
-				item = new ParameterType(identifier, true);
-			}
-			else
-			{
-				item = new ParameterType(identifier, false);
-			}
+			var hasBrackets = HasBrackets(source.Slice(read)).IncButCmp(ref read);
+			item = new ParameterType(identifier, hasBrackets != 0);
 
-			while (HasBrackets(source))
+			while (HasBrackets(source.Slice(read)).IncButCmp(ref read) != 0)
 			{
 				item = new ParameterType(item, true);
 			}
 
 			_astNotificationReceiver.AstCreated(source, item);
-
-			return true;
+			return read;
 		}
 
-		private static bool HasBrackets(ReaderFork<IToken> source)
+		private static int HasBrackets(Span<IToken> source)
 		{
-			if (source.TryPeekNonWhitespace<CharacterToken>(out var openBracket, out var peeked)
-				&& openBracket.Character == '[')
-			{
-				source.Advance(peeked);
+			int read;
+			if (0 == (read = source.NextChar('['))) return 0;
+			if (0 == source.Slice(read).NextChar(']').IncButCmp(ref read)) return 0;
 
-				if (!source.TryNextNonWhitespace<CharacterToken>(out var closeBracket)
-					|| closeBracket.Character != ']')
-				{
-					// TODO: throw exception, expecting close bracket (or commas)
-					return false;
-				}
-
-				return true;
-			}
-
-			return false;
+			return read;
 		}
 	}
 }

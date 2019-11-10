@@ -21,7 +21,7 @@ namespace Terumi.Parser
 		private readonly VariableExpressionPattern _variablePattern;
 
 		private readonly IPattern<PackageReference> _packageLevelPattern;
-		private readonly IPattern<ParameterType> _parameterTypePattern;
+		private readonly INewPattern<ParameterType> _parameterTypePattern;
 		private readonly IPattern<ParameterGroup> _parameterGroupPattern;
 		private readonly IPattern<CodeBody> _codeBodyPattern;
 		private readonly IPattern<Method> _methodPattern;

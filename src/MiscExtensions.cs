@@ -14,17 +14,47 @@ namespace Terumi
 			return newArray;
 		}
 
-		public static int TryNextNonWhitespace<T>(this Span<IToken> source, out T token)
+		/// <summary>
+		/// Increments 'read' by the result, but returns 'result' for comparing.
+		/// </summary>
+		public static int IncButCmp(this int result, ref int read)
+		{
+			read += result;
+			return read;
+		}
+
+		public static int NextChar(this Span<IToken> source, char character)
+		{
+			int read;
+			if (0 == (read = source.NextNoWhitespace<CharacterToken>(out var token))) return 0;
+			if (token.Character != character) return 0;
+
+			return read;
+		}
+
+		public static int NextNoWhitespace<T>(this Span<IToken> source, out T token)
 			where T : IToken
+		{
+			var read = NextNoWhitespace(source, out var iToken);
+
+			if (iToken is T tToken)
+			{
+				token = tToken;
+				return read;
+			}
+
+			token = default;
+			return 0;
+		}
+
+		public static int NextNoWhitespace(this Span<IToken> source, out IToken token)
 		{
 			token = default;
 
-			for(var i = 0; i < source.Length; i++)
+			for (var i = 0; i < source.Length; i++)
 			{
 				if (source[i].IsWhitespace()) continue;
-				// if the next non whitespace token isn't T, we're done
-				if (!(source[i] is T tToken)) return 0;
-				token = tToken;
+				token = source[i];
 				return i + 1;
 			}
 

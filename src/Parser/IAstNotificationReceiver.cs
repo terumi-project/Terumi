@@ -5,7 +5,7 @@ namespace Terumi.Parser
 {
 	public interface IAstNotificationReceiver
 	{
-		void AstCreated<T>(Span<IToken> source, T ast) => AstCreated(default(ReaderFork<IToken>), ast);
+		void AstCreated<T>(TokenStream source, T ast) => AstCreated(default(ReaderFork<IToken>), ast);
 
 		void AstCreated<T>(ReaderFork<IToken> fork, T ast);
 

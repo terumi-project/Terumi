@@ -1,42 +1,30 @@
-﻿using System;
-using Terumi.SyntaxTree;
+﻿using Terumi.SyntaxTree;
 using Terumi.Tokens;
 
 namespace Terumi.Parser
 {
 	public class ParameterTypePattern : INewPattern<ParameterType>
 	{
-		private readonly IAstNotificationReceiver _astNotificationReceiver;
-
-		public ParameterTypePattern(IAstNotificationReceiver astNotificationReceiver)
+		public int TryParse(TokenStream stream, ref ParameterType item)
 		{
-			_astNotificationReceiver = astNotificationReceiver;
-		}
+			if (stream.NextNoWhitespace<IdentifierToken>(out var identifier)) return 0;
 
-		public int TryParse(Span<IToken> source, ref ParameterType item)
-		{
-			int read;
-			if (0 == (read = source.NextNoWhitespace<IdentifierToken>(out var identifier))) return 0;
+			var hasBrackets = stream.Parse(HasBrackets);
+			item = new ParameterType(identifier, hasBrackets);
 
-			var hasBrackets = HasBrackets(source.Slice(read)).IncButCmp(ref read);
-			item = new ParameterType(identifier, hasBrackets != 0);
-
-			while (HasBrackets(source.Slice(read)).IncButCmp(ref read) != 0)
+			while (stream.Parse(HasBrackets))
 			{
 				item = new ParameterType(item, true);
 			}
 
-			_astNotificationReceiver.AstCreated(source, item);
-			return read;
+			return stream;
 		}
 
-		private static int HasBrackets(Span<IToken> source)
+		private static int HasBrackets(TokenStream stream)
 		{
-			int read;
-			if (0 == (read = source.NextChar('['))) return 0;
-			if (0 == source.Slice(read).NextChar(']').IncButCmp(ref read)) return 0;
-
-			return read;
+			if (stream.NextChar('[')) return 0;
+			if (stream.NextChar(']')) return 0;
+			return stream;
 		}
 	}
 }

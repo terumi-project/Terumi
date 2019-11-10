@@ -6,20 +6,13 @@ namespace Terumi.Parser.Expressions
 {
 	public class ThisExpressionPattern : INewPattern<ThisExpression>
 	{
-		private readonly IAstNotificationReceiver _astNotificationReceiver;
-
-		public ThisExpressionPattern(IAstNotificationReceiver astNotificationReceiver)
-			=> _astNotificationReceiver = astNotificationReceiver;
-
-		public int TryParse(Span<IToken> source, ref ThisExpression item)
+		public int TryParse(TokenStream stream, ref ThisExpression item)
 		{
-			int read;
-			if (0 != (read = source.NextNoWhitespace<KeywordToken>(out var token))
+			if (stream.NextNoWhitespace<KeywordToken>(out var token)
 				&& token.Keyword == Keyword.This)
 			{
 				item = ThisExpression.Instance;
-				_astNotificationReceiver.AstCreated(source, item);
-				return read;
+				return stream;
 			}
 
 			return 0;

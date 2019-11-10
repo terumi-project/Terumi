@@ -11,7 +11,7 @@ namespace Terumi.Parser
 	// Add an adapter in the meantime while converting old stuff to the new parser, so that code can still be compiled while being worked on.
 	public interface INewPattern<T> : IPattern<T>
 	{
-		public int TryParse(Span<IToken> source, ref T item);
+		public int TryParse(TokenStream stream, ref T item);
 
 		bool IPattern<T>.TryParse(ReaderFork<IToken> source, out T item)
 		{

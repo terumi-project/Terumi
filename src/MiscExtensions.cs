@@ -1,4 +1,5 @@
 ﻿using System;
+using Terumi.Parser;
 using Terumi.Tokens;
 
 namespace Terumi
@@ -23,7 +24,7 @@ namespace Terumi
 			return read;
 		}
 
-		public static int NextChar(this Span<IToken> source, char character)
+		public static int NextChar(this ReadOnlySpan<IToken> source, char character)
 		{
 			int read;
 			if (0 == (read = source.NextNoWhitespace<CharacterToken>(out var token))) return 0;
@@ -32,7 +33,7 @@ namespace Terumi
 			return read;
 		}
 
-		public static int NextNoWhitespace<T>(this Span<IToken> source, out T token)
+		public static int NextNoWhitespace<T>(this ReadOnlySpan<IToken> source, out T token)
 			where T : IToken
 		{
 			var read = NextNoWhitespace(source, out var iToken);
@@ -47,7 +48,7 @@ namespace Terumi
 			return 0;
 		}
 
-		public static int NextNoWhitespace(this Span<IToken> source, out IToken token)
+		public static int NextNoWhitespace(this ReadOnlySpan<IToken> source, out IToken token)
 		{
 			token = default;
 

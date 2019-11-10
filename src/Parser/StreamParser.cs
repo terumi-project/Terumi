@@ -20,14 +20,14 @@ namespace Terumi.Parser
 		private readonly ConstantLiteralExpressionBooleanPattern _booleanPattern;
 		private readonly VariableExpressionPattern _variablePattern;
 
-		private readonly INewPattern<PackageLevel> _packageLevelPattern;
-		private readonly INewPattern<PackageReference> _packageReferencePattern;
-		private readonly INewPattern<ParameterType> _parameterTypePattern;
-		private readonly INewPattern<ParameterGroup> _parameterGroupPattern;
-		private readonly INewPattern<CodeBody> _codeBodyPattern;
-		private readonly INewPattern<Method> _methodPattern;
-		private readonly INewPattern<CompilerUnitItem> _compilerUnitItem;
-		private readonly INewPattern<CompilerUnit> _compilerUnit;
+		private readonly IPattern<PackageLevel> _packageLevelPattern;
+		private readonly IPattern<PackageReference> _packageReferencePattern;
+		private readonly IPattern<ParameterType> _parameterTypePattern;
+		private readonly IPattern<ParameterGroup> _parameterGroupPattern;
+		private readonly IPattern<CodeBody> _codeBodyPattern;
+		private readonly IPattern<Method> _methodPattern;
+		private readonly IPattern<CompilerUnitItem> _compilerUnitItem;
+		private readonly IPattern<CompilerUnit> _compilerUnit;
 
 		public StreamParser()
 		{

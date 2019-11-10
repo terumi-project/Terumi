@@ -1,13 +1,12 @@
 ﻿using System;
 
 using Terumi.SyntaxTree.Expressions;
-using Terumi.Tokens;
 
 namespace Terumi.Parser.Expressions
 {
-	public class AccessExpressionPattern : INewPattern<AccessExpression>
+	public class AccessExpressionPattern : IPattern<AccessExpression>
 	{
-		public INewPattern<Expression> ExpressionPattern { get; set; }
+		public IPattern<Expression> ExpressionPattern { get; set; }
 
 		public int TryParse(TokenStream stream, ref AccessExpression item)
 		{

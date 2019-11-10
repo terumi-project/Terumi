@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
+
 using Terumi.Tokens;
 
 namespace Terumi.Parser
 {
-	public class PackageLevelPattern : INewPattern<PackageLevel>
+	public class PackageLevelPattern : IPattern<PackageLevel>
 	{
 		public int TryParse(TokenStream stream, ref PackageLevel item)
 		{

@@ -3,15 +3,15 @@ using Terumi.Tokens;
 
 namespace Terumi.Parser
 {
-	public class MethodPattern : INewPattern<Method>
+	public class MethodPattern : IPattern<Method>
 	{
-		private readonly INewPattern<ParameterGroup> _parameterPattern;
-		private readonly INewPattern<CodeBody>? _codeBodyPattern;
+		private readonly IPattern<ParameterGroup> _parameterPattern;
+		private readonly IPattern<CodeBody>? _codeBodyPattern;
 
 		public MethodPattern
 		(
-			INewPattern<ParameterGroup> parameterPattern,
-			INewPattern<CodeBody>? codeBodyPattern
+			IPattern<ParameterGroup> parameterPattern,
+			IPattern<CodeBody>? codeBodyPattern
 		)
 		{
 			_parameterPattern = parameterPattern;

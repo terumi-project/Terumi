@@ -5,9 +5,9 @@ using Terumi.Tokens;
 
 namespace Terumi.Parser.Expressions
 {
-	public class ReturnExpressionPattern : INewPattern<ReturnExpression>
+	public class ReturnExpressionPattern : IPattern<ReturnExpression>
 	{
-		public INewPattern<Expression> ExpressionPattern { get; set; }
+		public IPattern<Expression> ExpressionPattern { get; set; }
 
 		public int TryParse(TokenStream stream, ref ReturnExpression item)
 		{

@@ -3,11 +3,11 @@ using Terumi.Tokens;
 
 namespace Terumi.Parser.Expressions
 {
-	public class MethodCallPattern : INewPattern<MethodCall>
+	public class MethodCallPattern : IPattern<MethodCall>
 	{
-		private readonly INewPattern<MethodCallParameterGroup> _pattern;
+		private readonly IPattern<MethodCallParameterGroup> _pattern;
 
-		public MethodCallPattern(INewPattern<MethodCallParameterGroup> pattern)
+		public MethodCallPattern(IPattern<MethodCallParameterGroup> pattern)
 			=> _pattern = pattern;
 
 		public int TryParse(TokenStream stream, ref MethodCall item)

@@ -1,10 +1,9 @@
-﻿using System;
-using Terumi.Ast;
+﻿using Terumi.Ast;
 using Terumi.Tokens;
 
 namespace Terumi.Parser.Expressions
 {
-	public class ConstantLiteralExpressionStringPattern : INewPattern<ConstantLiteralExpression<string>>
+	public class ConstantLiteralExpressionStringPattern : IPattern<ConstantLiteralExpression<string>>
 	{
 		public int TryParse(TokenStream stream, ref ConstantLiteralExpression<string> item)
 		{

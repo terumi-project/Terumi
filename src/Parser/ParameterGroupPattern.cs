@@ -5,11 +5,11 @@ using Terumi.Tokens;
 
 namespace Terumi.Parser
 {
-	public class ParameterGroupPattern : INewPattern<ParameterGroup>
+	public class ParameterGroupPattern : IPattern<ParameterGroup>
 	{
-		private readonly INewPattern<ParameterType> _parameterTypePattern;
+		private readonly IPattern<ParameterType> _parameterTypePattern;
 
-		public ParameterGroupPattern(INewPattern<ParameterType> parameterTypePattern)
+		public ParameterGroupPattern(IPattern<ParameterType> parameterTypePattern)
 			=> _parameterTypePattern = parameterTypePattern;
 
 		public int TryParse(TokenStream stream, ref ParameterGroup item)

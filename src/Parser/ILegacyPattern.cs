@@ -1,19 +1,18 @@
-﻿using System;
-using Terumi.Tokens;
+﻿using Terumi.Tokens;
 
 namespace Terumi.Parser
 {
-	public interface IPattern<T>
+	public interface ILegacyPattern<T>
 	{
 		public bool TryParse(ReaderFork<IToken> source, out T item);
 	}
 
 	// Add an adapter in the meantime while converting old stuff to the new parser, so that code can still be compiled while being worked on.
-	public interface INewPattern<T> : IPattern<T>
+	public interface IPattern<T> : ILegacyPattern<T>
 	{
 		public int TryParse(TokenStream stream, ref T item);
 
-		bool IPattern<T>.TryParse(ReaderFork<IToken> source, out T item)
+		bool ILegacyPattern<T>.TryParse(ReaderFork<IToken> source, out T item)
 		{
 			item = default;
 

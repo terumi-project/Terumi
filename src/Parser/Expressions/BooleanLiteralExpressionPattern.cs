@@ -3,7 +3,7 @@ using Terumi.Tokens;
 
 namespace Terumi.Parser.Expressions
 {
-	public class ConstantLiteralExpressionBooleanPattern : INewPattern<ConstantLiteralExpression<bool>>
+	public class ConstantLiteralExpressionBooleanPattern : IPattern<ConstantLiteralExpression<bool>>
 	{
 		public int TryParse(TokenStream stream, ref ConstantLiteralExpression<bool> item)
 		{

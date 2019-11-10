@@ -3,7 +3,7 @@ using Terumi.Tokens;
 
 namespace Terumi.Parser
 {
-	public class ParameterTypePattern : INewPattern<ParameterType>
+	public class ParameterTypePattern : IPattern<ParameterType>
 	{
 		public int TryParse(TokenStream stream, ref ParameterType item)
 		{

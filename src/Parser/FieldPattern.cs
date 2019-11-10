@@ -5,7 +5,7 @@ using Terumi.Tokens;
 
 namespace Terumi.Parser
 {
-	public class FieldPattern : IPattern<Field>
+	public class FieldPattern : ILegacyPattern<Field>
 	{
 		private readonly IAstNotificationReceiver _astNotificationReceiver;
 

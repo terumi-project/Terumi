@@ -5,11 +5,11 @@ using Terumi.SyntaxTree.Expressions;
 
 namespace Terumi.Parser
 {
-	public class CodeBodyPattern : INewPattern<CodeBody>
+	public class CodeBodyPattern : IPattern<CodeBody>
 	{
-		private readonly INewPattern<Expression> _expressionPattern;
+		private readonly IPattern<Expression> _expressionPattern;
 
-		public CodeBodyPattern(INewPattern<Expression> expressionPattern)
+		public CodeBodyPattern(IPattern<Expression> expressionPattern)
 			=> _expressionPattern = expressionPattern;
 
 		public int TryParse(TokenStream stream, ref CodeBody item)

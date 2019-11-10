@@ -1,34 +1,32 @@
-﻿using System.Collections.Generic;
-using System.Numerics;
+﻿using System.Numerics;
 
 using Terumi.SyntaxTree.Expressions;
-using Terumi.Tokens;
 
 namespace Terumi.Parser.Expressions
 {
-	public class ExpressionPattern : INewPattern<Expression>
+	public class ExpressionPattern : IPattern<Expression>
 	{
-		private readonly INewPattern<MethodCall> _methodCallPattern;
-		private readonly INewPattern<ReturnExpression> _returnPattern;
-		private readonly INewPattern<AccessExpression> _accessPattern;
-		private readonly INewPattern<Terumi.Ast.ConstantLiteralExpression<BigInteger>> _numericPattern;
-		private readonly INewPattern<Terumi.Ast.ConstantLiteralExpression<string>> _stringPattern;
-		private readonly INewPattern<ThisExpression> _thisPattern;
-		private readonly INewPattern<ReferenceExpression> _referencePattern;
-		private readonly INewPattern<Terumi.Ast.ConstantLiteralExpression<bool>> _booleanPattern;
-		private readonly INewPattern<VariableExpression> _variablePattern;
+		private readonly IPattern<MethodCall> _methodCallPattern;
+		private readonly IPattern<ReturnExpression> _returnPattern;
+		private readonly IPattern<AccessExpression> _accessPattern;
+		private readonly IPattern<Terumi.Ast.ConstantLiteralExpression<BigInteger>> _numericPattern;
+		private readonly IPattern<Terumi.Ast.ConstantLiteralExpression<string>> _stringPattern;
+		private readonly IPattern<ThisExpression> _thisPattern;
+		private readonly IPattern<ReferenceExpression> _referencePattern;
+		private readonly IPattern<Terumi.Ast.ConstantLiteralExpression<bool>> _booleanPattern;
+		private readonly IPattern<VariableExpression> _variablePattern;
 
 		public ExpressionPattern
 		(
-			INewPattern<MethodCall> methodCallPattern,
-			INewPattern<ReturnExpression> returnPattern,
-			INewPattern<AccessExpression> accessPattern,
-			INewPattern<Terumi.Ast.ConstantLiteralExpression<BigInteger>> numericPattern,
-			INewPattern<Terumi.Ast.ConstantLiteralExpression<string>> stringPattern,
-			INewPattern<ThisExpression> thisPattern,
-			INewPattern<ReferenceExpression> referencePattern,
-			INewPattern<Terumi.Ast.ConstantLiteralExpression<bool>> booleanPattern,
-			INewPattern<VariableExpression> variablePattern
+			IPattern<MethodCall> methodCallPattern,
+			IPattern<ReturnExpression> returnPattern,
+			IPattern<AccessExpression> accessPattern,
+			IPattern<Terumi.Ast.ConstantLiteralExpression<BigInteger>> numericPattern,
+			IPattern<Terumi.Ast.ConstantLiteralExpression<string>> stringPattern,
+			IPattern<ThisExpression> thisPattern,
+			IPattern<ReferenceExpression> referencePattern,
+			IPattern<Terumi.Ast.ConstantLiteralExpression<bool>> booleanPattern,
+			IPattern<VariableExpression> variablePattern
 		)
 		{
 			_methodCallPattern = methodCallPattern;
@@ -62,7 +60,7 @@ namespace Terumi.Parser.Expressions
 		private bool TryParse<TExpression>
 		(
 			ref TokenStream stream,
-			INewPattern<TExpression> pattern,
+			IPattern<TExpression> pattern,
 			ref Expression expression
 		)
 			where TExpression : Expression

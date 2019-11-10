@@ -2,15 +2,15 @@
 
 namespace Terumi.Parser
 {
-	public class CompilerUnitItemPattern : INewPattern<CompilerUnitItem>
+	public class CompilerUnitItemPattern : IPattern<CompilerUnitItem>
 	{
-		private readonly INewPattern<Method> _methodPattern;
-		private readonly INewPattern<PackageReference> _packagePattern;
+		private readonly IPattern<Method> _methodPattern;
+		private readonly IPattern<PackageReference> _packagePattern;
 
 		public CompilerUnitItemPattern
 		(
-			INewPattern<Method> methodPattern,
-			INewPattern<PackageReference> packagePattern
+			IPattern<Method> methodPattern,
+			IPattern<PackageReference> packagePattern
 		)
 		{
 			_methodPattern = methodPattern;

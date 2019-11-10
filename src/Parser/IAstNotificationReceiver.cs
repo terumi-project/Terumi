@@ -1,5 +1,4 @@
-﻿using System;
-using Terumi.Tokens;
+﻿using Terumi.Tokens;
 
 namespace Terumi.Parser
 {

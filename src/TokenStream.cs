@@ -30,7 +30,7 @@ namespace Terumi
 
 		public TokenStream Child() => new TokenStream(Tokens);
 
-		public bool TryParse<T>(INewPattern<T> tryParse, out T token)
+		public bool TryParse<T>(IPattern<T> tryParse, out T token)
 		{
 			token = default;
 

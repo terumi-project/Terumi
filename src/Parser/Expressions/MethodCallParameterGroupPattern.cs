@@ -5,9 +5,9 @@ using Terumi.SyntaxTree.Expressions;
 
 namespace Terumi.Parser.Expressions
 {
-	public class MethodCallParameterGroupPattern : INewPattern<MethodCallParameterGroup>
+	public class MethodCallParameterGroupPattern : IPattern<MethodCallParameterGroup>
 	{
-		public INewPattern<Expression> ExpressionPattern { get; set; }
+		public IPattern<Expression> ExpressionPattern { get; set; }
 
 		public int TryParse(TokenStream stream, ref MethodCallParameterGroup item)
 		{

@@ -3,7 +3,7 @@ using Terumi.Tokens;
 
 namespace Terumi.Parser.Expressions
 {
-	public class ReferenceExpressionPattern : INewPattern<ReferenceExpression>
+	public class ReferenceExpressionPattern : IPattern<ReferenceExpression>
 	{
 		public int TryParse(TokenStream stream, ref ReferenceExpression item)
 		{

@@ -3,11 +3,11 @@ using Terumi.Tokens;
 
 namespace Terumi.Parser
 {
-	public class PackageReferencePattern : INewPattern<PackageReference>
+	public class PackageReferencePattern : IPattern<PackageReference>
 	{
-		private readonly INewPattern<PackageLevel> _packageLevelPattern;
+		private readonly IPattern<PackageLevel> _packageLevelPattern;
 
-		public PackageReferencePattern(INewPattern<PackageLevel> packageLevelPattern)
+		public PackageReferencePattern(IPattern<PackageLevel> packageLevelPattern)
 			=> _packageLevelPattern = packageLevelPattern;
 
 		public int TryParse(TokenStream stream, ref PackageReference item)

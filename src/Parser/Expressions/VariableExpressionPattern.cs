@@ -4,14 +4,14 @@ using Terumi.Tokens;
 
 namespace Terumi.Parser.Expressions
 {
-	public class VariableExpressionPattern : INewPattern<VariableExpression>
+	public class VariableExpressionPattern : IPattern<VariableExpression>
 	{
-		private readonly INewPattern<ParameterType> _parameterTypePattern;
+		private readonly IPattern<ParameterType> _parameterTypePattern;
 
-		public VariableExpressionPattern(INewPattern<ParameterType> parameterTypePattern)
+		public VariableExpressionPattern(IPattern<ParameterType> parameterTypePattern)
 			=> _parameterTypePattern = parameterTypePattern;
 
-		public INewPattern<Expression> ExpressionPattern { get; set; }
+		public IPattern<Expression> ExpressionPattern { get; set; }
 
 		public int TryParse(TokenStream stream, ref VariableExpression item)
 		{

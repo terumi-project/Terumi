@@ -1,16 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 using Terumi.SyntaxTree;
-using Terumi.Tokens;
 
 namespace Terumi.Parser
 {
-	public class CompilerUnitPattern : INewPattern<CompilerUnit>
+	public class CompilerUnitPattern : IPattern<CompilerUnit>
 	{
-		private readonly INewPattern<CompilerUnitItem> _pattern;
+		private readonly IPattern<CompilerUnitItem> _pattern;
 
-		public CompilerUnitPattern(INewPattern<CompilerUnitItem> pattern)
+		public CompilerUnitPattern(IPattern<CompilerUnitItem> pattern)
 			=> _pattern = pattern;
 
 		public int TryParse(TokenStream stream, ref CompilerUnit item)

@@ -58,7 +58,7 @@ namespace Terumi.Ast
 			};
 		}
 
-		private static InfoItem Conv(TType type)
+		private static UserType Conv(TType type)
 		{
 			switch (type)
 			{
@@ -71,7 +71,7 @@ namespace Terumi.Ast
 			throw new Exception();
 		}
 
-		public static MethodBind MatchMethod(string name, IEnumerable<InfoItem> parameters)
+		public static MethodBind MatchMethod(string name, IEnumerable<UserType> parameters)
 		{
 			foreach (var i in Gen())
 			{
@@ -112,11 +112,11 @@ namespace Terumi.Ast
 			throw new Exception("No matching compiler call");
 		}
 
-		public CompilerEntity(InfoItem infoItem)
+		public CompilerEntity(UserType infoItem)
 		{
 			Type = infoItem;
 		}
 
-		public InfoItem Type { get; }
+		public UserType Type { get; }
 	}
 }

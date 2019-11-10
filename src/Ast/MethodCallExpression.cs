@@ -17,6 +17,6 @@ namespace Terumi.Ast
 		public MethodBind CallingMethod { get; }
 		public IReadOnlyCollection<ICodeExpression> Parameters { get; }
 
-		public InfoItem Type => CallingMethod.ReturnType;
+		public UserType Type => CallingMethod.ReturnType;
 	}
 }

@@ -4,25 +4,25 @@ namespace Terumi.Binder
 {
 	public class TypeInformation
 	{
-		public static InfoItem Void { get; } = new InfoItem
+		public static UserType Void { get; } = new UserType
 		{
 			IsCompilerDefined = true,
 			Name = "void"
 		};
 
-		public static InfoItem String { get; } = new InfoItem
+		public static UserType String { get; } = new UserType
 		{
 			IsCompilerDefined = true,
 			Name = "string"
 		};
 
-		public static InfoItem Number { get; } = new InfoItem
+		public static UserType Number { get; } = new UserType
 		{
 			IsCompilerDefined = true,
 			Name = "number"
 		};
 
-		public static InfoItem Boolean { get; } = new InfoItem
+		public static UserType Boolean { get; } = new UserType
 		{
 			IsCompilerDefined = true,
 			Name = "bool"
@@ -75,11 +75,11 @@ namespace Terumi.Binder
 			return false;
 		}
 
-		public bool TryGetType(IBind mainType, string typeName, out InfoItem type)
+		public bool TryGetType(IBind mainType, string typeName, out UserType type)
 		{
 			foreach (var item in AllReferenceableTypes(mainType))
 			{
-				if (item is InfoItem infoItem
+				if (item is UserType infoItem
 					&& item.Name == typeName)
 				{
 					type = infoItem;

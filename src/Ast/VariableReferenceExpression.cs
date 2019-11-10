@@ -4,13 +4,13 @@ namespace Terumi.Ast
 {
 	public class VariableReferenceExpression : ICodeExpression
 	{
-		public VariableReferenceExpression(string varName, InfoItem type)
+		public VariableReferenceExpression(string varName, UserType type)
 		{
 			VarName = varName;
 			Type = type;
 		}
 
 		public string VarName { get; }
-		public InfoItem Type { get; }
+		public UserType Type { get; }
 	}
 }

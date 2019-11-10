@@ -35,7 +35,7 @@ namespace Terumi.Binder
 						TerumiBacking = method,
 					};
 
-					InfoItem returnType;
+					UserType returnType;
 
 					if (method.Type == null)
 					{

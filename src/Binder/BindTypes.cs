@@ -11,6 +11,11 @@ namespace Terumi.Binder
 		string Name { get; set; }
 	}
 
+	public interface IType
+	{
+		string Name { get; set; }
+	}
+
 	public class MethodBind : IBind
 	{
 		public PackageLevel Namespace { get; set; }
@@ -22,20 +27,20 @@ namespace Terumi.Binder
 		public SyntaxTree.Method TerumiBacking { get; set; }
 
 		// specific to method
-		public InfoItem ReturnType { get; set; }
+		public IType ReturnType { get; set; }
 
 		public List<Parameter> Parameters { get; set; } = new List<Parameter>();
 		public List<Ast.CodeStatement> Statements { get; set; } = new List<Ast.CodeStatement>();
 
 		public class Parameter
 		{
-			public InfoItem Type { get; set; }
+			public IType Type { get; set; }
 
 			public string Name { get; set; }
 		}
 	}
 
-	public class InfoItem : IBind
+	public class UserType : IBind, IType
 	{
 		/// <summary>
 		/// If this is true, <see cref="Namespace"/> is meaningless.
@@ -46,6 +51,11 @@ namespace Terumi.Binder
 
 		public PackageLevel Namespace { get; set; } = default;
 
+		public string Name { get; set; }
+	}
+
+	public class CompilerType : IType
+	{
 		public string Name { get; set; }
 	}
 }

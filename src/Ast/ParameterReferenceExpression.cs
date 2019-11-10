@@ -9,7 +9,7 @@ namespace Terumi.Ast
 			Parameter = parameter;
 		}
 
-		public InfoItem Type => Parameter.Type;
+		public UserType Type => Parameter.Type;
 
 		public MethodBind.Parameter Parameter { get; }
 	}

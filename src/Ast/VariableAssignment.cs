@@ -10,7 +10,7 @@ namespace Terumi.Ast
 			Value = value;
 		}
 
-		public InfoItem Type => Value.Type;
+		public UserType Type => Value.Type;
 
 		public string VariableName { get; }
 		public ICodeExpression Value { get; }

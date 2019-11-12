@@ -66,6 +66,10 @@ namespace Terumi
 			binder.PassOverTypeDeclarations();
 			binder.PassOverMethodBodies();
 
+			Log.Stage("OPTIMIZATION", "Optimizing TypeInformation");
+
+			Optimizer.Optimize(binder.TypeInformation);
+
 			Log.Stage("WRITING", "Writing input code to target powershell file.");
 
 			// try/catching to delete files w/ IOException is a good practice

@@ -65,7 +65,7 @@ namespace Terumi.Lexer
 					&& source[i + 1] == Slash)
 				{
 					token = new WhitespaceToken(meta);
-					return i + 1;
+					return i + 2;
 				}
 			}
 

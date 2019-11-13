@@ -9,7 +9,7 @@ namespace Terumi.Ast
 			ReturnOn = returnOn;
 		}
 
-		public ICodeExpression ReturnOn { get; }
+		public ICodeExpression ReturnOn { get; set; }
 
 		public IType Type => ReturnOn.Type;
 	}

@@ -15,7 +15,7 @@ namespace Terumi.Ast
 			Statements = expressions;
 		}
 
-		public ICodeExpression Comparison { get; }
+		public ICodeExpression Comparison { get; set; }
 		public List<CodeStatement> Statements { get; }
 
 		// boolean

@@ -12,7 +12,7 @@ namespace Terumi.Ast
 
 		public IType Type => Value.Type;
 
-		public string VariableName { get; }
-		public ICodeExpression Value { get; }
+		public string VariableName { get; set; }
+		public ICodeExpression Value { get; set; }
 	}
 }

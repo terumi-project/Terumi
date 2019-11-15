@@ -9,7 +9,26 @@ namespace Terumi.VarCode
 	{
 		private int _counter;
 
+		private readonly List<List<VarInstruction>> _backlog = new List<List<VarInstruction>>();
+		private readonly List<int> _comparisonBacklog = new List<int>();
+
 		public List<VarInstruction> Code { get; set; } = new List<VarInstruction>();
+
+		public void BeginIf(int comparisonVariable)
+		{
+			_backlog.Add(Code);
+			_comparisonBacklog.Add(comparisonVariable);
+			Code = new List<VarInstruction>();
+		}
+
+		public void EndIf()
+		{
+			var @if = new VarIf(_comparisonBacklog[^1], Code);
+			_comparisonBacklog.RemoveAt(_comparisonBacklog.Count - 1);
+			Code = _backlog[^1];
+			_backlog.RemoveAt(_backlog.Count - 1);
+			Code.Add(@if);
+		}
 
 		public int GetParameter(int parameterId)
 			=> AppendInstruction(id => new VarParameterAssignment(id, parameterId));

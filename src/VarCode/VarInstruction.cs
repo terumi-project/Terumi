@@ -56,6 +56,18 @@ namespace Terumi.VarCode
 		public int ParameterId { get; }
 	}
 
+	public class VarIf : VarInstruction
+	{
+		public VarIf(int comparisonVariable, List<VarInstruction> trueBody)
+		{
+			TrueBody = trueBody;
+			ComparisonVariable = comparisonVariable;
+		}
+
+		public List<VarInstruction> TrueBody { get; }
+		public int ComparisonVariable { get; }
+	}
+
 	public abstract class VarExpression
 	{
 	}

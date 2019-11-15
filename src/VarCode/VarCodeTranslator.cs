@@ -101,7 +101,15 @@ namespace Terumi.VarCode
 		{
 			switch (statement)
 			{
-				case IfStatement i: return; // throw new NotImplementedException();
+				case IfStatement i:
+				{
+					_tree.BeginIf(Visit(i.Comparison));
+
+					Visit(i.Statements);
+
+					_tree.EndIf();
+				}
+				break;
 
 				case VariableAssignment i:
 				{

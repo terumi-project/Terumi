@@ -12,60 +12,60 @@ namespace Terumi.VarCode
 
 	public class VarAssignment : VarInstruction
 	{
-		public VarAssignment(int variableId, VarExpression value)
+		public VarAssignment(VarCodeId variableId, VarExpression value)
 		{
 			VariableId = variableId;
 			Value = value;
 		}
 
-		public int VariableId { get; }
+		public VarCodeId VariableId { get; }
 		public VarExpression Value { get; }
 	}
 
 	public class VarReturn : VarInstruction
 	{
-		public VarReturn(int id)
+		public VarReturn(VarCodeId id)
 		{
 			Id = id;
 		}
 
-		public int Id { get; }
+		public VarCodeId Id { get; }
 	}
 
 	public class VarMethodCall : VarInstruction
 	{
-		public VarMethodCall(int? variableId, MethodCallVarExpression methodCallVarExpression)
+		public VarMethodCall(VarCodeId? variableId, MethodCallVarExpression methodCallVarExpression)
 		{
 			MethodCallVarExpression = methodCallVarExpression;
 			VariableId = variableId;
 		}
 
-		public int? VariableId { get; }
+		public VarCodeId? VariableId { get; }
 		public MethodCallVarExpression MethodCallVarExpression { get; }
 	}
 
 	public class VarParameterAssignment : VarInstruction
 	{
-		public VarParameterAssignment(int id, int parameterId)
+		public VarParameterAssignment(VarCodeId id, VarCodeId parameterId)
 		{
 			Id = id;
 			ParameterId = parameterId;
 		}
 
-		public int Id { get; }
-		public int ParameterId { get; }
+		public VarCodeId Id { get; }
+		public VarCodeId ParameterId { get; }
 	}
 
 	public class VarIf : VarInstruction
 	{
-		public VarIf(int comparisonVariable, List<VarInstruction> trueBody)
+		public VarIf(VarCodeId comparisonVariable, List<VarInstruction> trueBody)
 		{
 			TrueBody = trueBody;
 			ComparisonVariable = comparisonVariable;
 		}
 
 		public List<VarInstruction> TrueBody { get; }
-		public int ComparisonVariable { get; }
+		public VarCodeId ComparisonVariable { get; }
 	}
 
 	public abstract class VarExpression
@@ -84,23 +84,23 @@ namespace Terumi.VarCode
 
 	public class MethodCallVarExpression : VarExpression
 	{
-		public MethodCallVarExpression(int methodId, List<int> parameterVariables)
+		public MethodCallVarExpression(VarCodeId methodId, List<VarCodeId> parameterVariables)
 		{
 			MethodId = methodId;
 			ParameterVariables = parameterVariables;
 		}
 
-		public int MethodId { get; }
-		public List<int> ParameterVariables { get; }
+		public VarCodeId MethodId { get; }
+		public List<VarCodeId> ParameterVariables { get; }
 	}
 
 	public class ReferenceVarExpression : VarExpression
 	{
-		public ReferenceVarExpression(int variableId)
+		public ReferenceVarExpression(VarCodeId variableId)
 		{
 			VariableId = variableId;
 		}
 
-		public int VariableId { get; }
+		public VarCodeId VariableId { get; }
 	}
 }

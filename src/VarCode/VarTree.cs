@@ -8,12 +8,12 @@ namespace Terumi.VarCode
 	public class VarTree
 	{
 		private readonly List<List<VarInstruction>> _backlog = new List<List<VarInstruction>>();
-		private readonly List<int> _comparisonBacklog = new List<int>();
+		private readonly List<VarCodeId> _comparisonBacklog = new List<VarCodeId>();
 
 		public List<VarInstruction> Code { get; set; } = new List<VarInstruction>();
-		public int Counter { get; set; }
+		public VarCodeId Counter { get; set; }
 
-		public void BeginIf(int comparisonVariable)
+		public void BeginIf(VarCodeId comparisonVariable)
 		{
 			_backlog.Add(Code);
 			_comparisonBacklog.Add(comparisonVariable);
@@ -29,30 +29,30 @@ namespace Terumi.VarCode
 			Code.Add(@if);
 		}
 
-		public int GetParameter(int parameterId)
+		public VarCodeId GetParameter(VarCodeId parameterId)
 			=> AppendInstruction(id => new VarParameterAssignment(id, parameterId));
 
-		public int Push(string value)
+		public VarCodeId Push(string value)
 			=> AppendInstruction(id => new VarAssignment(id, new ConstantVarExpression<string>(value)));
 
-		public int Push(BigInteger value)
+		public VarCodeId Push(BigInteger value)
 			=> AppendInstruction(id => new VarAssignment(id, new ConstantVarExpression<BigInteger>(value)));
 
-		public int Push(bool value)
+		public VarCodeId Push(bool value)
 			=> AppendInstruction(id => new VarAssignment(id, new ConstantVarExpression<bool>(value)));
 
-		/// <seealso cref="Call(int, int[])"/>
-		public void Execute(int methodId, List<int> vars)
+		/// <seealso cref="Call(VarCodeId, List{VarCodeId})"/>
+		public void Execute(VarCodeId methodId, List<VarCodeId> vars)
 			=> Code.Add(new VarMethodCall(null, new MethodCallVarExpression(methodId, vars)));
 
-		/// <seealso cref="Execute(int, int[])"
-		public int Call(int methodId, List<int> vars)
+		/// <seealso cref="Execute(VarCodeId, List{VarCodeId})"
+		public VarCodeId Call(VarCodeId methodId, List<VarCodeId> vars)
 			=> AppendInstruction(id => new VarMethodCall(id, new MethodCallVarExpression(methodId, vars)));
 
-		public void Return(int variable)
+		public void Return(VarCodeId variable)
 			=> Code.Add(new VarReturn(variable));
 
-		private int AppendInstruction(Func<int, VarInstruction> append)
+		private VarCodeId AppendInstruction(Func<VarCodeId, VarInstruction> append)
 		{
 			var id = Counter++;
 			Code.Add(append(id));

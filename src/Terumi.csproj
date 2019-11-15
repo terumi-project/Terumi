@@ -12,8 +12,4 @@
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3-beta1" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="VarCode\Optimizer\" />
-  </ItemGroup>
-
 </Project>

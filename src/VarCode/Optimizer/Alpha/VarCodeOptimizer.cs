@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using Terumi.Binder;
 
-namespace Terumi.VarCode
+namespace Terumi.VarCode.Optimizer.Alpha
 {
 	public class VarCodeOptimizer
 	{

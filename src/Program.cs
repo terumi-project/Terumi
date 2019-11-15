@@ -71,6 +71,15 @@ namespace Terumi
 
 			var translator = new VarCodeTranslator();
 			translator.Visit(binder.TypeInformation.Binds);
+			var translation = translator.GetTranslation();
+
+			File.WriteAllText("t.txt", Newtonsoft.Json.JsonConvert.SerializeObject(translation, Newtonsoft.Json.Formatting.Indented));
+
+			var optimizer = new VarCodeOptimizer(translation);
+			optimizer.Optimize();
+
+			File.WriteAllText("o.txt", Newtonsoft.Json.JsonConvert.SerializeObject(translation, Newtonsoft.Json.Formatting.Indented));
+
 			// Optimizer.Optimize(binder.TypeInformation);
 
 			Log.Stage("WRITING", "Writing input code to target powershell file.");

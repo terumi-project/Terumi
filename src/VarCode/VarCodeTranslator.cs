@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 using Terumi.Ast;
@@ -7,14 +8,35 @@ using Terumi.Binder;
 
 namespace Terumi.VarCode
 {
+	public class VarCodeTranslation
+	{
+		public VarCodeTranslation(Dictionary<IMethod, int> methods, List<VarTree> trees)
+		{
+			Methods = methods;
+			Trees = trees;
+		}
+
+		public Dictionary<IMethod, int> Methods { get; }
+		public List<VarTree> Trees { get; }
+	}
+
 	public class VarCodeTranslator
 	{
 		private int _methodCounter;
 		private Dictionary<IMethod, int> _methods = new Dictionary<IMethod, int>();
 		private readonly List<VarTree> _varTrees = new List<VarTree>();
 
+		public VarCodeTranslation GetTranslation()
+			=> new VarCodeTranslation(_methods, _varTrees);
+
 		public void Visit(IEnumerable<IBind> binds)
 		{
+			// first, insert the 'main' method
+			var main = binds.OfType<MethodBind>().First(x => x.Name == "main");
+
+			// that way main will be the 0th method, and thus the root.
+			InsertAt(GetId(main), Visit(main));
+
 			foreach (var bind in binds)
 			{
 				if (bind is MethodBind methodBind)

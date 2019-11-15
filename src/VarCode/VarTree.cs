@@ -7,12 +7,11 @@ namespace Terumi.VarCode
 {
 	public class VarTree
 	{
-		private int _counter;
-
 		private readonly List<List<VarInstruction>> _backlog = new List<List<VarInstruction>>();
 		private readonly List<int> _comparisonBacklog = new List<int>();
 
 		public List<VarInstruction> Code { get; set; } = new List<VarInstruction>();
+		public int Counter { get; set; }
 
 		public void BeginIf(int comparisonVariable)
 		{
@@ -55,7 +54,7 @@ namespace Terumi.VarCode
 
 		private int AppendInstruction(Func<int, VarInstruction> append)
 		{
-			var id = _counter++;
+			var id = Counter++;
 			Code.Add(append(id));
 			return id;
 		}

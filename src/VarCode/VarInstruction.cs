@@ -93,4 +93,14 @@ namespace Terumi.VarCode
 		public int MethodId { get; }
 		public List<int> ParameterVariables { get; }
 	}
+
+	public class ReferenceVarExpression : VarExpression
+	{
+		public ReferenceVarExpression(int variableId)
+		{
+			VariableId = variableId;
+		}
+
+		public int VariableId { get; }
+	}
 }

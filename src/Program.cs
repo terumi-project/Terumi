@@ -51,7 +51,8 @@ namespace Terumi
 		private static IOptimization[] GetOptimizations()
 			=> new IOptimization[]
 			{
-				new RemoveAllUnreferencedMethodsOptimization()
+				new RemoveAllUnreferencedMethodsOptimization(),
+				new MethodInliningOptimization()
 			};
 
 		public static bool Compile(string projectName, ICompilerMethods setupTarget)

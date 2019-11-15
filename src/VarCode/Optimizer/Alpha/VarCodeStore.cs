@@ -81,6 +81,7 @@ namespace Terumi.VarCode.Optimizer.Alpha
 #if JSON
 		[Newtonsoft.Json.JsonIgnore]
 #endif
+		// this really just is a hack so i don't have to pass a varcodestructure & store everywhere
 		public VarCodeStore Store { get; }
 
 		public VarCodeId Id { get; }

@@ -8,22 +8,30 @@ namespace Terumi.VarCode.Optimizer.Alpha
 {
 	public class VarCodeOptimizer
 	{
-		public VarCodeOptimizer(VarCodeTranslation translation) => Translation = translation;
+		private readonly IOptimization[] _optimizations;
 
-		public VarCodeTranslation Translation { get; }
+		public VarCodeOptimizer(VarCodeStore store, IOptimization[] optimizations)
+		{
+			Store = store;
+			_optimizations = optimizations;
+		}
+
+		public VarCodeStore Store { get; }
 
 		public void Optimize()
 		{
-			bool did1, did2;
+			var did = new bool[_optimizations.Length];
 
 			do
 			{
-				did1 = RemoveAllUnreferencedMethods();
-				did2 = InlineMethods();
+				for (var i = 0; i < _optimizations.Length; i++)
+				{
+					did[i] = _optimizations[i].Run(Store);
+				}
 			}
-			while (did1 || did2);
+			while (did.Any(x => x));
 		}
-
+		/*
 		public bool RemoveAllUnreferencedMethods()
 		{
 			var references = new List<int> { 0 };
@@ -353,5 +361,6 @@ namespace Terumi.VarCode.Optimizer.Alpha
 
 			return ReturnState.Nowhere;
 		}
+		*/
 	}
 }

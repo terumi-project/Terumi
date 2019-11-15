@@ -75,8 +75,8 @@ namespace Terumi
 
 			File.WriteAllText("t.txt", Newtonsoft.Json.JsonConvert.SerializeObject(translation, Newtonsoft.Json.Formatting.Indented));
 
-			var optimizer = new VarCode.Optimizer.Alpha.VarCodeOptimizer(translation);
-			optimizer.Optimize();
+			// var optimizer = new VarCode.Optimizer.Alpha.VarCodeOptimizer(translation);
+			// optimizer.Optimize();
 
 			File.WriteAllText("o.txt", Newtonsoft.Json.JsonConvert.SerializeObject(translation, Newtonsoft.Json.Formatting.Indented));
 

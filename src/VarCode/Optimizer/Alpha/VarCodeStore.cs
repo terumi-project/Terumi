@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Text;
 using Terumi.Binder;
 
@@ -13,6 +14,10 @@ namespace Terumi.VarCode.Optimizer.Alpha
 		private VarCodeId _methodCounter;
 		private readonly Dictionary<MethodBind, VarCodeStructure> _methods = new Dictionary<MethodBind, VarCodeStructure>();
 		private readonly Dictionary<CompilerMethod, VarCodeId> _compilerIds = new Dictionary<CompilerMethod, VarCodeId>();
+
+		public VarCodeStructure Entrypoint { get; }
+
+		public VarCodeStore(MethodBind entry) => Entrypoint = Rent(entry);
 
 		public VarCodeId Id(IMethod method)
 			=> method switch
@@ -31,6 +36,13 @@ namespace Terumi.VarCode.Optimizer.Alpha
 
 			return Rent(methodBind);
 		}
+
+		public IEnumerable<VarCodeStructure> Structures => _methods.Values;
+
+		public VarCodeStructure? GetStructure(VarCodeId id) => Structures.FirstOrDefault(x => x.Id == id);
+
+		public bool TryRemove(VarCodeStructure method)
+			=> _methods.Remove(method.MethodBind);
 
 		private VarCodeStructure Rent(MethodBind method)
 		{

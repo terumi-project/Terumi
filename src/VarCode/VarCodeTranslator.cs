@@ -10,20 +10,20 @@ namespace Terumi.VarCode
 {
 	public class VarCodeTranslation
 	{
-		public VarCodeTranslation(Dictionary<IMethod, int> methods, List<VarTree> trees)
+		public VarCodeTranslation(Dictionary<IMethod, VarCodeId> methods, List<VarTree> trees)
 		{
 			Methods = methods;
 			Trees = trees;
 		}
 
-		public Dictionary<IMethod, int> Methods { get; }
+		public Dictionary<IMethod, VarCodeId> Methods { get; }
 		public List<VarTree> Trees { get; }
 	}
 
 	public class VarCodeTranslator
 	{
 		private int _methodCounter;
-		private Dictionary<IMethod, int> _methods = new Dictionary<IMethod, int>();
+		private Dictionary<IMethod, VarCodeId> _methods = new Dictionary<IMethod, VarCodeId>();
 		private readonly List<VarTree> _varTrees = new List<VarTree>();
 
 		public VarCodeTranslation GetTranslation()
@@ -68,12 +68,12 @@ namespace Terumi.VarCode
 			return tree;
 		}
 
-		private int GetId(IMethod method)
+		private VarCodeId GetId(IMethod method)
 		{
 			// TODO: return negative IDs if the method is a compiler defined method
 			// idk how though LMAO
 
-			int id;
+			VarCodeId id;
 
 			if (!_methods.TryGetValue(method, out id))
 			{
@@ -88,13 +88,13 @@ namespace Terumi.VarCode
 	public class VarCodeMethodTranslator
 	{
 		private readonly VarTree _tree;
-		private readonly Func<IMethod, int> _methodIdGenerator;
+		private readonly Func<IMethod, VarCodeId> _methodIdGenerator;
 		private readonly MethodBind _method;
 
-		private readonly Dictionary<string, int> _varReferences = new Dictionary<string, int>();
-		private readonly Dictionary<string, int> _paramReferences = new Dictionary<string, int>();
+		private readonly Dictionary<string, VarCodeId> _varReferences = new Dictionary<string, VarCodeId>();
+		private readonly Dictionary<string, VarCodeId> _paramReferences = new Dictionary<string, VarCodeId>();
 
-		public VarCodeMethodTranslator(VarTree tree, Func<IMethod, int> methodIdGenerator, MethodBind method)
+		public VarCodeMethodTranslator(VarTree tree, Func<IMethod, VarCodeId> methodIdGenerator, MethodBind method)
 		{
 			_tree = tree;
 			_methodIdGenerator = methodIdGenerator;
@@ -159,9 +159,9 @@ namespace Terumi.VarCode
 			}
 		}
 
-		public List<int> Visit(List<ICodeExpression> expressions)
+		public List<VarCodeId> Visit(List<ICodeExpression> expressions)
 		{
-			var vars = new List<int>();
+			var vars = new List<VarCodeId>();
 
 			foreach (var expression in expressions)
 			{
@@ -171,7 +171,7 @@ namespace Terumi.VarCode
 			return vars;
 		}
 
-		public int Visit(ICodeExpression expression)
+		public VarCodeId Visit(ICodeExpression expression)
 		{
 			switch (expression)
 			{

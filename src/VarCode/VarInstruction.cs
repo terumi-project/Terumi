@@ -44,6 +44,18 @@ namespace Terumi.VarCode
 		public MethodCallVarExpression MethodCallVarExpression { get; }
 	}
 
+	public class VarParameterAssignment : VarInstruction
+	{
+		public VarParameterAssignment(int id, int parameterId)
+		{
+			Id = id;
+			ParameterId = parameterId;
+		}
+
+		public int Id { get; }
+		public int ParameterId { get; }
+	}
+
 	public abstract class VarExpression
 	{
 	}
@@ -60,13 +72,13 @@ namespace Terumi.VarCode
 
 	public class MethodCallVarExpression : VarExpression
 	{
-		public MethodCallVarExpression(int methodId, params int[] parameterVariables)
+		public MethodCallVarExpression(int methodId, List<int> parameterVariables)
 		{
 			MethodId = methodId;
 			ParameterVariables = parameterVariables;
 		}
 
 		public int MethodId { get; }
-		public int[] ParameterVariables { get; }
+		public List<int> ParameterVariables { get; }
 	}
 }

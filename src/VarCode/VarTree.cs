@@ -11,6 +11,9 @@ namespace Terumi.VarCode
 
 		public List<VarInstruction> Code { get; set; } = new List<VarInstruction>();
 
+		public int GetParameter(int parameterId)
+			=> AppendInstruction(id => new VarParameterAssignment(id, parameterId));
+
 		public int Push(string value)
 			=> AppendInstruction(id => new VarAssignment(id, new ConstantVarExpression<string>(value)));
 
@@ -21,11 +24,11 @@ namespace Terumi.VarCode
 			=> AppendInstruction(id => new VarAssignment(id, new ConstantVarExpression<bool>(value)));
 
 		/// <seealso cref="Call(int, int[])"/>
-		public void Execute(int methodId, params int[] vars)
+		public void Execute(int methodId, List<int> vars)
 			=> Code.Add(new VarMethodCall(null, new MethodCallVarExpression(methodId, vars)));
 
 		/// <seealso cref="Execute(int, int[])"
-		public int Call(int methodId, params int[] vars)
+		public int Call(int methodId, List<int> vars)
 			=> AppendInstruction(id => new VarMethodCall(id, new MethodCallVarExpression(methodId, vars)));
 
 		public void Return(int variable)

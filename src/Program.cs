@@ -8,6 +8,7 @@ using Terumi.Lexer;
 using Terumi.Parser;
 using Terumi.Targets;
 using Terumi.Tokens;
+using Terumi.VarCode;
 using Terumi.Workspace;
 
 namespace Terumi
@@ -68,7 +69,9 @@ namespace Terumi
 
 			Log.Stage("OPTIMIZATION", "Optimizing TypeInformation");
 
-			Optimizer.Optimize(binder.TypeInformation);
+			var translator = new VarCodeTranslator();
+			translator.Visit(binder.TypeInformation.Binds);
+			// Optimizer.Optimize(binder.TypeInformation);
 
 			Log.Stage("WRITING", "Writing input code to target powershell file.");
 

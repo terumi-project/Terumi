@@ -13,6 +13,7 @@ namespace Terumi.Binder
 		public TypeInformation(ICompilerMethods target) => _target = target;
 
 		public List<IBind> Binds { get; set; } = new List<IBind>();
+		public MethodBind Main => Binds.OfType<MethodBind>().First(x => x.Name == "main");
 
 		public IEnumerable<IType> AllReferenceableTypes(IBind mainBind)
 			=> AllReferenceableBinds(mainBind).OfType<IType>();

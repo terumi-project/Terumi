@@ -52,7 +52,7 @@ namespace Terumi.VarCode.Optimizer.Alpha
 			}
 
 			var id = _methodCounter++;
-			return _methods[method] = new VarCodeStructure(id, method);
+			return _methods[method] = new VarCodeStructure(this, id, method);
 		}
 
 		private VarCodeId CompilerId(CompilerMethod compilerMethod)
@@ -70,15 +70,26 @@ namespace Terumi.VarCode.Optimizer.Alpha
 
 	public class VarCodeStructure
 	{
-		public VarCodeStructure(VarCodeId id, MethodBind methodBind)
+		public VarCodeStructure(VarCodeStore store, VarCodeId id, MethodBind methodBind)
 		{
+			Store = store;
 			Id = id;
 			MethodBind = methodBind;
 			Tree = new VarTree();
 		}
 
+#if JSON
+		[Newtonsoft.Json.JsonIgnore]
+#endif
+		public VarCodeStore Store { get; }
+
 		public VarCodeId Id { get; }
+
+#if JSON
+		[Newtonsoft.Json.JsonIgnore]
+#endif
 		public MethodBind MethodBind { get; }
+
 		public VarTree Tree { get; }
 	}
 }

@@ -9,6 +9,7 @@ using Terumi.Parser;
 using Terumi.Targets;
 using Terumi.Tokens;
 using Terumi.VarCode;
+using Terumi.VarCode.Optimizer.Alpha;
 using Terumi.Workspace;
 
 namespace Terumi
@@ -47,6 +48,12 @@ namespace Terumi
 			new StringPattern(),
 		};
 
+		private static IOptimization[] GetOptimizations()
+			=> new IOptimization[]
+			{
+				new RemoveAllUnreferencedMethodsOptimization()
+			};
+
 		public static bool Compile(string projectName, ICompilerMethods setupTarget)
 		{
 			var resolver = new DependencyResolver(Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), projectName, ".libs")));
@@ -69,16 +76,16 @@ namespace Terumi
 
 			Log.Stage("OPTIMIZATION", "Optimizing TypeInformation");
 
-			var translator = new VarCodeTranslator();
+			var translator = new VarCodeTranslator(binder.TypeInformation.Main);
 			translator.Visit(binder.TypeInformation.Binds);
-			var translation = translator.GetTranslation();
+			var store = translator.Store;
 
-			File.WriteAllText("t.txt", Newtonsoft.Json.JsonConvert.SerializeObject(translation, Newtonsoft.Json.Formatting.Indented));
+			File.WriteAllText("t.txt", Newtonsoft.Json.JsonConvert.SerializeObject(store, Newtonsoft.Json.Formatting.Indented));
 
-			// var optimizer = new VarCode.Optimizer.Alpha.VarCodeOptimizer(translation);
-			// optimizer.Optimize();
+			var optimizer = new VarCodeOptimizer(store, GetOptimizations());
+			optimizer.Optimize();
 
-			File.WriteAllText("o.txt", Newtonsoft.Json.JsonConvert.SerializeObject(translation, Newtonsoft.Json.Formatting.Indented));
+			File.WriteAllText("o.txt", Newtonsoft.Json.JsonConvert.SerializeObject(store, Newtonsoft.Json.Formatting.Indented));
 
 			// Optimizer.Optimize(binder.TypeInformation);
 

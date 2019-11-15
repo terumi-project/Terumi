@@ -5,100 +5,59 @@ using System.Numerics;
 using System.Text;
 using Terumi.Ast;
 using Terumi.Binder;
+using Terumi.VarCode.Optimizer.Alpha;
 
 namespace Terumi.VarCode
 {
-	public class VarCodeTranslation
-	{
-		public VarCodeTranslation(Dictionary<IMethod, VarCodeId> methods, List<VarTree> trees)
-		{
-			Methods = methods;
-			Trees = trees;
-		}
-
-		public Dictionary<IMethod, VarCodeId> Methods { get; }
-		public List<VarTree> Trees { get; }
-	}
-
 	public class VarCodeTranslator
 	{
-		private int _methodCounter;
-		private Dictionary<IMethod, VarCodeId> _methods = new Dictionary<IMethod, VarCodeId>();
-		private readonly List<VarTree> _varTrees = new List<VarTree>();
+		private readonly MethodBind _entry;
 
-		public VarCodeTranslation GetTranslation()
-			=> new VarCodeTranslation(_methods, _varTrees);
+		public VarCodeTranslator(MethodBind entry)
+		{
+			_entry = entry;
+			Store = new VarCodeStore(_entry);
+		}
+
+		public VarCodeStore Store { get; }
 
 		public void Visit(IEnumerable<IBind> binds)
 		{
-			// first, insert the 'main' method
-			var main = binds.OfType<MethodBind>().First(x => x.Name == "main");
-
-			// that way main will be the 0th method, and thus the root.
-			InsertAt(GetId(main), Visit(main));
-
 			foreach (var bind in binds)
 			{
-				if (bind is MethodBind methodBind)
+				if (bind is IMethod method)
 				{
-					InsertAt(GetId(methodBind), Visit(methodBind));
+					var rent = Store.Rent(method);
+
+					if (rent != null)
+					{
+						Visit(rent);
+					}
 				}
 			}
 		}
 
-		private void InsertAt(int id, VarTree tree)
+		public static void Visit(VarCodeStructure structure)
 		{
-			while (id >= _varTrees.Count)
-			{
-				_varTrees.Add(default);
-			}
-
-			_varTrees[id] = tree;
-		}
-
-		public VarTree Visit(MethodBind methodBind)
-		{
-			var id = GetId(methodBind);
-
-			var tree = new VarTree();
-
-			var translator = new VarCodeMethodTranslator(tree, GetId, methodBind);
-			translator.Visit(methodBind.Statements);
-
-			return tree;
-		}
-
-		private VarCodeId GetId(IMethod method)
-		{
-			// TODO: return negative IDs if the method is a compiler defined method
-			// idk how though LMAO
-
-			VarCodeId id;
-
-			if (!_methods.TryGetValue(method, out id))
-			{
-				id = _methodCounter++;
-				_methods[method] = id;
-			}
-
-			return id;
+			var translator = new VarCodeMethodTranslator(structure);
+			translator.Visit(structure.MethodBind.Statements);
 		}
 	}
 
 	public class VarCodeMethodTranslator
 	{
-		private readonly VarTree _tree;
-		private readonly Func<IMethod, VarCodeId> _methodIdGenerator;
-		private readonly MethodBind _method;
-
 		private readonly Dictionary<string, VarCodeId> _varReferences = new Dictionary<string, VarCodeId>();
 		private readonly Dictionary<string, VarCodeId> _paramReferences = new Dictionary<string, VarCodeId>();
+		private readonly VarCodeStructure _structure;
 
-		public VarCodeMethodTranslator(VarTree tree, Func<IMethod, VarCodeId> methodIdGenerator, MethodBind method)
+		private VarTree _tree => _structure.Tree;
+
+		public VarCodeMethodTranslator(VarCodeStructure structure)
 		{
-			_tree = tree;
-			_methodIdGenerator = methodIdGenerator;
-			_method = method;
+			_structure = structure;
+
+			var method = _structure.MethodBind;
+			var tree = _structure.Tree;
 
 			for (var i = 0; i < method.Parameters.Count; i++)
 			{
@@ -107,8 +66,6 @@ namespace Terumi.VarCode
 
 				_paramReferences[name] = id;
 			}
-
-			_methodIdGenerator = methodIdGenerator;
 		}
 
 		public void Visit(List<CodeStatement> statements)
@@ -145,7 +102,9 @@ namespace Terumi.VarCode
 				case MethodCallExpression i:
 				{
 					var parameters = Visit(i.Parameters);
-					_tree.Execute(_methodIdGenerator(i.CallingMethod), parameters);
+
+					var id = _structure.Store.Id(i.CallingMethod);
+					_tree.Execute(id, parameters);
 				}
 				break;
 
@@ -185,7 +144,7 @@ namespace Terumi.VarCode
 				case MethodCallExpression i:
 				{
 					var parameters = Visit(i.Parameters);
-					var id = _tree.Call(_methodIdGenerator(i.CallingMethod), parameters);
+					var id = _tree.Call(_structure.Store.Id(i.CallingMethod), parameters);
 					return id;
 				}
 

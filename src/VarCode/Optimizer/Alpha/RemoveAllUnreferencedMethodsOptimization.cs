@@ -47,6 +47,8 @@ namespace Terumi.VarCode.Optimizer.Alpha
 				{
 					references.Add(methodCall.MethodId);
 				}
+
+
 			}
 
 			return references;

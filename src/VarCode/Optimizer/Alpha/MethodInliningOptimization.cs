@@ -13,15 +13,15 @@ namespace Terumi.VarCode.Optimizer.Alpha
 			return Run(store.Entrypoint);
 		}
 
-		private bool Run(VarCodeStructure operate)
+		private bool Run(VarCodeStructure operate) => Run(operate, ref operate.Tree.Counter, operate.Tree.Code);
+
+		private bool Run(VarCodeStructure operate, ref VarCodeId counter, List<VarInstruction> instructions)
 		{
 			var couldInlineOne = false;
 
-			var tree = operate.Tree;
-
-			for (var i = 0; i < tree.Code.Count; i++)
+			for (var i = 0; i < instructions.Count; i++)
 			{
-				var instruction = tree.Code[i];
+				var instruction = instructions[i];
 				switch (instruction)
 				{
 					case VarAssignment o:
@@ -31,13 +31,19 @@ namespace Terumi.VarCode.Optimizer.Alpha
 							continue;
 						}
 
-						couldInlineOne = TryInline(operate, i, methodCall, o.VariableId) || couldInlineOne;
+						couldInlineOne = TryInline(operate, ref counter, instructions, i, methodCall, o.VariableId) || couldInlineOne;
 					}
 					break;
 
 					case VarMethodCall o:
 					{
-						couldInlineOne = TryInline(operate, i, o.MethodCallVarExpression, null) || couldInlineOne;
+						couldInlineOne = TryInline(operate, ref counter, instructions, i, o.MethodCallVarExpression, o.VariableId) || couldInlineOne;
+					}
+					break;
+
+					case VarIf o:
+					{
+						couldInlineOne = Run(operate, ref counter, o.TrueBody) || couldInlineOne;
 					}
 					break;
 				}
@@ -46,7 +52,7 @@ namespace Terumi.VarCode.Optimizer.Alpha
 			return couldInlineOne;
 		}
 
-		private bool TryInline(VarCodeStructure operate, int i, MethodCallVarExpression call, VarCodeId? resultAssignment)
+		private bool TryInline(VarCodeStructure operate, ref VarCodeId counter, List<VarInstruction> instructions, int i, MethodCallVarExpression call, VarCodeId? resultAssignment)
 		{
 			// before we determine if we can inline this method, we must determine if the method
 			// has a return statement somewhere in itself.
@@ -74,14 +80,14 @@ namespace Terumi.VarCode.Optimizer.Alpha
 			// TODO: check if the method references some kind of loop such that we can't inline it.
 
 			// now we have to begin the gruesome process of merging the two code trees
-			var merger = new CodeTreeMerger(operate.Tree.Counter, operate, i, call, resultAssignment);
+			var merger = new CodeTreeMerger(counter, instructions, operate, i, call, resultAssignment);
 
 			merger.Merge();
 
 			// if the inlined method caused us to define variables like 17 when the counter was only 12,
 			// we want to update the counter to 18 so that new variable declarations and future inlings
 			// use only unused variables
-			operate.Tree.Counter = merger.HighestSetVariable;
+			counter = merger.HighestSetVariable + 1;
 
 			return true;
 		}
@@ -122,8 +128,9 @@ namespace Terumi.VarCode.Optimizer.Alpha
 		private readonly int _i;
 		private readonly MethodCallVarExpression _call;
 		private readonly VarCodeId? _resultAssignment;
+		private List<VarInstruction> _instructions;
 
-		public CodeTreeMerger(VarCodeId variableAppend, VarCodeStructure operate, int i, MethodCallVarExpression call, VarCodeId? resultAssignment)
+		public CodeTreeMerger(VarCodeId variableAppend, List<VarInstruction> instructions, VarCodeStructure operate, int i, MethodCallVarExpression call, VarCodeId? resultAssignment)
 		{
 			HighestSetVariable = default;
 
@@ -132,6 +139,7 @@ namespace Terumi.VarCode.Optimizer.Alpha
 			_i = i;
 			_call = call;
 			_resultAssignment = resultAssignment;
+			_instructions = instructions;
 		}
 
 		public VarCodeId HighestSetVariable { get; set; }
@@ -139,7 +147,7 @@ namespace Terumi.VarCode.Optimizer.Alpha
 		public void Merge()
 		{
 			// first, prune the tree up until right before the method call
-			var treeCode = _operate.Tree.Code;
+			var treeCode = _instructions;
 			var pruned = treeCode.Take(_i).ToList();
 
 			// do inlining
@@ -154,7 +162,10 @@ namespace Terumi.VarCode.Optimizer.Alpha
 
 			// now we want to stich back on the stuff we pruned
 			pruned.AddRange(treeCode.Skip(_i + 1));
-			_operate.Tree.Code = pruned;
+
+			// TODO: better way to set instructions
+			_instructions.Clear();
+			_instructions.AddRange(pruned);
 		}
 
 		private bool InlineInstruction(VarInstruction instruction, List<VarInstruction> target)

@@ -11,7 +11,7 @@ namespace Terumi.VarCode
 		private readonly List<VarCodeId> _comparisonBacklog = new List<VarCodeId>();
 
 		public List<VarInstruction> Code { get; set; } = new List<VarInstruction>();
-		public VarCodeId Counter { get; set; }
+		public VarCodeId Counter;
 
 		public void BeginIf(VarCodeId comparisonVariable)
 		{

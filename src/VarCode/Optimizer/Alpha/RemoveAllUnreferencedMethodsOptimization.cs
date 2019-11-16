@@ -10,6 +10,7 @@ namespace Terumi.VarCode.Optimizer.Alpha
 		{
 			var entry = store.Entrypoint;
 			var references = AllReferences(entry, entry.Tree.Code);
+			references.Add(entry.Id); // we don't want the entry itself to die
 
 			var deleteStructures = new List<VarCodeStructure>();
 

@@ -44,6 +44,8 @@ namespace Terumi.VarCode.Optimizer.Alpha
 
 		public IEnumerable<VarCodeStructure> Structures => _methods.Values;
 
+		public IEnumerable<KeyValuePair<VarCodeId, CompilerMethod>> CompilerMethods => _compilerIds.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
+
 		public VarCodeStructure? GetStructure(VarCodeId id) => Structures.FirstOrDefault(x => x.Id == id);
 
 		public bool TryRemove(VarCodeStructure method)

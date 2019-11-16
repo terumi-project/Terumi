@@ -87,6 +87,10 @@ namespace Terumi
 			var optimizer = new VarCodeOptimizer(store, GetOptimizations());
 			optimizer.Optimize();
 
+			// now we need to convert the store to an omega store
+			var omegaStore = VarCode.Optimizer.Omega.VarCodeTranslator.Translate(store);
+			// TODO: omega store optimizations
+
 			// Optimizer.Optimize(binder.TypeInformation);
 
 			Log.Stage("WRITING", "Writing input code to target powershell file.");
@@ -100,7 +104,7 @@ namespace Terumi
 
 			// tabs <3
 			using var indentedWriter = new IndentedTextWriter(sw, "\t");
-			target.Write(indentedWriter, store);
+			target.Write(indentedWriter, omegaStore);
 
 			Log.StageEnd();
 			return true;

@@ -27,6 +27,7 @@ using OmegaExpression = Terumi.VarCode.Optimizer.Omega.VarExpression;
 using OmegaMethodCallExpression = Terumi.VarCode.Optimizer.Omega.MethodCallVarExpression;
 using OmegaReferenceExpression = Terumi.VarCode.Optimizer.Omega.ReferenceVarExpression;
 using OmegaParameterReferenceExpression = Terumi.VarCode.Optimizer.Omega.ParameterReferenceVarExpression;
+using System.Numerics;
 
 namespace Terumi.VarCode.Optimizer.Omega
 {
@@ -38,11 +39,16 @@ namespace Terumi.VarCode.Optimizer.Omega
 		{
 			var oStore = new OmegaStore();
 
-			oStore.EntryInstructions = Translate(aStore.Entrypoint.Tree.Code);
+			oStore.Instructions = Translate(aStore.Entrypoint.Tree.Code);
 
 			foreach (var structure in aStore.Structures.Where(x => x != aStore.Entrypoint))
 			{
-				oStore.Functions.Add((structure.Id, Translate(structure.Tree.Code)));
+				oStore.Functions.Add(new Structure(structure.Id, Translate(structure.Tree.Code), structure.MethodBind.Parameters.Count));
+			}
+
+			foreach (var (methodId, compilerMethod) in aStore.CompilerMethods)
+			{
+				oStore.CompilerMethods.Add(methodId, compilerMethod);
 			}
 
 			return oStore;
@@ -115,6 +121,17 @@ namespace Terumi.VarCode.Optimizer.Omega
 				case AlphaReferenceExpression o:
 				{
 					return new OmegaReferenceExpression(o.VariableId);
+				}
+
+				case IConstantVarExpression o:
+				{
+					return o.Value switch
+					{
+						string p => new ConstantVarExpression<string>(p),
+						BigInteger p => new ConstantVarExpression<BigInteger>(p),
+						bool p => new ConstantVarExpression<bool>(p),
+						_ => throw new NotImplementedException()
+					};
 				}
 
 				default: throw new NotImplementedException();

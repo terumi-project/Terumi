@@ -1,7 +1,7 @@
 ﻿using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using Terumi.Binder;
-using Terumi.VarCode.Optimizer.Alpha;
+using Terumi.VarCode.Optimizer.Omega;
 
 namespace Terumi.Targets
 {

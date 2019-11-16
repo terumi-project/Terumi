@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
 
-namespace Terumi.VarCode
+namespace Terumi.VarCode.Optimizer.Alpha
 {
 	public class VarTree
 	{

@@ -7,7 +7,7 @@ using Terumi.Ast;
 using Terumi.Binder;
 using Terumi.VarCode.Optimizer.Alpha;
 
-namespace Terumi.VarCode
+namespace Terumi.VarCode.Optimizer.Alpha
 {
 	public class VarCodeTranslator
 	{

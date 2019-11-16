@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Terumi.VarCode
+namespace Terumi.VarCode.Optimizer.Alpha
 {
 	// unoptimized, simple instructions to use in the creation of a VarTree
 

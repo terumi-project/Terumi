@@ -23,7 +23,30 @@ namespace Terumi.Targets
 					Name = name,
 					Parameters = parameters.Select((x, i) => new ParameterBind { Name = $"p{i}", Type = x }).ToList(),
 					ReturnType = CompilerDefined.Void,
-					Generate = strs => $"Write-Host \"{(strs.Count == 1 ? $"$({strs[0]})" : strs.Aggregate((a, b) => $"$({a})$({b})"))}\""
+					Generate = strs =>
+					{
+						var strb = new StringBuilder("Write-Host ");
+
+						if (strs.Count == 1)
+						{
+							strb.Append(strs[0]);
+						}
+						else
+						{
+							strb.Append('"');
+
+							foreach (var str in strs)
+							{
+								strb.Append("$(");
+								strb.Append(str);
+								strb.Append(")");
+							}
+
+							strb.Append('"');
+						}
+
+						return strb.ToString();
+					}
 				};
 			}
 

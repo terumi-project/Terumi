@@ -33,7 +33,7 @@ namespace Terumi.VarCode.Optimizer.Omega
 			Value = value;
 		}
 
-		public VarExpression Value { get; }
+		public VarExpression Value { get; set; }
 	}
 
 	public class VarMethodCall : VarInstruction
@@ -43,7 +43,7 @@ namespace Terumi.VarCode.Optimizer.Omega
 			MethodCallVarExpression = methodCallVarExpression;
 		}
 
-		public MethodCallVarExpression MethodCallVarExpression { get; }
+		public MethodCallVarExpression MethodCallVarExpression { get; set; }
 	}
 
 	public class VarIf : VarInstruction
@@ -55,7 +55,7 @@ namespace Terumi.VarCode.Optimizer.Omega
 		}
 
 		public List<VarInstruction> TrueBody { get; }
-		public VarExpression ComparisonExpression { get; }
+		public VarExpression ComparisonExpression { get; set; }
 	}
 
 	public abstract class VarExpression

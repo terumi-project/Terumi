@@ -58,6 +58,12 @@ namespace Terumi
 				new RemoveAllUnreferencedVariablesOptimization(),
 			};
 
+		private static VarCode.Optimizer.Omega.IOptimization[] GetOmegaOptimizations()
+			=> new VarCode.Optimizer.Omega.IOptimization[]
+			{
+				new VarCode.Optimizer.Omega.InlineVariableReferences()
+			};
+
 		public static bool Compile(string projectName, ICompilerTarget target)
 		{
 			var resolver = new DependencyResolver(Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), projectName, ".libs")));
@@ -89,7 +95,8 @@ namespace Terumi
 
 			// now we need to convert the store to an omega store
 			var omegaStore = VarCode.Optimizer.Omega.VarCodeTranslator.Translate(store);
-			// TODO: omega store optimizations
+			var omegaOptimizer = new VarCode.Optimizer.Omega.VarCodeOptimizer(omegaStore, GetOmegaOptimizations());
+			omegaOptimizer.Optimize();
 
 			// Optimizer.Optimize(binder.TypeInformation);
 

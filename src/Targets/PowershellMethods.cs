@@ -7,157 +7,152 @@ using System.Text;
 
 using Terumi.Ast;
 using Terumi.Binder;
+using Terumi.VarCode;
+using Terumi.VarCode.Optimizer.Alpha;
 
 namespace Terumi.Targets
 {
-	public class PowershellMethods : ICompilerMethods
-	{
-		public ICompilerTarget MakeTarget(TypeInformation typeInformation) => new PowershellTarget(typeInformation);
-
-		public string supports_string(string feature) => "$TRUE"; // TODO: lol, make sure to be specific about this
-
-		public string println_string(string value) => $"Write-Host {value}";
-
-		public string println_number(string value) => $"Write-Host {value}";
-
-		public string println_bool(string value) => $"Write-Host {value}";
-
-		public string concat_string_string(string a, string b) => $"\"$({a})$({b})\"";
-
-		public string add_number_number(string a, string b) => $"{a}+{b}";
-	}
-
 	public class PowershellTarget : ICompilerTarget
 	{
-		private readonly TypeInformation _typeInformation;
-
-		public PowershellTarget(TypeInformation typeInformation) => _typeInformation = typeInformation;
-
-		public void Post(IndentedTextWriter writer) => writer.WriteLine("main");
-
-		public void Write(IndentedTextWriter writer, IBind bind)
+		public CompilerMethod? MatchMethod(string name, params IType[] parameters)
 		{
-			switch (bind)
+			if (name == "println" && parameters.Length > 0)
 			{
-				case UserType userType: WriteUserType(writer, userType); return;
-				case MethodBind methodBind: WriteMethodBind(writer, methodBind); return;
-				default: throw new NotImplementedException();
-			}
-		}
-
-		private void WriteUserType(IndentedTextWriter writer, UserType userType)
-		{
-			throw new NotImplementedException();
-		}
-
-		private void WriteMethodBind(IndentedTextWriter writer, MethodBind methodBind)
-		{
-			writer.WriteLine(@$"function {methodBind.Name}({GenMethodParameters(methodBind.Parameters)})
-{{");
-			writer.Indent++;
-
-			foreach (var statement in methodBind.Statements)
-			{
-				WriteMethodStatement(writer, statement);
-			}
-
-			writer.Indent--;
-			writer.WriteLine("}");
-		}
-
-		private string GenMethodParameters(List<ParameterBind> parameters)
-		{
-			if (parameters.Count == 0) return "";
-			if (parameters.Count == 1) return "$" + parameters[0].Name;
-
-			return parameters.Select(x => "$" + x.Name).Aggregate((a, b) => a + ", " + b);
-		}
-
-		private void WriteMethodStatement(IndentedTextWriter writer, CodeStatement statement)
-		{
-			switch (statement)
-			{
-				case IfStatement ifStatement:
+				return new CompilerMethod
 				{
-					writer.WriteLine($"If ({HandleExpression(ifStatement.Comparison)}) {{");
-					writer.Indent++;
+					Name = name,
+					Parameters = parameters.Select((x, i) => new ParameterBind { Name = $"p{i}", Type = x }).ToList(),
+					ReturnType = CompilerDefined.Void,
+					Generate = strs => $"Write-Host \"{(strs.Count == 1 ? $"$({strs[0]})" : strs.Aggregate((a, b) => $"$({a})$({b})"))}\""
+				};
+			}
 
-					foreach (var bodyStatement in ifStatement.Statements)
+			return default;
+		}
+
+		public void Write(IndentedTextWriter writer, VarCodeStore store)
+		{
+			// we want to write out every method that isn't the entrypoint
+
+			foreach (var structure in store.Structures.Where(x => x != store.Entrypoint))
+			{
+				writer.WriteLine($"function {GetName(structure.Id)}({Parameters(structure)})");
+				writer.WriteLine("{");
+				writer.Indent++;
+
+				Write(writer, store, structure.Tree.Code);
+
+				writer.Indent--;
+				writer.WriteLine("}");
+			}
+
+			// now let's write out the main method
+
+			Write(writer, store, store.Entrypoint.Tree.Code);
+		}
+
+		public void Write(IndentedTextWriter writer, VarCodeStore store, List<VarInstruction> instructions)
+		{
+			foreach (var instruction in instructions)
+			{
+				switch (instruction)
+				{
+					case VarAssignment o:
 					{
-						WriteMethodStatement(writer, bodyStatement);
+						writer.WriteLine($"${GetName(o.VariableId)} = {Expression(o.Value)}");
 					}
+					break;
 
-					writer.Indent--;
-					writer.WriteLine("}");
-				}
-				return;
+					case VarReturn o:
+					{
+						writer.WriteLine($"return ${o.Id}");
+					}
+					break;
 
-				case ReturnStatement returnStatement:
-				{
-					writer.WriteLine($"return {HandleExpression(returnStatement.ReturnOn)}");
+					case VarMethodCall o:
+					{
+						if (o.VariableId != null)
+						{
+							writer.Write($"${GetName((VarCodeId)o.VariableId)} = ");
+						}
+
+						writer.WriteLine(Expression(o.MethodCallVarExpression));
+					}
+					break;
+
+					case VarParameterAssignment o:
+					{
+						writer.WriteLine($"${GetName(o.Id)} = $p{o.ParameterId}");
+					}
+					break;
+
+					case VarIf o:
+					{
+						writer.WriteLine($"if (${GetName(o.ComparisonVariable)}) {{");
+						writer.Indent++;
+
+						Write(writer, store, o.TrueBody);
+
+						writer.Indent--;
+						writer.WriteLine("}");
+					}
+					break;
 				}
-				return;
 			}
 
-			writer.WriteLine(HandleExpression(statement as ICodeExpression));
+			string Expression(VarExpression expression)
+				=> expression switch
+				{
+					ConstantVarExpression<string> o => $"\"{Sanitize(o.Value)}\"",
+					ConstantVarExpression<BigInteger> o => $"(New-Object System.Numerics.BigInteger(\"{o.Value.ToString()}\"))",
+					ConstantVarExpression<bool> o => o.Value ? "$TRUE" : "$FALSE",
+					ReferenceVarExpression o => $"${GetName(o.VariableId)}",
+					MethodCallVarExpression o => GetMethodCall(store, o),
+					_ => throw new NotImplementedException(),
+				};
 		}
 
-		private string HandleExpression(ICodeExpression codeExpression)
-			=> codeExpression switch
-			{
-				MethodCallExpression methodCallExpression => HandleMethodCallExpression(methodCallExpression),
-				ConstantLiteralExpression<string> constantLiteralExpressionString => HandleConstantLiteralExpressionString(constantLiteralExpressionString),
-				ConstantLiteralExpression<BigInteger> constantLiteralExpressionNumber => HandleConstantLiteralExpressionNumber(constantLiteralExpressionNumber),
-				ConstantLiteralExpression<bool> constantLiteralExpressionBoolean => HandleConstantLiteralExpressionBoolean(constantLiteralExpressionBoolean),
-				ParameterReferenceExpression parameterReferenceExpression => HandleParameterReferenceExpression(parameterReferenceExpression),
-				VariableReferenceExpression variableReferenceExpression => HandleVariableReferenceExpression(variableReferenceExpression),
-				VariableAssignment variableAssignment => HandleVariableAssignment(variableAssignment),
-				_ => throw new NotSupportedException(codeExpression.ToString())
-			};
-
-		private string HandleMethodCallExpression(MethodCallExpression methodCallExpression)
+		private string GetMethodCall(VarCodeStore store, MethodCallVarExpression methodCall)
 		{
-			if (methodCallExpression.CallingMethod is CompilerMethod compilerMethod)
+			var strb = new StringBuilder(50);
+			strb.Append('(');
+
+			var structure = store.GetStructure(methodCall.MethodId);
+
+			if (structure == null)
 			{
-				return HandleCompilerMethod(compilerMethod, methodCallExpression.Parameters);
+				// structure is null, let's try to find a corresponding compiler method
+				var compilerMethod = store.GetCompilerMethod(methodCall.MethodId);
+
+				if (compilerMethod == null)
+				{
+					throw new Exception("huh");
+				}
+
+				return compilerMethod.Generate(methodCall.ParameterVariables.Select(x => $"${GetName(x)}").ToList());
 			}
-
-			var parameters = new List<string>();
-
-			foreach (var expr in methodCallExpression.Parameters)
+			else
 			{
-				parameters.Add(HandleExpression(expr));
-			}
+				strb.Append(GetName(methodCall.MethodId));
 
-			var strb = new StringBuilder("(");
-			strb.Append(methodCallExpression.CallingMethod.Name);
+				if (methodCall.ParameterVariables.Count > 0)
+				{
+					strb.Append(' ');
+					strb.Append($"${GetName(methodCall.ParameterVariables[0])}");
 
-			foreach (var param in parameters)
-			{
-				strb.Append(' ');
-				strb.Append(param);
+					for (int i = 1; i < methodCall.ParameterVariables.Count; i++)
+					{
+						strb.Append(", ");
+						strb.Append($"${GetName(methodCall.ParameterVariables[i])}");
+					}
+				}
 			}
 
 			strb.Append(')');
 			return strb.ToString();
 		}
 
-		private string HandleCompilerMethod(CompilerMethod compilerMethod, List<ICodeExpression> expressions)
-		{
-			var strings = new List<string>();
-
-			foreach (var expression in expressions)
-			{
-				strings.Add(HandleExpression(expression));
-			}
-
-			return compilerMethod.Generate(strings);
-		}
-
-		private string HandleConstantLiteralExpressionString(ConstantLiteralExpression<string> constantLiteralExpressionString)
-			=> $"\"{Sanitize(constantLiteralExpressionString.Value)}\"";
-
-		private string Sanitize(string str)
+		private static string Sanitize(string str)
 		{
 			var strb = new StringBuilder(str.Length);
 
@@ -187,19 +182,40 @@ namespace Terumi.Targets
 			return strb.ToString();
 		}
 
-		private string HandleConstantLiteralExpressionNumber(ConstantLiteralExpression<BigInteger> constantLiteralExpressionNumber)
-			=> $"(New-Object System.Numerics.BigInteger(\"{constantLiteralExpressionNumber.Value.ToString()}\"))";
+		private static string Parameters(VarCodeStructure structures)
+		{
+			var @params = structures.MethodBind.Parameters;
+			if (@params.Count == 0) return "";
 
-		private string HandleConstantLiteralExpressionBoolean(ConstantLiteralExpression<bool> constantLiteralExpressionBoolean)
-			=> constantLiteralExpressionBoolean.Value ? "$TRUE" : "$FALSE";
+			var strb = new StringBuilder("$p0");
 
-		private string HandleParameterReferenceExpression(ParameterReferenceExpression parameterReferenceExpression)
-			=> $"${parameterReferenceExpression.Parameter.Name}";
+			for (var i = 1; i < structures.MethodBind.Parameters.Count; i++)
+			{
+				strb.Append(',');
+				strb.Append($"$p{i}");
+			}
 
-		private string HandleVariableReferenceExpression(VariableReferenceExpression variableReferenceExpression)
-			=> $"${variableReferenceExpression.VarName}";
+			return strb.ToString();
+		}
 
-		private string HandleVariableAssignment(VariableAssignment variableAssignment)
-			=> $"${variableAssignment.VariableName} = {HandleExpression(variableAssignment.Value)}";
+		private static string GetName(VarCodeId id)
+		{
+			return new string(id.ToString().Select(ToChar).ToArray());
+
+			static char ToChar(char i)
+				=> (i - '0') switch
+				{
+					0 => 'a',
+					1 => 'b',
+					2 => 'c',
+					3 => 'd',
+					4 => 'e',
+					5 => 'f',
+					6 => 'g',
+					7 => 'h',
+					8 => 'i',
+					9 => 'j'
+				};
+		}
 	}
 }

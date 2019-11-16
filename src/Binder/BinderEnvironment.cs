@@ -14,7 +14,7 @@ namespace Terumi.Binder
 
 		private readonly List<ParsedProjectFile> _sourceFiles;
 
-		public BinderEnvironment(ICompilerMethods target, List<ParsedProjectFile> sourceFiles)
+		public BinderEnvironment(ICompilerTarget target, List<ParsedProjectFile> sourceFiles)
 		{
 			TypeInformation = new TypeInformation(target);
 			_sourceFiles = sourceFiles;

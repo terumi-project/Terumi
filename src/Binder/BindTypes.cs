@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Terumi.Binder
 {
@@ -63,7 +64,7 @@ namespace Terumi.Binder
 		public string Name { get; set; }
 	}
 
-	public class CompilerMethod : IMethod
+	public class CompilerMethod : IMethod, IEquatable<CompilerMethod>
 	{
 		public PackageLevel Namespace { get; }
 
@@ -76,6 +77,13 @@ namespace Terumi.Binder
 		public List<ParameterBind> Parameters { get; set; }
 
 		public Func<List<string>, string> Generate { get; set; }
+
+		public override bool Equals(object obj) => Equals(obj as CompilerMethod);
+		public bool Equals([AllowNull] CompilerMethod other) => other != null && Namespace.Equals(other.Namespace) && EqualityComparer<List<PackageLevel>>.Default.Equals(References, other.References) && EqualityComparer<IType>.Default.Equals(ReturnType, other.ReturnType) && Name == other.Name && EqualityComparer<List<ParameterBind>>.Default.Equals(Parameters, other.Parameters) && EqualityComparer<Func<List<string>, string>>.Default.Equals(Generate, other.Generate);
+		public override int GetHashCode() => HashCode.Combine(Namespace, References, ReturnType, Name, Parameters, Generate);
+
+		public static bool operator ==(CompilerMethod left, CompilerMethod right) => EqualityComparer<CompilerMethod>.Default.Equals(left, right);
+		public static bool operator !=(CompilerMethod left, CompilerMethod right) => !(left == right);
 	}
 
 	public class CompilerType : IType

@@ -23,5 +23,7 @@ namespace Terumi.VarCode
 
 		public static implicit operator int(VarCodeId varId) => varId.Id;
 		public static implicit operator VarCodeId(int id) => new VarCodeId(id);
+
+		public override string ToString() => Id.ToString();
 	}
 }

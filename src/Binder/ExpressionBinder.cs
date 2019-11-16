@@ -55,7 +55,16 @@ namespace Terumi.Binder
 				}
 			}
 
+			// try to find a compiler method
+			var compilerMethod = _typeInformation.MatchMethod(methodCall.MethodName, methodCallParams.Select(x => x.Type));
+
+			if (compilerMethod != null)
+			{
+				return new MethodCallExpression(compilerMethod, methodCallParams);
+			}
+
 			Log.Error($"Unable to find matching method call for '{methodCall}' in method {entity}");
+
 			throw new Exception("Binding Exception");
 		}
 

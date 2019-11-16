@@ -19,6 +19,11 @@ namespace Terumi.VarCode.Optimizer.Alpha
 
 		public VarCodeStore(MethodBind entry) => Entrypoint = Rent(entry);
 
+		public CompilerMethod? GetCompilerMethod(VarCodeId methodId)
+		{
+			return _compilerIds.FirstOrDefault(x => x.Value == methodId).Key;
+		}
+
 		public VarCodeId Id(IMethod method)
 			=> method switch
 			{

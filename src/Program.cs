@@ -58,7 +58,7 @@ namespace Terumi
 				new RemoveAllUnreferencedVariablesOptimization(),
 			};
 
-		public static bool Compile(string projectName, ICompilerMethods setupTarget)
+		public static bool Compile(string projectName, ICompilerTarget target)
 		{
 			var resolver = new DependencyResolver(Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), projectName, ".libs")));
 
@@ -74,7 +74,7 @@ namespace Terumi
 
 			Log.Stage("BINDING", "Binding parsed source files to in memory representations");
 
-			var binder = new BinderEnvironment(setupTarget, parsedFiles);
+			var binder = new BinderEnvironment(target, parsedFiles);
 			binder.PassOverTypeDeclarations();
 			binder.PassOverMethodBodies();
 
@@ -84,12 +84,8 @@ namespace Terumi
 			translator.Visit(binder.TypeInformation.Binds);
 			var store = translator.Store;
 
-			File.WriteAllText("t.txt", Newtonsoft.Json.JsonConvert.SerializeObject(store, Newtonsoft.Json.Formatting.Indented));
-
 			var optimizer = new VarCodeOptimizer(store, GetOptimizations());
 			optimizer.Optimize();
-
-			File.WriteAllText("o.txt", Newtonsoft.Json.JsonConvert.SerializeObject(store, Newtonsoft.Json.Formatting.Indented));
 
 			// Optimizer.Optimize(binder.TypeInformation);
 
@@ -104,15 +100,7 @@ namespace Terumi
 
 			// tabs <3
 			using var indentedWriter = new IndentedTextWriter(sw, "\t");
-
-			var target = setupTarget.MakeTarget(binder.TypeInformation); // new PowershellTarget(binder.TypeInformation);
-
-			foreach (var item in binder.TypeInformation.Binds)
-			{
-				target.Write(indentedWriter, item);
-			}
-
-			target.Post(indentedWriter);
+			target.Write(indentedWriter, store);
 
 			Log.StageEnd();
 			return true;
@@ -125,7 +113,7 @@ namespace Terumi
 		{
 #if DEBUG
 			Directory.SetCurrentDirectory("D:\\test");
-			Compile("sample_project", new PowershellMethods());
+			Compile("sample_project", new PowershellTarget());
 #endif
 		}
 	}

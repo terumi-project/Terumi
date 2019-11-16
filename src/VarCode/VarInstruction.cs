@@ -29,7 +29,7 @@ namespace Terumi.VarCode
 			Id = id;
 		}
 
-		public VarCodeId Id { get; }
+		public VarCodeId Id { get; set; }
 	}
 
 	public class VarMethodCall : VarInstruction
@@ -40,7 +40,7 @@ namespace Terumi.VarCode
 			VariableId = variableId;
 		}
 
-		public VarCodeId? VariableId { get; }
+		public VarCodeId? VariableId { get; set; }
 		public MethodCallVarExpression MethodCallVarExpression { get; }
 	}
 
@@ -65,7 +65,7 @@ namespace Terumi.VarCode
 		}
 
 		public List<VarInstruction> TrueBody { get; }
-		public VarCodeId ComparisonVariable { get; }
+		public VarCodeId ComparisonVariable { get; set; }
 	}
 
 	public abstract class VarExpression

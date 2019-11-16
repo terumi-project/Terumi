@@ -8,7 +8,7 @@ using Terumi.Lexer;
 using Terumi.Parser;
 using Terumi.Targets;
 using Terumi.Tokens;
-using Terumi.VarCode;
+using Terumi.VarCode.Optimizer;
 using Terumi.VarCode.Optimizer.Alpha;
 using Terumi.Workspace;
 
@@ -61,7 +61,8 @@ namespace Terumi
 		private static VarCode.Optimizer.Omega.IOptimization[] GetOmegaOptimizations()
 			=> new VarCode.Optimizer.Omega.IOptimization[]
 			{
-				new VarCode.Optimizer.Omega.InlineVariableReferences()
+				new VarCode.Optimizer.Omega.InlineVariableReferences(),
+				new VarCode.Optimizer.Omega.RemoveAllUnreferencedVariablesOptimization(),
 			};
 
 		public static bool Compile(string projectName, ICompilerTarget target)

@@ -117,7 +117,7 @@ namespace Terumi.VarCode.Optimizer.Alpha
 			// $2 = $1 [2 -> 0]
 			// $3 = $2 [3 -> 0]
 
-			if (!preferences.TryGetValue(right, out var rightPrefer))
+			if (preferences.TryGetValue(right, out var rightPrefer))
 			{
 				preferences[left] = rightPrefer;
 			}

@@ -72,11 +72,6 @@ namespace Terumi.VarCode.Optimizer.Alpha
 	{
 	}
 
-	public interface IConstantVarExpression
-	{
-		object Value { get; }
-	}
-
 	public class ConstantVarExpression<T> : VarExpression, IConstantVarExpression
 	{
 		public ConstantVarExpression(T value)

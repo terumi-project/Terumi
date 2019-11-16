@@ -8,6 +8,8 @@ namespace Terumi.VarCode.Optimizer.Omega
 	// so that targets can output more compact code
 	// instead of having to assign variables to everything
 
+	// it also more closley resembles the final output
+
 	public abstract class VarInstruction
 	{
 	}
@@ -58,11 +60,6 @@ namespace Terumi.VarCode.Optimizer.Omega
 
 	public abstract class VarExpression
 	{
-	}
-
-	public interface IConstantVarExpression
-	{
-		object Value { get; }
 	}
 
 	public class ConstantVarExpression<T> : VarExpression, IConstantVarExpression

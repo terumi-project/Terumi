@@ -72,7 +72,12 @@ namespace Terumi.VarCode
 	{
 	}
 
-	public class ConstantVarExpression<T> : VarExpression
+	public interface IConstantVarExpression
+	{
+		object Value { get; }
+	}
+
+	public class ConstantVarExpression<T> : VarExpression, IConstantVarExpression
 	{
 		public ConstantVarExpression(T value)
 		{
@@ -80,6 +85,8 @@ namespace Terumi.VarCode
 		}
 
 		public T Value { get; }
+
+		object IConstantVarExpression.Value => Value;
 	}
 
 	public class MethodCallVarExpression : VarExpression

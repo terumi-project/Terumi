@@ -54,6 +54,7 @@ namespace Terumi
 				new RemoveAllUnreferencedMethodsOptimization(),
 				new MethodInliningOptimization(),
 				new VariableInliningOptimization(),
+				new BodyFoldingOptimization(),
 			};
 
 		public static bool Compile(string projectName, ICompilerMethods setupTarget)

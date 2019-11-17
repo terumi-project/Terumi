@@ -28,7 +28,20 @@ namespace Terumi.Parser.Expressions
 				return 0;
 			}
 
-			item = new IfExpression(comparison, trueBody);
+			CodeBody? @false = default;
+
+			if (stream.NextKeyword(Keyword.Else))
+			{
+				if (!stream.TryParse(CodeBodyPattern, out var falseBody))
+				{
+					Log.Error($"Couldn't parse the else body for if statement {stream.TopInfo}");
+					return 0;
+				}
+
+				@false = falseBody;
+			}
+
+			item = new IfExpression(comparison, trueBody, @false);
 			return stream;
 		}
 	}

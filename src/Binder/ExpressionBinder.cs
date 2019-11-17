@@ -191,7 +191,25 @@ namespace Terumi.Binder
 				expressions.Add(statement);
 			}
 
-			return new IfStatement(comparison, expressions);
+			var falseExpressions = new List<CodeStatement>();
+
+			if (ifExpression.False != null)
+			{
+				foreach (var expression in ifExpression.False.Expressions)
+				{
+					var boundExpr = TopLevelBind(entity, expression);
+
+					if (!(boundExpr is CodeStatement statement))
+					{
+						Log.Error($"Expected CodeStatement while parsing if's else clause, didn't get one.");
+						throw new Exception("Binding Exception");
+					}
+
+					falseExpressions.Add(statement);
+				}
+			}
+
+			return new IfStatement(comparison, expressions, falseExpressions);
 		}
 	}
 

@@ -49,6 +49,16 @@ namespace Terumi.Targets
 					}
 				};
 			}
+			else if (name == $"op_{CompilerOperators.Not}" && parameters.Length == 1 && parameters[0] == CompilerDefined.Boolean)
+			{
+				return new CompilerMethod
+				{
+					Name = name,
+					Parameters = parameters.Select((x, i) => new ParameterBind { Name = $"p{i}", Type = x }).ToList(),
+					ReturnType = CompilerDefined.Boolean,
+					Generate = strs => $"!{strs[0]}"
+				};
+			}
 
 			return default;
 		}

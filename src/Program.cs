@@ -29,6 +29,7 @@ namespace Terumi
 			new KeywordPattern(new KeyValuePair<string, Keyword>[]
 			{
 				KeyValuePair.Create("if", Keyword.If),
+				KeyValuePair.Create("else", Keyword.Else),
 				KeyValuePair.Create("this", Keyword.This),
 				KeyValuePair.Create("true", Keyword.True),
 				KeyValuePair.Create("using", Keyword.Using),
@@ -87,7 +88,7 @@ namespace Terumi
 
 			Log.Stage("OPTIMIZATION", "Optimizing TypeInformation");
 
-			var translator = new VarCodeTranslator(binder.TypeInformation.Main);
+			var translator = new VarCodeTranslator(binder.TypeInformation.Main, target);
 			translator.Visit(binder.TypeInformation.Binds);
 			var store = translator.Store;
 

@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Text;
 using Terumi.Ast;
 using Terumi.Binder;
+using Terumi.Targets;
 using Terumi.VarCode.Optimizer.Alpha;
 
 namespace Terumi.VarCode.Optimizer.Alpha
@@ -12,11 +13,13 @@ namespace Terumi.VarCode.Optimizer.Alpha
 	public class VarCodeTranslator
 	{
 		private readonly MethodBind _entry;
+		private readonly ICompilerTarget _target;
 
-		public VarCodeTranslator(MethodBind entry)
+		public VarCodeTranslator(MethodBind entry, ICompilerTarget target)
 		{
 			_entry = entry;
-			Store = new VarCodeStore(_entry);
+			_target = target;
+			Store = new VarCodeStore(_entry, _target);
 		}
 
 		public VarCodeStore Store { get; }
@@ -49,6 +52,7 @@ namespace Terumi.VarCode.Optimizer.Alpha
 		private readonly Dictionary<string, VarCodeId> _varReferences = new Dictionary<string, VarCodeId>();
 		private readonly Dictionary<string, VarCodeId> _paramReferences = new Dictionary<string, VarCodeId>();
 		private readonly VarCodeStructure _structure;
+		private int _counter;
 
 		private VarTree _tree => _structure.Tree;
 
@@ -82,11 +86,39 @@ namespace Terumi.VarCode.Optimizer.Alpha
 			{
 				case IfStatement i:
 				{
-					_tree.BeginIf(Visit(i.Comparison));
+					if (i.FalseStatements != null)
+					{
+						// we implement else clauses as separate not comparisons
+						// very efficient :^) (/s)
+						// TODO: implement better
 
-					Visit(i.Statements);
+						var comparisonName = $"__compiler_comparison_{_counter++}";
+						var notName = $"__compiler_not_{_counter++}";
 
-					_tree.EndIf();
+						var comparison = new VariableAssignment(comparisonName, i.Comparison);
+
+						Visit(statement: comparison);
+
+						_tree.BeginIf(_varReferences[comparisonName]);
+						Visit(i.Statements);
+						_tree.EndIf();
+
+						var notMethod = _structure.Store.Target.Operator(CompilerOperators.Not, i.Comparison.Type);
+						var notOp = new MethodCallExpression(notMethod, new List<ICodeExpression> { i.Comparison });
+						var notVar = new VariableAssignment(notName, notOp);
+
+						Visit(statement: notVar);
+
+						_tree.BeginIf(_varReferences[notName]);
+						Visit(i.FalseStatements);
+						_tree.EndIf();
+					}
+					else
+					{
+						_tree.BeginIf(Visit(i.Comparison));
+						Visit(i.Statements);
+						_tree.EndIf();
+					}
 				}
 				break;
 

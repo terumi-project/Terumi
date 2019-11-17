@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using Terumi.Binder;
+using Terumi.Targets;
 
 namespace Terumi.VarCode.Optimizer.Alpha
 {
@@ -17,7 +18,11 @@ namespace Terumi.VarCode.Optimizer.Alpha
 
 		public VarCodeStructure Entrypoint { get; }
 
-		public VarCodeStore(MethodBind entry) => Entrypoint = Rent(entry);
+		public VarCodeStore(MethodBind entry, ICompilerTarget target)
+		{
+			Entrypoint = Rent(entry);
+			Target = target;
+		}
 
 		public CompilerMethod? GetCompilerMethod(VarCodeId methodId)
 		{
@@ -45,6 +50,8 @@ namespace Terumi.VarCode.Optimizer.Alpha
 		public IEnumerable<VarCodeStructure> Structures => _methods.Values;
 
 		public IEnumerable<KeyValuePair<VarCodeId, CompilerMethod>> CompilerMethods => _compilerIds.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
+
+		public ICompilerTarget Target { get; }
 
 		public VarCodeStructure? GetStructure(VarCodeId id) => Structures.FirstOrDefault(x => x.Id == id);
 

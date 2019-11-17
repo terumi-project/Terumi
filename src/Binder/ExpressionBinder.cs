@@ -36,8 +36,18 @@ namespace Terumi.Binder
 				VariableExpression variableExpression => BindVariableExpression(entity, variableExpression),
 				IfExpression ifExpression => BindIfExpression(entity, ifExpression),
 				ReturnExpression returnExpression => new ReturnStatement(TopLevelBind(entity, returnExpression.Expression)),
-				_ => throw new Exception("Unparab")
+				ComparisonExpression o => BindComparison(entity, o),
+				_ => throw new NotImplementedException("Couldn't bind expression")
 			};
+		}
+
+		private MethodCallExpression BindComparison(IBind entity, ComparisonExpression comparisonExpression)
+		{
+			var left = TopLevelBind(entity, comparisonExpression.Left);
+			var right = TopLevelBind(entity, comparisonExpression.Right);
+			var compilerMethod = _typeInformation.GetOperator(comparisonExpression.Comparison.ToCompilerOp(), left.Type, right.Type);
+
+			return new MethodCallExpression(compilerMethod, new List<ICodeExpression> { left, right });
 		}
 
 		// method call stuffs:

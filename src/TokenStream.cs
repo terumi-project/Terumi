@@ -28,6 +28,25 @@ namespace Terumi
 
 		public bool NextChar(char character) => 0 != Tokens.NextChar(character).IncButCmp(ref _read);
 
+		public bool NextChars(string chars)
+		{
+			var read = Tokens.NextChar(chars[0]);
+			if (0 == read) return false;
+
+			for (var i = 1; i < chars.Length; i++)
+			{
+				if (!(Tokens.Next((read - 1) + i, out var next)
+					&& next is CharacterToken charToken
+					&& charToken.Character == chars[i]))
+				{
+					return false;
+				}
+			}
+
+			_read += read + chars.Length - 1;
+			return true;
+		}
+
 		public bool NextNoWhitespace<T>(out T token) where T : IToken => 0 != Tokens.NextNoWhitespace<T>(out token).IncButCmp(ref _read);
 
 		public bool NextNoWhitespace(out IToken token) => 0 != Tokens.NextNoWhitespace(out token).IncButCmp(ref _read);

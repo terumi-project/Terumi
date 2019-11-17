@@ -57,7 +57,7 @@ namespace Terumi.Targets
 					Name = name,
 					Parameters = parameters.Select((x, i) => new ParameterBind { Name = $"p{i}", Type = x }).ToList(),
 					ReturnType = CompilerDefined.Boolean,
-					Generate = strs => $"!{strs[0]}",
+					Generate = strs => $"!({strs[0]})",
 					Optimize = expressions =>
 					{
 						if (expressions[0] is ConstantVarExpression<bool> @const)
@@ -69,8 +69,30 @@ namespace Terumi.Targets
 					}
 				};
 			}
+			else if (name == $"op_{CompilerOperators.Equals}" && IsLen(2))
+			{
+				return Gen
+				(
+					CompilerDefined.Boolean,
+					strs => $"{strs[0]} -eq {strs[1]}"
+				);
+			}
 
 			return default;
+
+			bool IsLen(int amt) => parameters.Length == amt;
+
+			CompilerMethod Gen(IType returns, Func<List<string>, string> gen, Func<List<VarExpression>, VarExpression?>? optimize = null)
+			{
+				return new CompilerMethod
+				{
+					Name = name,
+					Parameters = parameters.Select((x, i) => new ParameterBind { Name = $"p{i}", Type = x }).ToList(),
+					ReturnType = returns,
+					Generate = gen,
+					Optimize = optimize ?? (a => null)
+				};
+			}
 		}
 
 		public void Write(IndentedTextWriter writer, VarCodeStore store)

@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 
 using Terumi.SyntaxTree.Expressions;
 
@@ -16,6 +17,7 @@ namespace Terumi.Parser.Expressions
 		private readonly IPattern<Terumi.Ast.ConstantLiteralExpression<bool>> _booleanPattern;
 		private readonly IPattern<VariableExpression> _variablePattern;
 		private readonly IPattern<IfExpression> _ifPattern;
+		private readonly Func<ExpressionPattern, Expression, IPattern<ComparisonExpression>> _comparisonPattern;
 
 		public ExpressionPattern
 		(
@@ -28,7 +30,8 @@ namespace Terumi.Parser.Expressions
 			IPattern<ReferenceExpression> referencePattern,
 			IPattern<Terumi.Ast.ConstantLiteralExpression<bool>> booleanPattern,
 			IPattern<VariableExpression> variablePattern,
-			IPattern<IfExpression> ifPattern
+			IPattern<IfExpression> ifPattern,
+			Func<ExpressionPattern, Expression, IPattern<ComparisonExpression>> comparisonPattern
 		)
 		{
 			_methodCallPattern = methodCallPattern;
@@ -41,20 +44,31 @@ namespace Terumi.Parser.Expressions
 			_booleanPattern = booleanPattern;
 			_variablePattern = variablePattern;
 			_ifPattern = ifPattern;
+			_comparisonPattern = comparisonPattern;
 		}
 
 		public int TryParse(TokenStream stream, ref Expression item)
 		{
-			if (TryParse(ref stream, _methodCallPattern, ref item)
-			|| TryParse(ref stream, _returnPattern, ref item)
-			|| TryParse(ref stream, _numericPattern, ref item)
-			|| TryParse(ref stream, _stringPattern, ref item)
-			|| TryParse(ref stream, _thisPattern, ref item)
-			|| TryParse(ref stream, _booleanPattern, ref item)
-			|| TryParse(ref stream, _variablePattern, ref item)
-			|| TryParse(ref stream, _referencePattern, ref item)
-			|| TryParse(ref stream, _ifPattern, ref item))
+			// first try to parse programming constructs/patterns
+			if (TryParse(ref stream, _returnPattern, ref item)
+				|| TryParse(ref stream, _ifPattern, ref item))
 			{
+				return stream;
+			}
+			// then parse out things that can evaluate to something
+			else if (TryParse(ref stream, _methodCallPattern, ref item)
+				|| TryParse(ref stream, _numericPattern, ref item)
+				|| TryParse(ref stream, _stringPattern, ref item)
+				|| TryParse(ref stream, _thisPattern, ref item)
+				|| TryParse(ref stream, _booleanPattern, ref item)
+				|| TryParse(ref stream, _variablePattern, ref item)
+				|| TryParse(ref stream, _referencePattern, ref item))
+			{
+				var comparison = _comparisonPattern(this, item);
+
+				// don't really care if it fails
+				TryParse(ref stream, comparison, ref item);
+
 				return stream;
 			}
 

@@ -66,5 +66,17 @@ namespace Terumi
 
 			return 0;
 		}
+
+		public static bool Next(this ReadOnlySpan<IToken> source, int pos, out IToken token)
+		{
+			if (source.Length > pos)
+			{
+				token = source[pos];
+				return true;
+			}
+
+			token = default;
+			return false;
+		}
 	}
 }

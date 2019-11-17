@@ -2,6 +2,7 @@
 
 using Terumi.Parser.Expressions;
 using Terumi.SyntaxTree;
+using Terumi.SyntaxTree.Expressions;
 using Terumi.Tokens;
 
 namespace Terumi.Parser
@@ -61,7 +62,8 @@ namespace Terumi.Parser
 				_referencePattern,
 				_booleanPattern,
 				_variablePattern,
-				_ifExpressionPattern
+				_ifExpressionPattern,
+				ComparisonFactory
 			);
 
 			_methodCallParameterGroupPattern.ExpressionPattern = _expressionPattern;
@@ -79,6 +81,11 @@ namespace Terumi.Parser
 
 			_compilerUnitItem = new CompilerUnitItemPattern(_methodPattern, _packageReferencePattern);
 			_compilerUnit = new CompilerUnitPattern(_compilerUnitItem);
+		}
+
+		private IPattern<ComparisonExpression> ComparisonFactory(ExpressionPattern pattern, Expression left)
+		{
+			return new ComparisonExpressionPattern { ExpressionPattern = pattern, Left = left };
 		}
 
 		public bool TryParse(Memory<IToken> tokens, out CompilerUnit compilerUnit)

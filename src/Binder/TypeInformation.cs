@@ -15,6 +15,7 @@ namespace Terumi.Binder
 		public List<IBind> Binds { get; set; } = new List<IBind>();
 		public MethodBind Main => Binds.OfType<MethodBind>().First(x => x.Name == "main");
 
+		public CompilerMethod GetOperator(CompilerOperators op, params IType[] types) => _target.Operator(op, types);
 		public CompilerMethod? MatchMethod(string name, IEnumerable<IType> types) => _target.MatchMethod(name, types.ToArray());
 
 		public IEnumerable<IType> AllReferenceableTypes(IBind mainBind)

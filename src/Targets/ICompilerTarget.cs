@@ -15,7 +15,13 @@ namespace Terumi.Targets
 
 	public enum CompilerOperators
 	{
-		Not
+		Not,
+		Equals,
+		NotEquals,
+		LessThan,
+		GreaterThan,
+		LessThanOrEqualTo,
+		GreaterThanOrEqualTo
 	}
 
 	public static class CompilerTargetExtensions

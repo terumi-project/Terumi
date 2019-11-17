@@ -71,6 +71,7 @@ namespace Terumi.VarCode.Optimizer.Omega
 					case VarIf o:
 					{
 						o.ComparisonExpression = Inline(o.ComparisonExpression);
+						didModify = Run(valueMap, o.TrueBody) || didModify;
 					}
 					break;
 

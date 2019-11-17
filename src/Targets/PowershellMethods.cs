@@ -46,7 +46,8 @@ namespace Terumi.Targets
 						}
 
 						return strb.ToString();
-					}
+					},
+					Optimize = a => null
 				};
 			}
 			else if (name == $"op_{CompilerOperators.Not}" && parameters.Length == 1 && parameters[0] == CompilerDefined.Boolean)
@@ -56,7 +57,16 @@ namespace Terumi.Targets
 					Name = name,
 					Parameters = parameters.Select((x, i) => new ParameterBind { Name = $"p{i}", Type = x }).ToList(),
 					ReturnType = CompilerDefined.Boolean,
-					Generate = strs => $"!{strs[0]}"
+					Generate = strs => $"!{strs[0]}",
+					Optimize = expressions =>
+					{
+						if (expressions[0] is ConstantVarExpression<bool> @const)
+						{
+							return new ConstantVarExpression<bool>(!@const.Value);
+						}
+
+						return null;
+					}
 				};
 			}
 

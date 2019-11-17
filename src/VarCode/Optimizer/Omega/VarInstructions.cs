@@ -23,7 +23,7 @@ namespace Terumi.VarCode.Optimizer.Omega
 		}
 
 		public VarCodeId VariableId { get; }
-		public VarExpression Value { get; }
+		public VarExpression Value { get; set; }
 	}
 
 	public class VarReturn : VarInstruction

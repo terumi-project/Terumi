@@ -64,6 +64,7 @@ namespace Terumi
 			{
 				new VarCode.Optimizer.Omega.InlineVariableReferences(),
 				new VarCode.Optimizer.Omega.RemoveAllUnreferencedVariablesOptimization(),
+				new VarCode.Optimizer.Omega.CompilerMethodFoldingOptimization(),
 			};
 
 		public static bool Compile(string projectName, ICompilerTarget target)

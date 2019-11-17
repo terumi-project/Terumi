@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using Terumi.VarCode.Optimizer;
 
 namespace Terumi.Binder
 {
@@ -77,6 +78,7 @@ namespace Terumi.Binder
 		public List<ParameterBind> Parameters { get; set; }
 
 		public Func<List<string>, string> Generate { get; set; }
+		public Func<List<VarCode.Optimizer.Omega.VarExpression>, VarCode.Optimizer.Omega.VarExpression?> Optimize { get; set; }
 
 		public override bool Equals(object obj) => Equals(obj as CompilerMethod);
 		public bool Equals([AllowNull] CompilerMethod other) => other != null && Namespace.Equals(other.Namespace) && EqualityComparer<List<PackageLevel>>.Default.Equals(References, other.References) && EqualityComparer<IType>.Default.Equals(ReturnType, other.ReturnType) && Name == other.Name && EqualityComparer<List<ParameterBind>>.Default.Equals(Parameters, other.Parameters) && EqualityComparer<Func<List<string>, string>>.Default.Equals(Generate, other.Generate);

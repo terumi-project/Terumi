@@ -9,13 +9,75 @@ namespace Terumi.VarCode.Optimizer.Alpha
 	{
 		public bool Run(VarCodeStore store)
 		{
+			var potentiallyRecursiveMethods = new List<VarCodeId>();
+			CalculatePotentiallyRecursiveMethods(potentiallyRecursiveMethods, store.Entrypoint);
+
 			// TODO: inline other methods who they themselves can't be inlined but use methods that can
-			return Run(store.Entrypoint);
+			return Run(potentiallyRecursiveMethods, store.Entrypoint);
 		}
 
-		private bool Run(VarCodeStructure operate) => Run(operate, ref operate.Tree.Counter, operate.Tree.Code);
+		private void CalculatePotentiallyRecursiveMethods(List<VarCodeId> results, VarCodeStructure structure)
+		{
+			var stack = new List<VarCodeId>();
+			Traverse(results, stack, structure.Tree.Code, structure);
+		}
 
-		private bool Run(VarCodeStructure operate, ref VarCodeId counter, List<VarInstruction> instructions)
+		private void Traverse(List<VarCodeId> results, List<VarCodeId> stack, List<VarInstruction> instructions, VarCodeStructure structure)
+		{
+			// check if this method is already flagged as a potentially recursive method
+			if (results.Contains(structure.Id)) return;
+
+			// check if this method has been in the callstack at least 10 times
+			// we don't want to be compile time recursive more than 10 times
+			if (stack.Count(x => x.Id == structure.Id) >= 10)
+			{
+				// potential recursion detected
+				results.Add(structure.Id);
+				return;
+			}
+
+			foreach (var instruction in instructions)
+			{
+				switch (instruction)
+				{
+					case VarAssignment o when o.Value is MethodCallVarExpression p:
+					{
+						var method = structure.Store.GetStructure(p.MethodId);
+						if (method == null) continue;
+
+						stack.Add(p.MethodId);
+						var i = stack.Count - 1;
+						Traverse(results, stack, method.Tree.Code, method);
+						stack.RemoveAt(i);
+					}
+					break;
+
+					case VarMethodCall o:
+					{
+						var method = structure.Store.GetStructure(o.MethodCallVarExpression.MethodId);
+						if (method == null) continue;
+
+						var p = o.MethodCallVarExpression;
+
+						stack.Add(p.MethodId);
+						var i = stack.Count - 1;
+						Traverse(results, stack, method.Tree.Code, method);
+						stack.RemoveAt(i);
+					}
+					break;
+
+					case VarIf o:
+					{
+						Traverse(results, stack, o.TrueBody, structure);
+					}
+					break;
+				}
+			}
+		}
+
+		private bool Run(List<VarCodeId> flagged, VarCodeStructure operate) => Run(flagged, operate, ref operate.Tree.Counter, operate.Tree.Code);
+
+		private bool Run(List<VarCodeId> flagged, VarCodeStructure operate, ref VarCodeId counter, List<VarInstruction> instructions)
 		{
 			var couldInlineOne = false;
 
@@ -31,19 +93,19 @@ namespace Terumi.VarCode.Optimizer.Alpha
 							continue;
 						}
 
-						couldInlineOne = TryInline(operate, ref counter, instructions, i, methodCall, o.VariableId) || couldInlineOne;
+						couldInlineOne = TryInline(flagged, operate, ref counter, instructions, i, methodCall, o.VariableId) || couldInlineOne;
 					}
 					break;
 
 					case VarMethodCall o:
 					{
-						couldInlineOne = TryInline(operate, ref counter, instructions, i, o.MethodCallVarExpression, o.VariableId) || couldInlineOne;
+						couldInlineOne = TryInline(flagged, operate, ref counter, instructions, i, o.MethodCallVarExpression, o.VariableId) || couldInlineOne;
 					}
 					break;
 
 					case VarIf o:
 					{
-						couldInlineOne = Run(operate, ref counter, o.TrueBody) || couldInlineOne;
+						couldInlineOne = Run(flagged, operate, ref counter, o.TrueBody) || couldInlineOne;
 					}
 					break;
 				}
@@ -52,7 +114,7 @@ namespace Terumi.VarCode.Optimizer.Alpha
 			return couldInlineOne;
 		}
 
-		private bool TryInline(VarCodeStructure operate, ref VarCodeId counter, List<VarInstruction> instructions, int i, MethodCallVarExpression call, VarCodeId? resultAssignment)
+		private bool TryInline(List<VarCodeId> flagged, VarCodeStructure operate, ref VarCodeId counter, List<VarInstruction> instructions, int i, MethodCallVarExpression call, VarCodeId? resultAssignment)
 		{
 			// before we determine if we can inline this method, we must determine if the method
 			// has a return statement somewhere in itself.
@@ -66,6 +128,10 @@ namespace Terumi.VarCode.Optimizer.Alpha
 			if (rawStructure == null) return false; // can't inline compiler method calls
 
 			var inlining = rawStructure;
+
+			// don't want to try to inline anything potentially recursive
+			if (flagged.Contains(inlining.Id)) return false;
+
 			var returnState = ReturnStateOf(inlining.Tree.Code);
 
 			var canInline =

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Terumi.VarCode.Optimizer.Alpha
@@ -31,14 +32,23 @@ namespace Terumi.VarCode.Optimizer.Alpha
 		}
 
 		private List<VarCodeId> AllReferences(VarCodeStructure operate, List<VarInstruction> instructions)
+			=> AllReferences(new List<VarCodeId>(), operate.Store, operate, instructions);
+
+		private List<VarCodeId> AllReferences(List<VarCodeId> stack, VarCodeStore store, VarCodeStructure smethod, List<VarInstruction> instructions)
 		{
+			if (stack.Count(x => x == smethod.Id) >= 10) // we don't want to be more than 10 times recursive @ compile time
+			{
+				// potential recursion
+				return new List<VarCodeId>();
+			}
+
 			var references = new List<VarCodeId>();
 
 			foreach (var instruction in instructions)
 			{
 				if (instruction is VarIf varIf)
 				{
-					foreach (var innerReference in AllReferences(operate, varIf.TrueBody))
+					foreach (var innerReference in AllReferences(stack, store, smethod, varIf.TrueBody))
 					{
 						if (!references.Contains(innerReference))
 						{
@@ -54,20 +64,22 @@ namespace Terumi.VarCode.Optimizer.Alpha
 						references.Add(varMethodCall.MethodCallVarExpression.MethodId);
 					}
 
-					var method = operate.Store.GetStructure(varMethodCall.MethodCallVarExpression.MethodId);
+					var method = store.GetStructure(varMethodCall.MethodCallVarExpression.MethodId);
 
 					if (method == null)
 					{
 						continue;
 					}
 
-					foreach (var innerReference in AllReferences(operate, method.Tree.Code))
+					stack.Add(method.Id);
+					foreach (var innerReference in AllReferences(stack, store, method, method.Tree.Code))
 					{
 						if (!references.Contains(innerReference))
 						{
 							references.Add(innerReference);
 						}
 					}
+					stack.Remove(method.Id);
 				}
 
 				var expression = instruction.TryExpression();
@@ -84,20 +96,22 @@ namespace Terumi.VarCode.Optimizer.Alpha
 						references.Add(methodCall.MethodId);
 					}
 
-					var method = operate.Store.GetStructure(methodCall.MethodId);
+					var method = store.GetStructure(methodCall.MethodId);
 
 					if (method == null)
 					{
 						continue;
 					}
 
-					foreach (var innerReference in AllReferences(operate, method.Tree.Code))
+					stack.Add(method.Id);
+					foreach (var innerReference in AllReferences(stack, store, method, method.Tree.Code))
 					{
 						if (!references.Contains(innerReference))
 						{
 							references.Add(innerReference);
 						}
 					}
+					stack.Remove(method.Id);
 				}
 			}
 

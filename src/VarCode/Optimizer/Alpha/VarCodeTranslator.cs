@@ -96,6 +96,7 @@ namespace Terumi.VarCode.Optimizer.Alpha
 						var notName = $"__compiler_not_{_counter++}";
 
 						var comparison = new VariableAssignment(comparisonName, i.Comparison);
+						var comparisonReference = new VariableReferenceExpression(comparison.VariableName, comparison.Type);
 
 						Visit(statement: comparison);
 
@@ -104,7 +105,7 @@ namespace Terumi.VarCode.Optimizer.Alpha
 						_tree.EndIf();
 
 						var notMethod = _structure.Store.Target.Operator(CompilerOperators.Not, i.Comparison.Type);
-						var notOp = new MethodCallExpression(notMethod, new List<ICodeExpression> { i.Comparison });
+						var notOp = new MethodCallExpression(notMethod, new List<ICodeExpression> { comparisonReference });
 						var notVar = new VariableAssignment(notName, notOp);
 
 						Visit(statement: notVar);

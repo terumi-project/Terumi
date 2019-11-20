@@ -9,6 +9,7 @@ namespace Terumi.Lexer
 		public int Column;
 		public int BinaryOffset;
 		public string File;
+		public PackageLevel Level;
 
 		public override string ToString() => $"on line {Line}, column {Column} (binary offset {BinaryOffset}) in file {File}.";
 

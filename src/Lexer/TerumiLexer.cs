@@ -62,8 +62,8 @@ namespace Terumi.Lexer
 
 					// try for keywords
 					Token result = null;
-					if (TryString(TokenType.Using, "using", ref result)
-						|| TryString(TokenType.Namespace, "namespace", ref result)
+					if (TryString(TokenType.Use, "use", ref result)
+						|| TryString(TokenType.Package, "package", ref result)
 						|| TryString(TokenType.Class, "class", ref result)
 						|| TryString(TokenType.Contract, "contract", ref result)
 						|| TryString(TokenType.True, "true", ref result)

@@ -23,7 +23,7 @@ namespace Terumi.Lexer
 		Divide, // /
 		At, Dot, // @ .
 
-		Using, Namespace, Class, Contract,
+		Use, Package, Class, Contract,
 		True, False,
 		If, Else, For, While,
 		Readonly,

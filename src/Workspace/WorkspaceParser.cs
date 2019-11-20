@@ -5,17 +5,29 @@ using System.Linq;
 using System.Text;
 
 using Terumi.Lexer;
-using Terumi.Parser;
 using Terumi.SyntaxTree;
 
 namespace Terumi.Workspace
 {
 	public static class WorkspaceParser
 	{
+		public static List<Token> ParseTokens(Span<byte> source, string filePath)
+		{
+			var tokens = new List<Token>();
+			var lexer = new TerumiLexer(filePath, source);
+
+			while (!lexer.AtEnd())
+			{
+				tokens.Add(lexer.NextToken());
+			}
+
+			return tokens;
+		}
+
 		// we resolve dependencies only in DEBUG
 		// because i have some pretty wacky dependency plans
 
-		public static IEnumerable<ParsedProjectFile> ParseProject(this Project project, StreamLexer lexer, StreamParser parser
+		public static IEnumerable<ParsedProjectFile> ParseProject(this Project project, StreamParser parser
 #if DEBUG
 		, DependencyResolver resolver
 #endif
@@ -26,8 +38,7 @@ namespace Terumi.Workspace
 				// TODO: use string directly and rid all the code of reader head/fork stuff
 
 				var mem = Encoding.UTF8.GetBytes(code.Source).AsMemory();
-				var tokens = lexer.ParseTokens(mem, code.Path);
-				if (!parser.TryParse(tokens.ToArray().AsMemory(), out var compilerUnit))
+				if (!parser.TryParse(ParseTokens(mem.Span, code.Path), out var compilerUnit))
 				{
 					throw new WorkspaceParserException($"Unable to parse source code into compiler unit: in '{project.ProjectName}', at '{code.Path}'.");
 				}

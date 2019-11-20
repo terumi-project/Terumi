@@ -16,39 +16,6 @@ namespace Terumi
 {
 	internal static class Program
 	{
-		private static readonly StreamLexer _lexer = new StreamLexer(GetPatterns());
-		private static readonly StreamParser _parser = new StreamParser();
-
-		private static IPattern[] GetPatterns()
-			=> new IPattern[]
-		{
-			new CharacterPattern('\n'),
-			new WhitespacePattern(),
-			new CommentPattern(),
-
-			new KeywordPattern(new KeyValuePair<string, Keyword>[]
-			{
-				KeyValuePair.Create("if", Keyword.If),
-				KeyValuePair.Create("else", Keyword.Else),
-				KeyValuePair.Create("this", Keyword.This),
-				KeyValuePair.Create("true", Keyword.True),
-				KeyValuePair.Create("using", Keyword.Using),
-				KeyValuePair.Create("false", Keyword.False),
-				KeyValuePair.Create("class", Keyword.Class),
-				KeyValuePair.Create("return", Keyword.Return),
-				KeyValuePair.Create("contract", Keyword.Contract),
-				KeyValuePair.Create("readonly", Keyword.Readonly),
-				KeyValuePair.Create("namespace", Keyword.Namespace),
-			}),
-
-			new CharacterPattern(';', '@', '=', ',', '.', '(', ')', '[', ']', '{', '}', '+', '-', '/', '*'),
-
-			new IdentifierPattern(IdentifierCase.SnakeCase),
-			new IdentifierPattern(IdentifierCase.PascalCase),
-			new NumericPattern(),
-			new StringPattern(),
-		};
-
 		private static IOptimization[] GetOptimizations()
 			=> new IOptimization[]
 			{

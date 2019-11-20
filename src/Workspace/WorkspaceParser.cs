@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -11,6 +12,12 @@ namespace Terumi.Workspace
 {
 	public static class WorkspaceParser
 	{
+		private static void handle(ProjectFile code, Memory<byte> mem)
+		{
+			var lexer = new TerumiLexer(code.Path, mem.Span);
+			while (!lexer.AtEnd()) lexer.NextToken();
+		}
+
 		// we resolve dependencies only in DEBUG
 		// because i have some pretty wacky dependency plans
 
@@ -24,8 +31,26 @@ namespace Terumi.Workspace
 			{
 				// TODO: use string directly and rid all the code of reader head/fork stuff
 
-				var tokens = lexer.ParseTokens(Encoding.UTF8.GetBytes(code.Source).AsMemory(), code.Path);
+				var mem = Encoding.UTF8.GetBytes(code.Source).AsMemory();
 
+				var stp = Stopwatch.StartNew();
+				for (var i = 0; i < 10000; i++)
+				{
+					foreach (var _ in lexer.ParseTokens(mem, code.Path))
+					{
+
+					}
+				}
+				Console.WriteLine($"Old lexer per 1000 iter: {((decimal)stp.ElapsedMilliseconds / (decimal)10000)}ms");
+
+				stp = Stopwatch.StartNew();
+				for (var i = 0; i < 10000; i++)
+				{
+					handle(code, mem);
+				}
+				Console.WriteLine($"New lexer per 1000 iter: {((decimal)stp.ElapsedMilliseconds / (decimal)10000)}ms");
+
+				var tokens = lexer.ParseTokens(mem, code.Path);
 				if (!parser.TryParse(tokens.ToArray().AsMemory(), out var compilerUnit))
 				{
 					throw new WorkspaceParserException($"Unable to parse source code into compiler unit: in '{project.ProjectName}', at '{code.Path}'.");

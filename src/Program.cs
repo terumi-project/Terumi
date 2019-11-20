@@ -7,34 +7,12 @@ using Terumi.Binder;
 using Terumi.Lexer;
 using Terumi.Parser;
 using Terumi.Targets;
-using Terumi.Tokens;
-using Terumi.VarCode.Optimizer;
-using Terumi.VarCode.Optimizer.Alpha;
 using Terumi.Workspace;
 
 namespace Terumi
 {
 	internal static class Program
 	{
-		private static IOptimization[] GetOptimizations()
-			=> new IOptimization[]
-			{
-				new RemoveAllUnreferencedMethodsOptimization(),
-				new MethodInliningOptimization(),
-				new VariableInliningOptimization(),
-				new BodyFoldingOptimization(),
-				new RemoveAllUnreferencedVariablesOptimization(),
-			};
-
-		private static VarCode.Optimizer.Omega.IOptimization[] GetOmegaOptimizations()
-			=> new VarCode.Optimizer.Omega.IOptimization[]
-			{
-				new VarCode.Optimizer.Omega.InlineVariableReferences(),
-				new VarCode.Optimizer.Omega.RemoveAllUnreferencedVariablesOptimization(),
-				new VarCode.Optimizer.Omega.CompilerMethodFoldingOptimization(),
-				new VarCode.Optimizer.Omega.BodyFoldingOptimization(),
-			};
-
 		public static bool Compile(string projectName, ICompilerTarget target)
 		{
 			var resolver = new DependencyResolver(Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), projectName, ".libs")));

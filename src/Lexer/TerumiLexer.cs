@@ -77,6 +77,8 @@ namespace Terumi.Lexer
 		public LexerMetadata PositionStart { get; }
 		public LexerMetadata PositionEnd { get; }
 		public object? Data { get; }
+
+		public override string ToString() => $"Token '{Type}' beginning {PositionStart} ending {PositionEnd} with data: {PositionEnd}";
 	}
 
 	// used to wrap around BigInteger
@@ -140,35 +142,33 @@ namespace Terumi.Lexer
 		[MethodImpl(MaxOpt)]
 		public Token NextToken()
 		{
-			var now = Metadata;
 			var b = Peek();
-			Next();
 
-			if (IsWhitespace(b)) return Whitespace(b, now);
+			if (IsWhitespace(b)) return Whitespace();
 
 			switch (b)
 			{
-				case (byte)'@': return Char(TokenType.At, now);
-				case (byte)'.': return Char(TokenType.Dot, now);
-				case (byte)'(': return Char(TokenType.OpenParen, now);
-				case (byte)')': return Char(TokenType.CloseParen, now);
-				case (byte)'[': return Char(TokenType.OpenBracket, now);
-				case (byte)']': return Char(TokenType.CloseBracket, now);
-				case (byte)'{': return Char(TokenType.OpenBrace, now);
-				case (byte)'}': return Char(TokenType.CloseBrace, now);
-				case (byte)'=': return IsNext((byte)'=') ? Char(TokenType.EqualTo, now) : Char(TokenType.Assignment, now);
-				case (byte)'!': return IsNext((byte)'=') ? Char(TokenType.NotEqualTo, now) : Char(TokenType.Not, now);
-				case (byte)'>': return IsNext((byte)'=') ? Char(TokenType.GreaterThanOrEqualTo, now) : Char(TokenType.GreaterThan, now);
-				case (byte)'<': return IsNext((byte)'=') ? Char(TokenType.LessThanOrEqualTo, now) : Char(TokenType.LessThan, now);
-				case (byte)'+': return IsNext((byte)'+') ? Char(TokenType.Increment, now) : Char(TokenType.Add, now);
-				case (byte)'-': return IsNext((byte)'-') ? Char(TokenType.Decrement, now) : Char(TokenType.Subtract, now);
-				case (byte)'*': return IsNext((byte)'*') ? Char(TokenType.Exponent, now) : (IsNext((byte)'/') ? MultilineComment() : Char(TokenType.Multiply, now));
-				case (byte)'/': return IsNext((byte)'/') ? SinglelineComment() : Char(TokenType.Divide, now);
+				case (byte)'@': return Char(TokenType.At);
+				case (byte)'.': return Char(TokenType.Dot);
+				case (byte)'(': return Char(TokenType.OpenParen);
+				case (byte)')': return Char(TokenType.CloseParen);
+				case (byte)'[': return Char(TokenType.OpenBracket);
+				case (byte)']': return Char(TokenType.CloseBracket);
+				case (byte)'{': return Char(TokenType.OpenBrace);
+				case (byte)'}': return Char(TokenType.CloseBrace);
+				case (byte)'=': return IsNext((byte)'=') ? Char(TokenType.EqualTo) : Char(TokenType.Assignment);
+				case (byte)'!': return IsNext((byte)'=') ? Char(TokenType.NotEqualTo) : Char(TokenType.Not);
+				case (byte)'>': return IsNext((byte)'=') ? Char(TokenType.GreaterThanOrEqualTo) : Char(TokenType.GreaterThan);
+				case (byte)'<': return IsNext((byte)'=') ? Char(TokenType.LessThanOrEqualTo) : Char(TokenType.LessThan);
+				case (byte)'+': return IsNext((byte)'+') ? Char(TokenType.Increment) : Char(TokenType.Add);
+				case (byte)'-': return IsNext((byte)'-') ? Char(TokenType.Decrement) : Char(TokenType.Subtract);
+				case (byte)'*': return IsNext((byte)'*') ? Char(TokenType.Exponent) : (IsNext((byte)'/') ? MultilineComment() : Char(TokenType.Multiply));
+				case (byte)'/': return IsNext((byte)'/') ? SinglelineComment() : Char(TokenType.Divide);
 				case (byte)'"': return String();
 				default:
 				{
 					// try for numbers
-					if (IsNumber(b)) return Number(b, now);
+					if (IsNumber(b)) return Number();
 
 					// try for keywords
 					Token result = null;
@@ -189,9 +189,9 @@ namespace Terumi.Lexer
 					}
 
 					// nothing else matched, must be an identifier
-					if (IsIdentifierStart(b)) return Identifier(b, now);
+					if (IsIdentifierStart(b)) return Identifier();
 
-					Unsupported($"Unrecognized byte '{(char)b}' at {now}");
+					Unsupported($"Unrecognized byte '{(char)b}' at {Metadata}");
 				}
 				break;
 			}
@@ -201,7 +201,12 @@ namespace Terumi.Lexer
 		}
 
 		[MethodImpl(MaxOpt)]
-		private Token Char(TokenType type, LexerMetadata start) => new Token(type, start, Metadata, null);
+		private Token Char(TokenType type)
+		{
+			var start = Metadata;
+			Next();
+			return new Token(type, start, Metadata, null);
+		}
 
 		[MethodImpl(MaxOpt)]
 		private bool IsNext(byte b)
@@ -219,8 +224,8 @@ namespace Terumi.Lexer
 			var capture = _source;
 			bool hitEnd = false;
 
-			// we want to capture */
-			_source = _source.Slice(1);
+			// we want to capture the ending /*, so we only need to go past the /
+			Next();
 
 			while (!AtEnd() && !(hitEnd = EndOfMultilineComment())) Next();
 
@@ -260,7 +265,8 @@ namespace Terumi.Lexer
 			var capture = _source;
 			bool hitEnd = false;
 
-			_source = _source.Slice(1);
+			// skip the //
+			Next(); Next();
 
 			while (!AtEnd() && !(hitEnd = Peek() == (byte)'\n')) Next();
 
@@ -279,9 +285,11 @@ namespace Terumi.Lexer
 		/* whitespace lol */
 
 		[MethodImpl(MaxOpt)]
-		public Token Whitespace(byte b, LexerMetadata start)
+		public Token Whitespace()
 		{
-			while (!AtEnd() && IsWhitespace(b = Peek()))
+			var start = Metadata;
+
+			while (!AtEnd() && IsWhitespace(Peek()))
 			{
 				Next();
 			}
@@ -299,6 +307,9 @@ namespace Terumi.Lexer
 
 			var strb = new StringBuilder();
 			var interpolations = new List<StringData.Interpolation>();
+
+			// skip the first '"'
+			Next();
 
 			while (!AtEnd())
 			{
@@ -367,11 +378,13 @@ namespace Terumi.Lexer
 		/* numbers */
 
 		[MethodImpl(MaxOpt)]
-		public Token Number(byte first, LexerMetadata start)
+		public Token Number()
 		{
-			var strb = new StringBuilder();
-			strb.Append((char)first);
+			var start = Metadata;
 
+			var strb = new StringBuilder();
+
+			// TODO: minor opt?
 			byte b = Peek();
 			while (IsNumber(b))
 			{
@@ -391,7 +404,7 @@ namespace Terumi.Lexer
 		{
 			if (_source.Length < tryFor.Length) return false;
 
-			var cmp = _source.Slice(0, tryFor.Length);
+			var cmp = _source.Slice(0, tryFor.Length + 1);
 
 			// quickly fail if the first one fails
 			// we don't want to setup a for loop if the string is bound to fail
@@ -399,8 +412,11 @@ namespace Terumi.Lexer
 
 			for (var i = 1; i < tryFor.Length; i++)
 			{
-				if (cmp[i] != (byte)tryFor[1]) return false;
+				if (cmp[i] != (byte)tryFor[i]) return false;
 			}
+
+			// if we have search for 'for' but come across 'forever' we don't want to match 'forever' as 'for' 'ever'
+			if (IsIdentifierStart(cmp[^1])) return false;
 
 			var now = Metadata;
 			NextMany(tryFor.Length);
@@ -413,10 +429,13 @@ namespace Terumi.Lexer
 		/* identifiers */
 
 		[MethodImpl(MaxOpt)]
-		public Token Identifier(byte b, LexerMetadata start)
+		public Token Identifier()
 		{
+			var start = Metadata;
+
 			var strb = new StringBuilder();
-			strb.Append((char)b);
+			strb.Append((char)Peek());
+			Next();
 
 			var current = Peek();
 			while (IsIdentifierStart(current) || IsNumber(current))
@@ -442,7 +461,6 @@ namespace Terumi.Lexer
 		[MethodImpl(MaxOpt)]
 		public void Next()
 		{
-			_offset++;
 			switch (Peek())
 			{
 				case (byte)'\n':
@@ -461,14 +479,15 @@ namespace Terumi.Lexer
 				default: _column++; break;
 			}
 
+			_offset++;
 			_source = _source.Slice(1);
 		}
 
 		[MethodImpl(MaxOpt)]
-		public byte Peek(int amt = 1)
+		public byte Peek(int amt = 0)
 		{
 			if (AtEnd(amt)) Unsupported($"Cannot peek at end");
-			return _source[amt - 1];
+			return _source[amt];
 		}
 
 		[MethodImpl(MaxOpt)]
@@ -483,7 +502,7 @@ namespace Terumi.Lexer
 		public bool AtEnd() => AtEnd(amt: 0);
 
 		[MethodImpl(MaxOpt)]
-		private bool AtEnd(int amt) => _source.Length <= amt + 1;
+		private bool AtEnd(int amt) => _source.Length < amt + 1;
 
 		[MethodImpl(MaxOpt)]
 		private bool IsNumber(byte b) => b >= (byte)'0' && b <= (byte)'9';

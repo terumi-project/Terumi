@@ -1,4 +1,5 @@
-﻿using System;
+﻿/*
+using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Linq;
@@ -277,3 +278,4 @@ namespace Terumi.Targets
 		}
 	}
 }
+*/

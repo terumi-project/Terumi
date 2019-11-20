@@ -1,19 +1,13 @@
-﻿using System.CodeDom.Compiler;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
-
-using Terumi.Binder;
-using Terumi.Lexer;
 using Terumi.Parser;
-using Terumi.Targets;
 using Terumi.Workspace;
 
 namespace Terumi
 {
 	internal static class Program
 	{
-		public static bool Compile(string projectName, ICompilerTarget target)
+		public static bool Compile(string projectName)//, ICompilerTarget target)
 		{
 			var resolver = new DependencyResolver(Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), projectName, ".libs")));
 
@@ -25,6 +19,10 @@ namespace Terumi
 			}
 
 			Log.Stage("PARSE", "Parsing project source code");
+
+			var parsedFiles = project.ParseProject(tokens => new TerumiParser(tokens), resolver).ToList();
+
+			/*
 			var parsedFiles = project.ParseProject(_lexer, _parser, resolver).ToList();
 
 			Log.Stage("BINDING", "Binding parsed source files to in memory representations");
@@ -61,7 +59,8 @@ namespace Terumi
 			// tabs <3
 			using var indentedWriter = new IndentedTextWriter(sw, "\t");
 			target.Write(indentedWriter, omegaStore);
-
+			
+			*/
 			Log.StageEnd();
 			return true;
 		}
@@ -73,7 +72,7 @@ namespace Terumi
 		{
 #if DEBUG
 			Directory.SetCurrentDirectory("D:\\test");
-			Compile("sample_project", new PowershellTarget());
+			Compile("sample_project");//, new PowershellTarget());
 #endif
 		}
 	}

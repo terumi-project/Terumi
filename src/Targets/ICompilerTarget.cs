@@ -1,8 +1,7 @@
-﻿using System;
+﻿/*
+using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
-using Terumi.Binder;
-using Terumi.VarCode.Optimizer.Omega;
 
 namespace Terumi.Targets
 {
@@ -39,3 +38,4 @@ namespace Terumi.Targets
 		}
 	}
 }
+*/

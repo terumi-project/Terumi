@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 
 using Terumi.Lexer;
-using Terumi.SyntaxTree;
+using Terumi.Parser;
 
 namespace Terumi.Workspace
 {
@@ -27,7 +27,7 @@ namespace Terumi.Workspace
 		// we resolve dependencies only in DEBUG
 		// because i have some pretty wacky dependency plans
 
-		public static IEnumerable<ParsedProjectFile> ParseProject(this Project project, StreamParser parser
+		public static IEnumerable<ParsedProjectFile> ParseProject(this Project project, Func<List<Token>, TerumiParser> parser
 #if DEBUG
 		, DependencyResolver resolver
 #endif
@@ -38,18 +38,15 @@ namespace Terumi.Workspace
 				// TODO: use string directly and rid all the code of reader head/fork stuff
 
 				var mem = Encoding.UTF8.GetBytes(code.Source).AsMemory();
-				if (!parser.TryParse(ParseTokens(mem.Span, code.Path), out var compilerUnit))
-				{
-					throw new WorkspaceParserException($"Unable to parse source code into compiler unit: in '{project.ProjectName}', at '{code.Path}'.");
-				}
+				var file = parser(ParseTokens(mem.Span, code.Path)).ConsumeSourceFile(code.PackageLevel);
 
-				yield return code.Analyze(compilerUnit);
+				yield return code.Analyze(file);
 			}
 
 #if DEBUG
 			foreach (var dependency in project.ResolveDependencies(resolver))
 			{
-				foreach (var file in dependency.ParseProject(lexer, parser, resolver))
+				foreach (var file in dependency.ParseProject(parser, resolver))
 				{
 					yield return file;
 				}
@@ -57,8 +54,11 @@ namespace Terumi.Workspace
 #endif
 		}
 
-		public static ParsedProjectFile Analyze(this ProjectFile source, CompilerUnit compilerUnit)
+		public static ParsedProjectFile Analyze(this ProjectFile source, SourceFile sourceFile)
 		{
+			return new ParsedProjectFile(new string[0], new List<PackageLevel>(0));
+
+			/*
 			var mainLevel = source.PackageLevel;
 
 			var usings = new List<PackageLevel>();
@@ -133,6 +133,7 @@ namespace Terumi.Workspace
 				typeDefinitions: typeDefinitions,
 				methods: methods
 			);
+			*/
 		}
 	}
 }

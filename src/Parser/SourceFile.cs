@@ -11,12 +11,14 @@ namespace Terumi.Parser
 		public ConsumedTokens Consumed { get; }
 		public PackageLevel PackageLevel { get; }
 		public List<PackageLevel> Usings { get; }
+		public List<Method> Methods { get; }
 
-		public SourceFile(ConsumedTokens consumed, PackageLevel packageLevel, List<PackageLevel> usings)
+		public SourceFile(ConsumedTokens consumed, PackageLevel packageLevel, List<PackageLevel> usings, List<Method> methods)
 		{
 			Consumed = consumed;
 			PackageLevel = packageLevel;
 			Usings = usings;
+			Methods = methods;
 		}
 	}
 }

@@ -241,6 +241,7 @@ namespace Terumi.Parser
 			return new CodeBody(TakeTokens(start, Current()), statements);
 		}
 
+		#region STATEMENTS
 		private bool ConsumeStatement(ref Statement statement)
 		{
 			return ConsumeGeneric<Statement, Statement.Assignment>(ConsumeAssignment, ref statement);
@@ -286,6 +287,211 @@ namespace Terumi.Parser
 			assignment = new Statement.Assignment(TakeTokens(start, Current()), type, name, value);
 			return true;
 		}
+
+		private bool ConsumeMethodCall(ref Statement.MethodCall methodCall)
+		{
+			var start = Current();
+			var isCompilerCall = false;
+
+			if (Peek().Type == TokenType.At) { Next(); isCompilerCall = true; }
+
+			if (Peek().Type != TokenType.IdentifierToken) return false;
+
+			var name = Peek().Data as string;
+			Next();
+			ConsumeWhitespace(false);
+
+			if (Peek().Type != TokenType.OpenParen) return false;
+
+			Next();
+			ConsumeWhitespace(false);
+
+			var exprs = new List<Expression>();
+
+			while (Peek().Type != TokenType.CloseParen)
+			{
+				exprs.Add(ConsumeExpression());
+
+				if (Peek().Type != TokenType.Comma)
+				{
+					Next();
+					ConsumeWhitespace(false);
+
+					if (Peek().Type == TokenType.CloseParen) break;
+					Unsupported($"Didn't get comma but didn't get closing parenthesis");
+				}
+			}
+
+			methodCall = new Statement.MethodCall(TakeTokens(start, Current()), isCompilerCall, name, exprs);
+			return true;
+		}
+		#endregion
+
+		#region EXPRESSIONS
+		public Expression ConsumeExpression()
+		{
+			return ConsumeEqualityExpression();
+		}
+
+		public Expression ConsumeEqualityExpression()
+		{
+			var total = ConsumeComparisonExpression();
+			if (total == null) return null;
+
+			while (Peek().Type == TokenType.EqualTo
+				|| Peek().Type == TokenType.NotEqualTo)
+			{
+				var type = Peek().Type;
+				Next();
+				ConsumeWhitespace(false);
+
+				var right = ConsumeComparisonExpression();
+				if (right == null)
+				{
+					Unsupported($"Expected right hand of addition statement ({type})");
+				}
+
+				total = new Expression.Binary(total, type, right);
+			}
+
+			return total;
+		}
+
+		public Expression ConsumeComparisonExpression()
+		{
+			var total = ConsumeAdditionExpression();
+			if (total == null) return null;
+
+			while (Peek().Type == TokenType.GreaterThan
+				|| Peek().Type == TokenType.GreaterThanOrEqualTo
+				|| Peek().Type == TokenType.LessThan
+				|| Peek().Type == TokenType.LessThanOrEqualTo)
+			{
+				var type = Peek().Type;
+				Next();
+				ConsumeWhitespace(false);
+
+				var right = ConsumeAdditionExpression();
+				if (right == null)
+				{
+					Unsupported($"Expected right hand of addition statement ({type})");
+				}
+
+				total = new Expression.Binary(total, type, right);
+			}
+
+			return total;
+		}
+
+		public Expression ConsumeAdditionExpression()
+		{
+			var total = ConsumeMultiplicationExpression();
+			if (total == null) return null;
+
+			while (Peek().Type == TokenType.Add || Peek().Type == TokenType.Subtract)
+			{
+				var type = Peek().Type;
+				Next();
+				ConsumeWhitespace(false);
+
+				var right = ConsumeMultiplicationExpression();
+				if (right == null)
+				{
+					Unsupported($"Expected right hand of addition statement ({type})");
+				}
+
+				total = new Expression.Binary(total, type, right);
+			}
+
+			return total;
+		}
+
+		public Expression ConsumeMultiplicationExpression()
+		{
+			var total = ConsumePrimaryExpression();
+			if (total == null) return null;
+
+			while (Peek().Type == TokenType.Multiply || Peek().Type == TokenType.Divide)
+			{
+				var type = Peek().Type;
+				Next();
+				ConsumeWhitespace(false);
+
+				var right = ConsumePrimaryExpression();
+				if (right == null)
+				{
+					Unsupported($"Expected right hand of multiplication statement ({type})");
+				}
+
+				total = new Expression.Binary(total, type, right);
+			}
+
+			return total;
+		}
+
+		public Expression ConsumePrimaryExpression()
+		{
+			var start = Current();
+			var primary = ConsumePrimaryExpression_Actual();
+			if (primary == null) return null;
+			ConsumeWhitespace(false);
+			return primary;
+
+			// access expressions are for big brains only
+
+			/*
+			ConsumeWhitespace(false);
+			if (Peek().Type == TokenType.Dot)
+			{
+				var expr = ConsumeExpression();
+				if (expr == null) Unsupported($"Expected expression after dot on expression");
+
+				if (expr is Expression.Access access)
+				{
+					// unpack the access expression
+				}
+			}
+			*/
+		}
+
+		public Expression ConsumePrimaryExpression_Actual()
+		{
+			var start = Current();
+
+			switch (Peek().Type)
+			{
+				case TokenType.StringToken: { var data = Peek().Data; Next(); return new Expression.Constant(TakeTokens(start, Current()), data); }
+				case TokenType.NumberToken: { var data = Peek().Data; Next(); return new Expression.Constant(TakeTokens(start, Current()), data); }
+				case TokenType.True: { Next(); return new Expression.Constant(TakeTokens(start, Current()), true); }
+				case TokenType.False: { Next(); return new Expression.Constant(TakeTokens(start, Current()), false); }
+				case TokenType.IdentifierToken: { var data = Peek().Data; Next(); return new Expression.Reference(TakeTokens(start, Current()), data as string); }
+			}
+
+			if (Peek().Type == TokenType.OpenParen)
+			{
+				Next();
+				ConsumeWhitespace(false);
+				var expr = ConsumeExpression();
+
+				if (Peek().Type != TokenType.CloseParen)
+				{
+					Unsupported($"Expected closing parenthesis on expression");
+				}
+
+				return expr;
+			}
+
+			Statement.MethodCall call = null;
+
+			if (ConsumeMethodCall(ref call))
+			{
+				return new Expression.MethodCall(call);
+			}
+
+			Unsupported($"Unsupported expression");
+			return null;
+		}
+		#endregion
 
 		/* core */
 

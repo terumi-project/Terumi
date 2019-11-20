@@ -10,37 +10,6 @@ namespace Terumi.Lexer
 		public int BinaryOffset;
 		public string File;
 
-		public LexerMetadata FromConsumed(Span<byte> consumed)
-		{
-			var from = Copy();
-			from.BinaryOffset += consumed.Length;
-
-			for (var i = 0; i < consumed.Length; i++)
-			{
-				var current = consumed[i];
-
-				if (current == '\n')
-				{
-					from.Line++;
-					from.Column = 1;
-				}
-				else if (current != '\r')
-				{
-					from.Column++;
-				}
-			}
-
-			return from;
-		}
-
-		public LexerMetadata Copy() => new LexerMetadata
-		{
-			Line = Line,
-			Column = Column,
-			BinaryOffset = BinaryOffset,
-			File = File
-		};
-
 		public override string ToString() => $"on line {Line}, column {Column} (binary offset {BinaryOffset}) in file {File}.";
 
 		public override bool Equals(object obj) => obj is LexerMetadata metadata && Equals(metadata);

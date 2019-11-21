@@ -33,5 +33,6 @@ namespace Terumi.Lexer
 		If, Else, For, While, Do,
 		Readonly,
 		This,
+		Return,
 	}
 }

@@ -260,13 +260,25 @@ namespace Terumi.Parser
 		#region STATEMENTS
 		private bool ConsumeStatement(ref Statement statement)
 		{
-			return ConsumeGeneric<Statement, Statement.Command>(ConsumeCommand, ref statement)
+			return ConsumeGeneric<Statement, Statement.Return>(ConsumeReturn, ref statement)
+				|| ConsumeGeneric<Statement, Statement.Command>(ConsumeCommand, ref statement)
 				|| ConsumeGeneric<Statement, Statement.Assignment>(ConsumeAssignment, ref statement)
 				|| ConsumeGeneric<Statement, Statement.Increment>(ConsumeIncrement, ref statement)
 				|| ConsumeGeneric<Statement, Statement.MethodCall>(ConsumeMethodCall, ref statement)
 				|| ConsumeGeneric<Statement, Statement.If>(ConsumeIf, ref statement)
 				|| ConsumeGeneric<Statement, Statement.While>(ConsumeWhile, ref statement)
 				|| ConsumeGeneric<Statement, Statement.For>(ConsumeFor, ref statement);
+		}
+
+		private bool ConsumeReturn(ref Statement.Return @return)
+		{
+			if (Peek().Type != TokenType.Return) return false;
+			var start = Current();
+			Next(); ConsumeWhitespace();
+			var expr = ConsumeExpression();
+			@return = new Statement.Return(TakeTokens(start, Current()), expr);
+			ConsumeWhitespace(false);
+			return true;
 		}
 
 		private bool ConsumeCommand(ref Statement.Command command)

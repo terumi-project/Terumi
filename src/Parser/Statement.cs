@@ -112,5 +112,17 @@ namespace Terumi.Parser
 			public ConsumedTokens Consumed { get; }
 			public Expression.Increment IncrementExpression { get; }
 		}
+
+		public class Return : Statement
+		{
+			public Return(ConsumedTokens consumed, Expression expr)
+			{
+				Consumed = consumed;
+				Expression = expr;
+			}
+
+			public ConsumedTokens Consumed { get; }
+			public Expression Expression { get; }
+		}
 	}
 }

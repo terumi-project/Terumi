@@ -76,7 +76,8 @@ namespace Terumi.Lexer
 						|| TryString(TokenType.While, "while", ref result)
 						|| TryString(TokenType.Readonly, "readonly", ref result)
 						|| TryString(TokenType.This, "this", ref result)
-						|| TryString(TokenType.Do, "do", ref result))
+						|| TryString(TokenType.Do, "do", ref result)
+						|| TryString(TokenType.Return, "return", ref result))
 					{
 						return result;
 					}

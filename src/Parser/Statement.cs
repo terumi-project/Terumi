@@ -9,7 +9,7 @@ namespace Terumi.Parser
 	{
 		public class Assignment : Statement
 		{
-			public Assignment(ConsumedTokens consumedTokens, string? type, string name, object value)
+			public Assignment(ConsumedTokens consumedTokens, string? type, string name, Expression value)
 			{
 				ConsumedTokens = consumedTokens;
 				Type = type;
@@ -99,6 +99,18 @@ namespace Terumi.Parser
 			public Expression Comparison { get; }
 			public CodeBody End { get; }
 			public CodeBody Statements { get; }
+		}
+
+		public class Increment : Statement
+		{
+			public Increment(ConsumedTokens consumed, Expression.Increment incExpr)
+			{
+				Consumed = consumed;
+				IncrementExpression = incExpr;
+			}
+
+			public ConsumedTokens Consumed { get; }
+			public Expression.Increment IncrementExpression { get; }
 		}
 	}
 }

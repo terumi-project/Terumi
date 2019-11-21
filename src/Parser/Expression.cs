@@ -77,5 +77,27 @@ namespace Terumi.Parser
 
 			public Expression Inner { get; }
 		}
+
+		public class Increment : Expression
+		{
+			public enum IncrementSide
+			{
+				Pre,
+				Post
+			}
+
+			public Increment(ConsumedTokens consumed, IncrementSide side, TokenType type, Expression expression)
+			{
+				Consumed = consumed;
+				Side = side;
+				Type = type;
+				Expression = expression;
+			}
+
+			public ConsumedTokens Consumed { get; }
+			public IncrementSide Side { get; }
+			public TokenType Type { get; }
+			public Expression Expression { get; }
+		}
 	}
 }

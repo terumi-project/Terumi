@@ -38,6 +38,9 @@ namespace Terumi.Lexer
 				case TokenType.NumberToken when !(Data is Number): throw new InvalidOperationException($"Must pass in Number for a number token");
 				case TokenType.NumberToken: break;
 
+				case TokenType.CommandToken when !(Data is StringData): throw new InvalidOperationException("Must pass in StringData to command token");
+				case TokenType.CommandToken: break;
+
 				default: if (Data != null) throw new InvalidOperationException($"Token type {Type} is not allowed to have data"); break;
 			}
 #endif

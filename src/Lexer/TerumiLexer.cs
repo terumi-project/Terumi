@@ -179,12 +179,12 @@ namespace Terumi.Lexer
 
 		public Token Command()
 		{
+			// skip /
+			Next();
+
 			var now = Metadata;
 			var capture = _source;
 			var hitEnd = false;
-
-			// skip @/
-			Next(); Next();
 
 			while (!AtEnd() && !(hitEnd = Peek() == (byte)'\n')) Next();
 
@@ -321,7 +321,7 @@ namespace Terumi.Lexer
 		[MethodImpl(MaxOpt)]
 		public bool TryString(TokenType type, string tryFor, ref Token result)
 		{
-			if (_source.Length < tryFor.Length) return false;
+			if (_source.Length <= tryFor.Length) return false;
 
 			var cmp = _source.Slice(0, tryFor.Length + 1);
 
@@ -356,13 +356,16 @@ namespace Terumi.Lexer
 			strb.Append((char)Peek());
 			Next();
 
-			var current = Peek();
-			while (IsIdentifierStart(current) || IsNumber(current))
+			if (!AtEnd())
 			{
-				strb.Append((char)current);
+				var current = Peek();
+				while (IsIdentifierStart(current) || IsNumber(current))
+				{
+					strb.Append((char)current);
 
-				Next();
-				current = Peek();
+					Next();
+					current = Peek();
+				}
 			}
 
 			var end = Metadata;
@@ -405,7 +408,12 @@ namespace Terumi.Lexer
 		[MethodImpl(MaxOpt)]
 		public byte Peek(int amt = 0)
 		{
-			if (AtEnd(amt)) Unsupported($"Cannot peek at end");
+			if (AtEnd(amt))
+#if DEBUG
+			Unsupported($"Cannot peek at end");
+#else
+			return (byte)'\0';
+#endif
 			return _source[amt];
 		}
 

@@ -3,6 +3,8 @@ namespace Terumi.Lexer
 {
 	public enum TokenType
 	{
+		Unknown,
+
 		IdentifierToken,
 		NumberToken,
 		StringToken,

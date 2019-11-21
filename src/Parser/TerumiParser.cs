@@ -262,6 +262,7 @@ namespace Terumi.Parser
 		{
 			return ConsumeGeneric<Statement, Statement.Command>(ConsumeCommand, ref statement)
 				|| ConsumeGeneric<Statement, Statement.Assignment>(ConsumeAssignment, ref statement)
+				|| ConsumeGeneric<Statement, Statement.Increment>(ConsumeIncrement, ref statement)
 				|| ConsumeGeneric<Statement, Statement.MethodCall>(ConsumeMethodCall, ref statement)
 				|| ConsumeGeneric<Statement, Statement.If>(ConsumeIf, ref statement)
 				|| ConsumeGeneric<Statement, Statement.While>(ConsumeWhile, ref statement)
@@ -275,7 +276,20 @@ namespace Terumi.Parser
 			var data = Peek().Data as StringData;
 			Next();
 			command = new Statement.Command(TakeTokens(start, Current()), data);
+			ConsumeWhitespace(false);
 			return true;
+		}
+
+		private bool ConsumeIncrement(ref Statement.Increment increment)
+		{
+			var start = Current();
+			var expr = ConsumeIncrementExpression();
+			if (!(expr is Expression.Increment incExpr)) return Quit();
+			increment = new Statement.Increment(TakeTokens(start, Current()), incExpr);
+			ConsumeWhitespace(false);
+			return true;
+
+			bool Quit() { _i = start; return false; }
 		}
 
 		private bool ConsumeAssignment(ref Statement.Assignment assignment)
@@ -315,8 +329,10 @@ namespace Terumi.Parser
 				_i = start;
 				return false;
 			}
+			Next();
+			ConsumeWhitespace(false);
 
-			object value = null; // TODO
+			var value = ConsumeExpression(); // TODO
 
 			assignment = new Statement.Assignment(TakeTokens(start, Current()), type, name, value);
 
@@ -337,6 +353,7 @@ namespace Terumi.Parser
 			Next();
 			ConsumeWhitespace(false);
 
+			if (AtEnd()) { _i = start; return false; }
 			if (Peek().Type != TokenType.OpenParen) { _i = start; return false; }
 
 			Next();
@@ -408,7 +425,7 @@ namespace Terumi.Parser
 
 				@while = new Statement.While(TakeTokens(start, Current()), comparison, body, isDoWhile);
 
-				ConsumeWhitespace();
+				ConsumeWhitespace(false);
 				return true;
 			}
 			else if (Peek().Type == TokenType.While)
@@ -419,7 +436,7 @@ namespace Terumi.Parser
 				var body = ConsumeCodeBody();
 
 				@while = new Statement.While(TakeTokens(start, Current()), comparison, body);
-				ConsumeWhitespace();
+				ConsumeWhitespace(false);
 				return true;
 			}
 
@@ -536,7 +553,7 @@ namespace Terumi.Parser
 
 		public Expression ConsumeMultiplicationExpression()
 		{
-			var total = ConsumePrimaryExpression();
+			var total = ConsumeIncrementExpression();
 			if (total == null) return null;
 
 			while (Peek().Type == TokenType.Multiply || Peek().Type == TokenType.Divide)
@@ -545,7 +562,7 @@ namespace Terumi.Parser
 				Next();
 				ConsumeWhitespace(false);
 
-				var right = ConsumePrimaryExpression();
+				var right = ConsumeIncrementExpression();
 				if (right == null)
 				{
 					Unsupported($"Expected right hand of multiplication statement ({type})");
@@ -557,6 +574,31 @@ namespace Terumi.Parser
 
 			ConsumeWhitespace(false);
 			return total;
+		}
+
+		public Expression ConsumeIncrementExpression()
+		{
+			var start = Current();
+			bool pre = false;
+			TokenType type = TokenType.Whitespace;
+			if (Peek().Type == TokenType.Increment || Peek().Type == TokenType.Decrement) { type = Peek().Type; Next(); }
+			pre = type != TokenType.Whitespace;
+			var primary = ConsumePrimaryExpression();
+			if (primary == null) return null;
+			if (type == TokenType.Whitespace)
+			{
+				if (AtEnd()) return primary;
+				if (Peek().Type == TokenType.Increment || Peek().Type == TokenType.Decrement) { type = Peek().Type; Next(); }
+			}
+			if (type != TokenType.Whitespace)
+			{
+				var side = pre ? Expression.Increment.IncrementSide.Pre : Expression.Increment.IncrementSide.Post;
+				var expr = new Expression.Increment(TakeTokens(start, Current()), side, type, primary);
+				ConsumeWhitespace(false);
+				return expr;
+			}
+			ConsumeWhitespace(false);
+			return primary;
 		}
 
 		public Expression ConsumePrimaryExpression()
@@ -627,7 +669,7 @@ namespace Terumi.Parser
 				return new Expression.Reference(TakeTokens(start, Current()), data as string);
 			}
 
-			Unsupported($"Unsupported expression");
+			// Unsupported($"Unsupported expression");
 			return null;
 		}
 		#endregion
@@ -656,7 +698,12 @@ namespace Terumi.Parser
 
 		private Token Peek(int amt = 0)
 		{
-			if (_tokens.Count <= amt + _i) Unsupported("No more tokens to peek from");
+			if (_tokens.Count <= amt + _i)
+#if DEBUG
+			Unsupported("No more tokens to peek from");
+#else
+			return TokenType.Unknown;
+#endif
 			return _tokens[amt + _i];
 		}
 

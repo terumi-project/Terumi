@@ -38,7 +38,7 @@ namespace Terumi.Lexer
 
 			switch (b)
 			{
-				case (byte)'@': return Char(TokenType.At);
+				case (byte)'@': return IsNext((byte)'/') ? Command() : Char(TokenType.At);
 				case (byte)'.': return Char(TokenType.Dot);
 				case (byte)',': return Char(TokenType.Comma);
 				case (byte)'(': return Char(TokenType.OpenParen);
@@ -47,6 +47,7 @@ namespace Terumi.Lexer
 				case (byte)']': return Char(TokenType.CloseBracket);
 				case (byte)'{': return Char(TokenType.OpenBrace);
 				case (byte)'}': return Char(TokenType.CloseBrace);
+				case (byte)';': return Char(TokenType.Semicolon);
 				case (byte)'=': return IsNext((byte)'=') ? Char(TokenType.EqualTo) : Char(TokenType.Assignment);
 				case (byte)'!': return IsNext((byte)'=') ? Char(TokenType.NotEqualTo) : Char(TokenType.Not);
 				case (byte)'>': return IsNext((byte)'=') ? Char(TokenType.GreaterThanOrEqualTo) : Char(TokenType.GreaterThan);
@@ -74,7 +75,8 @@ namespace Terumi.Lexer
 						|| TryString(TokenType.For, "for", ref result)
 						|| TryString(TokenType.While, "while", ref result)
 						|| TryString(TokenType.Readonly, "readonly", ref result)
-						|| TryString(TokenType.This, "this", ref result))
+						|| TryString(TokenType.This, "this", ref result)
+						|| TryString(TokenType.Do, "do", ref result))
 					{
 						return result;
 					}
@@ -171,6 +173,31 @@ namespace Terumi.Lexer
 			var stringData = Encoding.UTF8.GetString(commentData);
 
 			return new Token(TokenType.Comment, now, Metadata, stringData);
+		}
+
+		/* command */
+
+		public Token Command()
+		{
+			var now = Metadata;
+			var capture = _source;
+			var hitEnd = false;
+
+			// skip @/
+			Next(); Next();
+
+			while (!AtEnd() && !(hitEnd = Peek() == (byte)'\n')) Next();
+
+			if (!hitEnd)
+			{
+				Unsupported("Didn't get a newline at the end of command ( @/ )");
+			}
+
+			var rawData = capture.Slice(0, _offset - now.BinaryOffset);
+			var data = Encoding.UTF8.GetString(rawData);
+
+			// TODO: support interpolation and that yummy goodness
+			return new Token(TokenType.CommandToken, now, Metadata, new StringData(new StringBuilder(data), EmptyList<StringData.Interpolation>.Instance));
 		}
 
 		/* whitespace lol */

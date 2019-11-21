@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Terumi.Lexer;
 
 namespace Terumi.Parser
 {
@@ -36,6 +37,68 @@ namespace Terumi.Parser
 			public bool IsCompilerCall { get; }
 			public string Name { get; }
 			public List<Expression> Parameters { get; }
+		}
+
+		public class Command : Statement
+		{
+			public Command(ConsumedTokens consumed, StringData @string)
+			{
+				Consumed = consumed;
+				String = @string;
+			}
+
+			public ConsumedTokens Consumed { get; }
+			public StringData String { get; }
+		}
+
+		public class If : Statement
+		{
+			public If(ConsumedTokens consumed, Expression comparison, CodeBody ifClause, CodeBody elseClause)
+			{
+				Consumed = consumed;
+				Comparison = comparison;
+				IfClause = ifClause;
+				ElseClause = elseClause;
+			}
+
+			public ConsumedTokens Consumed { get; }
+			public Expression Comparison { get; }
+			public CodeBody IfClause { get; }
+			public CodeBody ElseClause { get; }
+		}
+
+		public class While : Statement
+		{
+			public While(ConsumedTokens consumed, Expression comparison, CodeBody statements, bool isDoWhile = false)
+			{
+				Consumed = consumed;
+				Comparison = comparison;
+				Statements = statements;
+				IsDoWhile = isDoWhile;
+			}
+
+			public ConsumedTokens Consumed { get; }
+			public Expression Comparison { get; }
+			public CodeBody Statements { get; }
+			public bool IsDoWhile { get; }
+		}
+
+		public class For : Statement
+		{
+			public For(ConsumedTokens consumed, CodeBody declaration, Expression comparison, CodeBody end, CodeBody statements)
+			{
+				Consumed = consumed;
+				Declaration = declaration;
+				Comparison = comparison;
+				End = end;
+				Statements = statements;
+			}
+
+			public ConsumedTokens Consumed { get; }
+			public CodeBody Declaration { get; }
+			public Expression Comparison { get; }
+			public CodeBody End { get; }
+			public CodeBody Statements { get; }
 		}
 	}
 }

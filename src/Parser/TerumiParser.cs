@@ -260,8 +260,22 @@ namespace Terumi.Parser
 		#region STATEMENTS
 		private bool ConsumeStatement(ref Statement statement)
 		{
-			return ConsumeGeneric<Statement, Statement.Assignment>(ConsumeAssignment, ref statement)
-				|| ConsumeGeneric<Statement, Statement.MethodCall>(ConsumeMethodCall, ref statement);
+			return ConsumeGeneric<Statement, Statement.Command>(ConsumeCommand, ref statement)
+				|| ConsumeGeneric<Statement, Statement.Assignment>(ConsumeAssignment, ref statement)
+				|| ConsumeGeneric<Statement, Statement.MethodCall>(ConsumeMethodCall, ref statement)
+				|| ConsumeGeneric<Statement, Statement.If>(ConsumeIf, ref statement)
+				|| ConsumeGeneric<Statement, Statement.While>(ConsumeWhile, ref statement)
+				|| ConsumeGeneric<Statement, Statement.For>(ConsumeFor, ref statement);
+		}
+
+		private bool ConsumeCommand(ref Statement.Command command)
+		{
+			var start = Current();
+			if (Peek().Type != TokenType.CommandToken) return false;
+			var data = Peek().Data as StringData;
+			Next();
+			command = new Statement.Command(TakeTokens(start, Current()), data);
+			return true;
 		}
 
 		private bool ConsumeAssignment(ref Statement.Assignment assignment)
@@ -355,6 +369,82 @@ namespace Terumi.Parser
 			ConsumeWhitespace(false);
 
 			methodCall = new Statement.MethodCall(TakeTokens(start, Current()), isCompilerCall, name, exprs);
+			return true;
+		}
+
+		private bool ConsumeIf(ref Statement.If @if)
+		{
+			if (Peek().Type != TokenType.If) return false;
+			var start = Current();
+			Next(); ConsumeWhitespace();
+			var expr = ConsumeExpression();
+			var @true = ConsumeCodeBody();
+			var @else = CodeBody.Empty;
+
+			if (Peek().Type == TokenType.Else)
+			{
+				Next(); ConsumeWhitespace(false);
+				@else = ConsumeCodeBody();
+			}
+
+			@if = new Statement.If(TakeTokens(start, Current()), expr, @true, @else);
+			ConsumeWhitespace(false);
+			return true;
+		}
+
+		private bool ConsumeWhile(ref Statement.While @while)
+		{
+			var start = Current();
+			bool isDoWhile = false;
+			if (Peek().Type == TokenType.Do)
+			{
+				isDoWhile = true;
+				Next(); ConsumeWhitespace(false);
+				var body = ConsumeCodeBody();
+				ConsumeWhitespace(false);
+				if (Peek().Type != TokenType.While) Unsupported("Expected do while to have while at the end of body");
+				Next(); ConsumeWhitespace(false);
+				var comparison = ConsumeExpression();
+
+				@while = new Statement.While(TakeTokens(start, Current()), comparison, body, isDoWhile);
+
+				ConsumeWhitespace();
+				return true;
+			}
+			else if (Peek().Type == TokenType.While)
+			{
+				Next(); ConsumeWhitespace(false);
+				var comparison = ConsumeExpression();
+				ConsumeWhitespace(false);
+				var body = ConsumeCodeBody();
+
+				@while = new Statement.While(TakeTokens(start, Current()), comparison, body);
+				ConsumeWhitespace();
+				return true;
+			}
+
+			return false;
+		}
+
+		private bool ConsumeFor(ref Statement.For @for)
+		{
+			if (Peek().Type != TokenType.For) return false;
+			var start = Current();
+			Next(); ConsumeWhitespace(false);
+			if (Peek().Type != TokenType.OpenParen) Unsupported("Expected open parenthesis in for");
+			Next(); ConsumeWhitespace(false);
+			var decl = ConsumeCodeBody();
+			if (Peek().Type != TokenType.Semicolon) Unsupported("Expected semicolon at end of for declaration");
+			Next(); ConsumeWhitespace(false);
+			var comparison = ConsumeComparisonExpression();
+			if (Peek().Type != TokenType.Semicolon) Unsupported("Expected semicolon at end of for declaration");
+			Next(); ConsumeWhitespace(false);
+			var inc = ConsumeCodeBody();
+			if (Peek().Type != TokenType.CloseParen) Unsupported("Expected close parenthesis");
+			Next(); ConsumeWhitespace(false);
+			var body = ConsumeCodeBody();
+
+			@for = new Statement.For(TakeTokens(start, Current()), decl, comparison, inc, body);
 			return true;
 		}
 		#endregion

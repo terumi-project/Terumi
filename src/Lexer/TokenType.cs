@@ -6,6 +6,8 @@ namespace Terumi.Lexer
 		IdentifierToken,
 		NumberToken,
 		StringToken,
+		CommandToken,
+
 		Comment,
 		Whitespace,
 
@@ -22,10 +24,11 @@ namespace Terumi.Lexer
 		Exponent, Multiply, // ** *
 		Divide, // /
 		At, Dot, // @ .
+		Semicolon, // ;
 
 		Use, Package, Class, Contract,
 		True, False,
-		If, Else, For, While,
+		If, Else, For, While, Do,
 		Readonly,
 		This,
 	}

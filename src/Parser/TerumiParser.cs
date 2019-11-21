@@ -117,13 +117,15 @@ namespace Terumi.Parser
 		public bool TryMethod(ref Method method)
 		{
 			var methodStart = Current();
-			if (Peek().Type != TokenType.IdentifierToken) return false;
+			if (AtEnd()) return Quit();
+			if (Peek().Type != TokenType.IdentifierToken) return Quit();
 
 			string? type = null;
 			var name = Peek().Data as string;
 
 			Next();
-			ConsumeWhitespace();
+			// TODO: make sure there's an identifier if there's not a second one
+			ConsumeWhitespace(false);
 
 			if (Peek().Type == TokenType.IdentifierToken)
 			{
@@ -196,11 +198,21 @@ namespace Terumi.Parser
 				}
 			}
 
+			// consuem close paren
+			Next();
+			ConsumeWhitespace(false);
+
 			ConsumeWhitespace(false);
 			var body = ConsumeCodeBody();
 
 			method = new Method(TakeTokens(methodStart, Current()), type, name, parameters, body);
 			return true;
+
+			bool Quit()
+			{
+				_i = methodStart;
+				return false;
+			}
 		}
 
 		private CodeBody ConsumeCodeBody()
@@ -235,8 +247,12 @@ namespace Terumi.Parser
 
 				statements.Add(statement);
 
-				ConsumeWhitespace();
+				// statement consumed whitespace for us
 			}
+
+			// consme close brace
+			Next();
+			ConsumeWhitespace(false);
 
 			return new CodeBody(TakeTokens(start, Current()), statements);
 		}
@@ -244,7 +260,8 @@ namespace Terumi.Parser
 		#region STATEMENTS
 		private bool ConsumeStatement(ref Statement statement)
 		{
-			return ConsumeGeneric<Statement, Statement.Assignment>(ConsumeAssignment, ref statement);
+			return ConsumeGeneric<Statement, Statement.Assignment>(ConsumeAssignment, ref statement)
+				|| ConsumeGeneric<Statement, Statement.MethodCall>(ConsumeMethodCall, ref statement);
 		}
 
 		private bool ConsumeAssignment(ref Statement.Assignment assignment)
@@ -252,6 +269,7 @@ namespace Terumi.Parser
 			var start = Current();
 			if (Peek().Type != TokenType.IdentifierToken)
 			{
+				_i = start;
 				return false;
 				// Unsupported($"Expected identifier token when consuming variable declaration statement");
 			}
@@ -266,6 +284,7 @@ namespace Terumi.Parser
 			{
 				if (!didConsume)
 				{
+					_i = start;
 					return false;
 					// Unsupported($"Should've consumed whitespace before another identifier");
 				}
@@ -279,11 +298,13 @@ namespace Terumi.Parser
 
 			if (Peek().Type != TokenType.Assignment)
 			{
+				_i = start;
 				return false;
 			}
 
 			object value = null; // TODO
 
+			ConsumeWhitespace(false);
 			assignment = new Statement.Assignment(TakeTokens(start, Current()), type, name, value);
 			return true;
 		}
@@ -295,13 +316,13 @@ namespace Terumi.Parser
 
 			if (Peek().Type == TokenType.At) { Next(); isCompilerCall = true; }
 
-			if (Peek().Type != TokenType.IdentifierToken) return false;
+			if (Peek().Type != TokenType.IdentifierToken) { _i = start; return false; }
 
 			var name = Peek().Data as string;
 			Next();
 			ConsumeWhitespace(false);
 
-			if (Peek().Type != TokenType.OpenParen) return false;
+			if (Peek().Type != TokenType.OpenParen) { _i = start; return false; }
 
 			Next();
 			ConsumeWhitespace(false);
@@ -314,13 +335,17 @@ namespace Terumi.Parser
 
 				if (Peek().Type != TokenType.Comma)
 				{
-					Next();
+					// Next();
 					ConsumeWhitespace(false);
 
 					if (Peek().Type == TokenType.CloseParen) break;
 					Unsupported($"Didn't get comma but didn't get closing parenthesis");
 				}
 			}
+
+			// consume close paren
+			Next();
+			ConsumeWhitespace(false);
 
 			methodCall = new Statement.MethodCall(TakeTokens(start, Current()), isCompilerCall, name, exprs);
 			return true;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 
 // https://www.craftinginterpreters.com/scanning.html
 namespace Terumi.Lexer
@@ -33,6 +34,9 @@ namespace Terumi.Lexer
 
 				case TokenType.Comment when !(Data is string): throw new InvalidOperationException($"Must pass in a string for a comment token");
 				case TokenType.Comment: break;
+
+				case TokenType.NumberToken when !(Data is Number): throw new InvalidOperationException($"Must pass in Number for a number token");
+				case TokenType.NumberToken: break;
 
 				default: if (Data != null) throw new InvalidOperationException($"Token type {Type} is not allowed to have data"); break;
 			}

@@ -40,6 +40,7 @@ namespace Terumi.Lexer
 			{
 				case (byte)'@': return Char(TokenType.At);
 				case (byte)'.': return Char(TokenType.Dot);
+				case (byte)',': return Char(TokenType.Comma);
 				case (byte)'(': return Char(TokenType.OpenParen);
 				case (byte)')': return Char(TokenType.CloseParen);
 				case (byte)'[': return Char(TokenType.OpenBracket);
@@ -52,8 +53,8 @@ namespace Terumi.Lexer
 				case (byte)'<': return IsNext((byte)'=') ? Char(TokenType.LessThanOrEqualTo) : Char(TokenType.LessThan);
 				case (byte)'+': return IsNext((byte)'+') ? Char(TokenType.Increment) : Char(TokenType.Add);
 				case (byte)'-': return IsNext((byte)'-') ? Char(TokenType.Decrement) : Char(TokenType.Subtract);
-				case (byte)'*': return IsNext((byte)'*') ? Char(TokenType.Exponent) : (IsNext((byte)'/') ? MultilineComment() : Char(TokenType.Multiply));
-				case (byte)'/': return IsNext((byte)'/') ? SinglelineComment() : Char(TokenType.Divide);
+				case (byte)'*': return IsNext((byte)'*') ? Char(TokenType.Exponent) : Char(TokenType.Multiply);
+				case (byte)'/': return IsNext((byte)'/') ? SinglelineComment() : (IsNext((byte)'*') ? MultilineComment() : Char(TokenType.Divide));
 				case (byte)'"': return String();
 				default:
 				{
@@ -101,7 +102,7 @@ namespace Terumi.Lexer
 		[MethodImpl(MaxOpt)]
 		private bool IsNext(byte b)
 		{
-			if (Peek() == b) { Next(); return true; }
+			if (Peek(1) == b) { Next(); return true; }
 			return false;
 		}
 
@@ -280,6 +281,7 @@ namespace Terumi.Lexer
 			{
 				strb.Append((char)b);
 				Next();
+				b = Peek();
 			}
 
 			var end = Metadata;

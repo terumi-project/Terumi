@@ -304,8 +304,9 @@ namespace Terumi.Parser
 
 			object value = null; // TODO
 
-			ConsumeWhitespace(false);
 			assignment = new Statement.Assignment(TakeTokens(start, Current()), type, name, value);
+
+			ConsumeWhitespace(false);
 			return true;
 		}
 
@@ -340,6 +341,12 @@ namespace Terumi.Parser
 
 					if (Peek().Type == TokenType.CloseParen) break;
 					Unsupported($"Didn't get comma but didn't get closing parenthesis");
+				}
+				else
+				{
+					// consume comma
+					Next();
+					ConsumeWhitespace(false);
 				}
 			}
 
@@ -377,8 +384,10 @@ namespace Terumi.Parser
 				}
 
 				total = new Expression.Binary(total, type, right);
+				ConsumeWhitespace(false);
 			}
 
+			ConsumeWhitespace(false);
 			return total;
 		}
 
@@ -403,8 +412,10 @@ namespace Terumi.Parser
 				}
 
 				total = new Expression.Binary(total, type, right);
+				ConsumeWhitespace(false);
 			}
 
+			ConsumeWhitespace(false);
 			return total;
 		}
 
@@ -426,8 +437,10 @@ namespace Terumi.Parser
 				}
 
 				total = new Expression.Binary(total, type, right);
+				ConsumeWhitespace(false);
 			}
 
+			ConsumeWhitespace(false);
 			return total;
 		}
 
@@ -449,8 +462,10 @@ namespace Terumi.Parser
 				}
 
 				total = new Expression.Binary(total, type, right);
+				ConsumeWhitespace(false);
 			}
 
+			ConsumeWhitespace(false);
 			return total;
 		}
 
@@ -489,7 +504,6 @@ namespace Terumi.Parser
 				case TokenType.NumberToken: { var data = Peek().Data; Next(); return new Expression.Constant(TakeTokens(start, Current()), data); }
 				case TokenType.True: { Next(); return new Expression.Constant(TakeTokens(start, Current()), true); }
 				case TokenType.False: { Next(); return new Expression.Constant(TakeTokens(start, Current()), false); }
-				case TokenType.IdentifierToken: { var data = Peek().Data; Next(); return new Expression.Reference(TakeTokens(start, Current()), data as string); }
 			}
 
 			if (Peek().Type == TokenType.OpenParen)
@@ -503,6 +517,8 @@ namespace Terumi.Parser
 					Unsupported($"Expected closing parenthesis on expression");
 				}
 
+				// consume )
+				Next();
 				return expr;
 			}
 
@@ -511,6 +527,14 @@ namespace Terumi.Parser
 			if (ConsumeMethodCall(ref call))
 			{
 				return new Expression.MethodCall(call);
+			}
+
+			// try identifier as a reference as a LAST RESORT 
+			if (Peek().Type == TokenType.IdentifierToken)
+			{
+				var data = Peek().Data;
+				Next();
+				return new Expression.Reference(TakeTokens(start, Current()), data as string);
 			}
 
 			Unsupported($"Unsupported expression");

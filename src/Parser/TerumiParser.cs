@@ -135,7 +135,9 @@ namespace Terumi.Parser
 			Next(); ConsumeWhitespace(false);
 
 			var methods = new List<Method>();
+			var fields = new List<Field>();
 			Method method = null;
+			Field field = null;
 
 			while (Peek().Type != TokenType.CloseBrace)
 			{
@@ -143,18 +145,45 @@ namespace Terumi.Parser
 				{
 					methods.Add(method);
 				}
+				else if (TryField(ref field))
+				{
+					fields.Add(field);
+				}
 				else
 				{
 					Unsupported("Expected method or field");
 				}
 			}
 
-			@class = new Class(TakeTokens(classStart, Current()), name, methods);
+			@class = new Class(TakeTokens(classStart, Current()), name, methods, fields);
 			return true;
 
 			bool Quit()
 			{
 				_i = classStart;
+				return false;
+			}
+		}
+
+		public bool TryField(ref Field field)
+		{
+			var start = Current();
+			if (AtEnd()) Quit();
+
+			if (Peek().Type != TokenType.IdentifierToken) Quit();
+			var type = Peek().Data as string;
+			Next(); ConsumeWhitespace();
+
+			if (Peek().Type != TokenType.IdentifierToken) Quit();
+			var name = Peek().Data as string;
+			Next(); ConsumeWhitespace(); // fields must have a newline after 'em
+
+			field = new Field(TakeTokens(start, Current()), type, name);
+			return true;
+
+			bool Quit()
+			{
+				_i = start;
 				return false;
 			}
 		}
@@ -181,10 +210,8 @@ namespace Terumi.Parser
 				ConsumeWhitespace(false);
 			}
 
-			if (Peek().Type != TokenType.OpenParen)
-			{
-				Unsupported($"Expected opening parenthesis on method parameter group");
-			}
+			// may be a field if there's no open paren
+			if (Peek().Type != TokenType.OpenParen) return Quit();
 
 			Next();
 			ConsumeWhitespace(false);

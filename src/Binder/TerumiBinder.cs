@@ -35,9 +35,9 @@ namespace Terumi.Binder
 
 	public class TerumiBinder
 	{
-		private readonly TerumiBinderProject _project;
-		private readonly List<(Class, SourceFile)> _wipClasses = new List<(Class, SourceFile)>();
-		private readonly List<(Method, SourceFile)> _wipMethods = new List<(Method, SourceFile)>();
+		internal readonly TerumiBinderProject _project;
+		internal readonly List<(Class, SourceFile)> _wipClasses = new List<(Class, SourceFile)>();
+		internal readonly List<(Method, SourceFile)> _wipMethods = new List<(Method, SourceFile)>();
 
 		public TerumiBinder(TerumiBinderProject project)
 		{
@@ -144,19 +144,31 @@ namespace Terumi.Binder
 		// now read into the code of the method body - we have full type information at this point
 		public void DiscoverMethodBodies()
 		{
-			// TODO: this will be the most difficult part
+			foreach (var (@class, file) in _wipClasses)
+			{
+				foreach (var method in @class.Methods)
+				{
+					System.Diagnostics.Debug.Assert(method is Method, "A method in a class is not method - some major architectural change?");
+					var userMethod = method as Method;
+
+					var binder = new MethodBinder(this, @class, userMethod, file);
+					var code = binder.Finalize();
+					userMethod.Body = code;
+				}
+			}
+
+			foreach (var (method, file) in _wipMethods)
+			{
+				// TODO: don't do code duplication
+				var userMethod = method;
+
+				var binder = new MethodBinder(this, null, userMethod, file);
+				var code = binder.Finalize();
+				userMethod.Body = code;
+			}
 		}
 
-		// - - helpers - -
-
-		// these two are so we only use things in the namespaces we've included
-		private bool CanUseFile(SourceFile source, SourceFile wantToUse)
-			=> source.Usings.Contains(wantToUse.PackageLevel);
-
-		private bool CanUseFile(SourceFile source, BoundFile wantToUse)
-			=> source.Usings.Contains(wantToUse.Namespace);
-
-		private IType FindImmediateType(string? name, SourceFile source)
+		internal IType FindImmediateType(string? name, SourceFile source)
 		{
 			// at this point 'name' is guarenteed to not be null
 			if (BuiltinType.TryUse(name, out var type)) return type;
@@ -166,7 +178,7 @@ namespace Terumi.Binder
 			// first, search in the wip stuff for a class named similarly
 			foreach (var (@class, file) in _wipClasses)
 			{
-				if (!CanUseFile(source, file)) continue;
+				if (!source.CanUseFile(file)) continue;
 
 				if (@class.Name == name)
 				{
@@ -177,7 +189,7 @@ namespace Terumi.Binder
 			// next, search in the direct dependencies for a similar type
 			foreach (var dependency in _project.DirectDependencies)
 			{
-				if (!CanUseFile(source, dependency)) continue;
+				if (!source.CanUseFile(dependency)) continue;
 
 				foreach (var @class in dependency.Classes)
 				{
@@ -192,5 +204,15 @@ namespace Terumi.Binder
 			// to only be used within the project
 			throw new InvalidOperationException($"Cannot find immediate type {name}");
 		}
+	}
+
+	public static class Helpers
+	{
+		// these two are so we only use things in the namespaces we've included
+		public static bool CanUseFile(this SourceFile source, SourceFile wantToUse)
+			=> source.Usings.Contains(wantToUse.PackageLevel);
+
+		public static bool CanUseFile(this SourceFile source, BoundFile wantToUse)
+			=> source.Usings.Contains(wantToUse.Namespace);
 	}
 }

@@ -77,7 +77,8 @@ namespace Terumi.Lexer
 						|| TryString(TokenType.Readonly, "readonly", ref result)
 						|| TryString(TokenType.This, "this", ref result)
 						|| TryString(TokenType.Do, "do", ref result)
-						|| TryString(TokenType.Return, "return", ref result))
+						|| TryString(TokenType.Return, "return", ref result)
+						|| TryString(TokenType.Set, "set", ref result))
 					{
 						return result;
 					}

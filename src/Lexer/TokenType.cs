@@ -34,5 +34,6 @@ namespace Terumi.Lexer
 		Readonly,
 		This,
 		Return,
+		Set
 	}
 }

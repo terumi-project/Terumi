@@ -130,7 +130,7 @@ namespace Terumi.Binder
 
 			Method BindMethod(Parser.Method parserMethod, SourceFile file)
 			{
-				var method = new Method(FindImmediateType(parserMethod.Type, file), parserMethod.Name);
+				var method = new Method(parserMethod, FindImmediateType(parserMethod.Type, file), parserMethod.Name);
 
 				foreach (var parameter in parserMethod.Parameters)
 				{

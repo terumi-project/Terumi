@@ -114,12 +114,14 @@ namespace Terumi.Binder
 
 	public class Method : IMethod
 	{
-		public Method(IType returnType, string name)
+		public Method(Parser.Method fromParser, IType returnType, string name)
 		{
+			FromParser = fromParser;
 			ReturnType = returnType;
 			Name = name;
 		}
 
+		public Parser.Method FromParser { get; }
 		public IType ReturnType { get; }
 		public string Name { get; }
 		public List<MethodParameter> Parameters { get; set; } = new List<MethodParameter>();

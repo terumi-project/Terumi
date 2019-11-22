@@ -426,49 +426,11 @@ namespace Terumi.Parser
 		private bool ConsumeMethodCall(ref Statement.MethodCall methodCall)
 		{
 			var start = Current();
-			var isCompilerCall = false;
 
-			if (Peek().Type == TokenType.At) { Next(); isCompilerCall = true; }
+			Expression.MethodCall exprMethodCall = null;
+			if (!TryConsumeMethodCallExpression(ref exprMethodCall)) { _i = start; return false; }
 
-			if (Peek().Type != TokenType.IdentifierToken) { _i = start; return false; }
-
-			var name = Peek().Data as string;
-			Next();
-			ConsumeWhitespace(false);
-
-			if (AtEnd()) { _i = start; return false; }
-			if (Peek().Type != TokenType.OpenParen) { _i = start; return false; }
-
-			Next();
-			ConsumeWhitespace(false);
-
-			var exprs = new List<Expression>();
-
-			while (Peek().Type != TokenType.CloseParen)
-			{
-				exprs.Add(ConsumeExpression());
-
-				if (Peek().Type != TokenType.Comma)
-				{
-					// Next();
-					ConsumeWhitespace(false);
-
-					if (Peek().Type == TokenType.CloseParen) break;
-					Unsupported($"Didn't get comma but didn't get closing parenthesis");
-				}
-				else
-				{
-					// consume comma
-					Next();
-					ConsumeWhitespace(false);
-				}
-			}
-
-			// consume close paren
-			Next();
-			ConsumeWhitespace(false);
-
-			methodCall = new Statement.MethodCall(TakeTokens(start, Current()), isCompilerCall, name, exprs);
+			methodCall = new Statement.MethodCall(TakeTokens(start, Current()), exprMethodCall);
 			return true;
 		}
 
@@ -757,11 +719,11 @@ namespace Terumi.Parser
 				return expr;
 			}
 
-			Statement.MethodCall call = null;
+			Expression.MethodCall call = null;
 
-			if (ConsumeMethodCall(ref call))
+			if (TryConsumeMethodCallExpression(ref call))
 			{
-				return new Expression.MethodCall(call);
+				return call;
 			}
 
 			// try identifier as a reference as a LAST RESORT 
@@ -774,6 +736,55 @@ namespace Terumi.Parser
 
 			// Unsupported($"Unsupported expression");
 			return null;
+		}
+
+		private bool TryConsumeMethodCallExpression(ref Expression.MethodCall methodCall)
+		{
+			var start = Current();
+			var isCompilerCall = false;
+
+			if (Peek().Type == TokenType.At) { Next(); isCompilerCall = true; }
+
+			if (Peek().Type != TokenType.IdentifierToken) { _i = start; return false; }
+
+			var name = Peek().Data as string;
+			Next();
+			ConsumeWhitespace(false);
+
+			if (AtEnd()) { _i = start; return false; }
+			if (Peek().Type != TokenType.OpenParen) { _i = start; return false; }
+
+			Next();
+			ConsumeWhitespace(false);
+
+			var exprs = new List<Expression>();
+
+			while (Peek().Type != TokenType.CloseParen)
+			{
+				exprs.Add(ConsumeExpression());
+
+				if (Peek().Type != TokenType.Comma)
+				{
+					// Next();
+					ConsumeWhitespace(false);
+
+					if (Peek().Type == TokenType.CloseParen) break;
+					Unsupported($"Didn't get comma but didn't get closing parenthesis");
+				}
+				else
+				{
+					// consume comma
+					Next();
+					ConsumeWhitespace(false);
+				}
+			}
+
+			// consume close paren
+			Next();
+			ConsumeWhitespace(false);
+
+			methodCall = new Expression.MethodCall(TakeTokens(start, Current()), isCompilerCall, name, exprs);
+			return true;
 		}
 		#endregion
 

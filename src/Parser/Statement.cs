@@ -21,21 +21,17 @@ namespace Terumi.Parser
 
 			public string Type { get; }
 			public string Name { get; }
-			public object Value { get; }
+			public Expression Value { get; }
 		}
 
 		public class MethodCall : Statement
 		{
-			public MethodCall(ConsumedTokens consumed, bool isCompilerCall, string name, List<Expression> parameters) : base(consumed)
+			public MethodCall(ConsumedTokens consumed, Expression.MethodCall methodCall) : base(consumed)
 			{
-				IsCompilerCall = isCompilerCall;
-				Name = name;
-				Parameters = parameters;
+				MethodCallExpression = methodCall;
 			}
 
-			public bool IsCompilerCall { get; }
-			public string Name { get; }
-			public List<Expression> Parameters { get; }
+			public Expression.MethodCall MethodCallExpression { get; }
 		}
 
 		public class Command : Statement

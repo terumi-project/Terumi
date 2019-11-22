@@ -1,4 +1,5 @@
-﻿using Terumi.Lexer;
+﻿using System.Collections.Generic;
+using Terumi.Lexer;
 
 namespace Terumi.Parser
 {
@@ -41,13 +42,16 @@ namespace Terumi.Parser
 
 		public class MethodCall : Expression
 		{
-			// TODO: easier way to copy and paste
-			public MethodCall(Statement.MethodCall methodCall) : base(methodCall.Consumed)
+			public MethodCall(ConsumedTokens consumed, bool isCompilerCall, string name, List<Expression> parameters) : base(consumed)
 			{
-				MethodCallStatement = methodCall;
+				IsCompilerCall = isCompilerCall;
+				Name = name;
+				Parameters = parameters;
 			}
 
-			public Statement.MethodCall MethodCallStatement { get; }
+			public bool IsCompilerCall { get; }
+			public string Name { get; }
+			public List<Expression> Parameters { get; }
 		}
 
 		// works as a comparison as well

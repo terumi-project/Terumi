@@ -204,6 +204,11 @@ namespace Terumi.Binder
 			// to only be used within the project
 			throw new InvalidOperationException($"Cannot find immediate type {name}");
 		}
+
+		internal bool FindImmediateMethod(Parser.Expression.MethodCall methodCall, out IMethod method)
+		{
+
+		}
 	}
 
 	public static class Helpers

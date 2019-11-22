@@ -53,6 +53,8 @@ namespace Terumi.Binder
 			return new CodeBody(stmts);
 		}
 
+		// statements
+
 		public Statement Handle(Parser.Statement stmt)
 		{
 			switch (stmt)
@@ -147,6 +149,9 @@ namespace Terumi.Binder
 			return new Statement.While(o, o.IsDoWhile, comparison, body);
 		}
 
+		// expressions
+		// TODO: [MAJOR] need to account for access expressions
+
 		public Expression Handle(Parser.Expression expr)
 		{
 			switch (expr)
@@ -165,7 +170,75 @@ namespace Terumi.Binder
 		public Expression.Access Handle(Parser.Expression.Access o)
 			=> new Expression.Access(o, Handle(o.Left), Handle(o.Right));
 
-		public Expression.Increment Handle(Parser.Expression.Increment o) => null;
-		public Expression.MethodCall Handle(Parser.Expression.MethodCall o) => null;
+		public Expression.Binary Handle(Parser.Expression.Binary o)
+		{
+			return null;
+		}
+
+		public Expression.Constant Handle(Parser.Expression.Constant o)
+		{
+			var newValue = o.Value;
+
+			if (newValue is Lexer.StringData stringData)
+			{
+				// TODO: modify newValue to be an updated stringdata
+			}
+
+			return new Expression.Constant(o, newValue);
+		}
+
+		public Expression.Increment Handle(Parser.Expression.Increment o)
+		{
+			// TODO: pre/post, inc/dec, etc.
+			return new Expression.Increment(o, Handle(o.Expression));
+		}
+
+		public Expression.MethodCall Handle(Parser.Expression.MethodCall o)
+		{
+			if (!_parent.FindImmediateMethod(o, out var method))
+			{
+				throw new InvalidOperationException($"Call to method {o} but couldn't find any immediate methods.");
+			}
+
+			var exprs = new List<Expression>();
+
+			foreach (var expr in o.Parameters)
+			{
+				exprs.Add(Handle(expr));
+			}
+
+			return new Expression.MethodCall(o, method, exprs);
+		}
+
+		public Expression.Parenthesized Handle(Parser.Expression.Parenthesized o)
+			=> new Expression.Parenthesized(o, Handle(o.Inner));
+
+		public Expression.Reference Handle(Parser.Expression.Reference o)
+		{
+			// first, check variables
+
+			// next, check method parameters
+			foreach (var parameter in _method.Parameters)
+			{
+				if (parameter.Name == o.ReferenceName)
+				{
+					return new Expression.Reference.Parameter(o, parameter);
+				}
+			}
+
+			// finally, check class fields
+			if (_context != null)
+			{
+				foreach (var field in _context.Fields)
+				{
+					if (field.Name == o.ReferenceName)
+					{
+						return new Expression.Reference.Field(o, field);
+					}
+				}
+			}
+
+			throw new InvalidOperationException($"Cannot find reference to '{o}'");
+		}
 	}
 }

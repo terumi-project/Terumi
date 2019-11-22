@@ -166,7 +166,7 @@ namespace Terumi.Binder
 
 		public abstract class Reference : Expression
 		{
-			public Reference(Parser.Expression.Reference fromParser) : base(fromParser)
+			protected Reference(Parser.Expression.Reference fromParser) : base(fromParser)
 			{
 				FromParser = fromParser;
 			}
@@ -195,12 +195,12 @@ namespace Terumi.Binder
 
 			public class Field : Reference
 			{
-				public Field(Parser.Expression.Reference fromParser, Field field) : base(fromParser)
+				public Field(Parser.Expression.Reference fromParser, Binder.Field field) : base(fromParser)
 				{
 					FieldDeclaration = field;
 				}
 
-				public Field FieldDeclaration { get; }
+				public Binder.Field FieldDeclaration { get; }
 			}
 		}
 

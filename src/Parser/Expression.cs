@@ -30,16 +30,16 @@ namespace Terumi.Parser
 
 		public class Access : Expression
 		{
-			public Access(ConsumedTokens consumed, Expression main, Expression action)
+			public Access(ConsumedTokens consumed, Expression left, Expression right)
 			{
 				Consumed = consumed;
-				Main = main;
-				Action = action;
+				Left = left;
+				Right = right;
 			}
 
 			public ConsumedTokens Consumed { get; }
-			public Expression Main { get; }
-			public Expression Action { get; }
+			public Expression Left { get; }
+			public Expression Right { get; }
 		}
 
 		public class MethodCall : Expression

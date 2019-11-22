@@ -124,5 +124,17 @@ namespace Terumi.Parser
 			public ConsumedTokens Consumed { get; }
 			public Expression Expression { get; }
 		}
+
+		public class Access : Statement
+		{
+			public Access(ConsumedTokens consumed, Expression.Access access)
+			{
+				Consumed = consumed;
+				AccessExpression = access;
+			}
+
+			public ConsumedTokens Consumed { get; }
+			public Expression.Access AccessExpression { get; }
+		}
 	}
 }

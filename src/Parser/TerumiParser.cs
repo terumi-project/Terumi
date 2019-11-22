@@ -595,7 +595,7 @@ namespace Terumi.Parser
 			TokenType type = TokenType.Whitespace;
 			if (Peek().Type == TokenType.Increment || Peek().Type == TokenType.Decrement) { type = Peek().Type; Next(); }
 			pre = type != TokenType.Whitespace;
-			var primary = ConsumePrimaryExpression();
+			var primary = ConsumeAccessExpression();
 			if (primary == null) return null;
 			if (type == TokenType.Whitespace)
 			{
@@ -611,6 +611,22 @@ namespace Terumi.Parser
 			}
 			ConsumeWhitespace(false);
 			return primary;
+		}
+
+		public Expression ConsumeAccessExpression()
+		{
+			var start = Current();
+			var total = ConsumePrimaryExpression();
+
+			if (AtEnd()) return total;
+			while (Peek().Type == TokenType.Dot)
+			{
+				Next(); ConsumeWhitespace(false);
+				var action = ConsumePrimaryExpression();
+				total = new Expression.Access(TakeTokens(start, Current()), total, action);
+			}
+
+			return total;
 		}
 
 		public Expression ConsumePrimaryExpression()
@@ -714,7 +730,10 @@ namespace Terumi.Parser
 #if DEBUG
 			Unsupported("No more tokens to peek from");
 #else
-			return TokenType.Unknown;
+			{
+				Log.Warn("Couldn't read anymore tokens - returning 'Unknown' TokenType");
+				return TokenType.Unknown;
+			}
 #endif
 			return _tokens[amt + _i];
 		}

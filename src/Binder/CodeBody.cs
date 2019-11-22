@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using Terumi;
 
 namespace Terumi.Binder
 {
@@ -45,7 +44,7 @@ namespace Terumi.Binder
 				MethodCallExpression = methodCall;
 			}
 
-			public Parser.Statement.MethodCall FromParser { get; }
+			new public Parser.Statement.MethodCall FromParser { get; }
 			public Expression.MethodCall MethodCallExpression { get; }
 		}
 
@@ -57,7 +56,7 @@ namespace Terumi.Binder
 				FromParser = fromParser;
 			}
 
-			public Parser.Statement.Command FromParser { get; }
+			new public Parser.Statement.Command FromParser { get; }
 		}
 
 		public class If : Statement

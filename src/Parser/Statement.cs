@@ -7,17 +7,18 @@ namespace Terumi.Parser
 {
 	public abstract class Statement
 	{
+		protected Statement(ConsumedTokens consumed) => Consumed = consumed;
+		public ConsumedTokens Consumed { get; }
+
 		public class Assignment : Statement
 		{
-			public Assignment(ConsumedTokens consumedTokens, string? type, string name, Expression value)
+			public Assignment(ConsumedTokens consumed, string? type, string name, Expression value) : base(consumed)
 			{
-				ConsumedTokens = consumedTokens;
 				Type = type;
 				Name = name;
 				Value = value;
 			}
 
-			public ConsumedTokens ConsumedTokens { get; }
 			public string Type { get; }
 			public string Name { get; }
 			public object Value { get; }
@@ -25,15 +26,13 @@ namespace Terumi.Parser
 
 		public class MethodCall : Statement
 		{
-			public MethodCall(ConsumedTokens consumed, bool isCompilerCall, string name, List<Expression> parameters)
+			public MethodCall(ConsumedTokens consumed, bool isCompilerCall, string name, List<Expression> parameters) : base(consumed)
 			{
-				Consumed = consumed;
 				IsCompilerCall = isCompilerCall;
 				Name = name;
 				Parameters = parameters;
 			}
 
-			public ConsumedTokens Consumed { get; }
 			public bool IsCompilerCall { get; }
 			public string Name { get; }
 			public List<Expression> Parameters { get; }
@@ -41,27 +40,23 @@ namespace Terumi.Parser
 
 		public class Command : Statement
 		{
-			public Command(ConsumedTokens consumed, StringData @string)
+			public Command(ConsumedTokens consumed, StringData @string) : base(consumed)
 			{
-				Consumed = consumed;
 				String = @string;
 			}
 
-			public ConsumedTokens Consumed { get; }
 			public StringData String { get; }
 		}
 
 		public class If : Statement
 		{
-			public If(ConsumedTokens consumed, Expression comparison, CodeBody ifClause, CodeBody elseClause)
+			public If(ConsumedTokens consumed, Expression comparison, CodeBody ifClause, CodeBody elseClause) : base(consumed)
 			{
-				Consumed = consumed;
 				Comparison = comparison;
 				IfClause = ifClause;
 				ElseClause = elseClause;
 			}
 
-			public ConsumedTokens Consumed { get; }
 			public Expression Comparison { get; }
 			public CodeBody IfClause { get; }
 			public CodeBody ElseClause { get; }
@@ -69,15 +64,13 @@ namespace Terumi.Parser
 
 		public class While : Statement
 		{
-			public While(ConsumedTokens consumed, Expression comparison, CodeBody statements, bool isDoWhile = false)
+			public While(ConsumedTokens consumed, Expression comparison, CodeBody statements, bool isDoWhile = false) : base(consumed)
 			{
-				Consumed = consumed;
 				Comparison = comparison;
 				Statements = statements;
 				IsDoWhile = isDoWhile;
 			}
 
-			public ConsumedTokens Consumed { get; }
 			public Expression Comparison { get; }
 			public CodeBody Statements { get; }
 			public bool IsDoWhile { get; }
@@ -85,16 +78,14 @@ namespace Terumi.Parser
 
 		public class For : Statement
 		{
-			public For(ConsumedTokens consumed, CodeBody declaration, Expression comparison, CodeBody end, CodeBody statements)
+			public For(ConsumedTokens consumed, CodeBody declaration, Expression comparison, CodeBody end, CodeBody statements) : base(consumed)
 			{
-				Consumed = consumed;
 				Declaration = declaration;
 				Comparison = comparison;
 				End = end;
 				Statements = statements;
 			}
 
-			public ConsumedTokens Consumed { get; }
 			public CodeBody Declaration { get; }
 			public Expression Comparison { get; }
 			public CodeBody End { get; }
@@ -103,37 +94,31 @@ namespace Terumi.Parser
 
 		public class Increment : Statement
 		{
-			public Increment(ConsumedTokens consumed, Expression.Increment incExpr)
+			public Increment(ConsumedTokens consumed, Expression.Increment incExpr) : base(consumed)
 			{
-				Consumed = consumed;
 				IncrementExpression = incExpr;
 			}
 
-			public ConsumedTokens Consumed { get; }
 			public Expression.Increment IncrementExpression { get; }
 		}
 
 		public class Return : Statement
 		{
-			public Return(ConsumedTokens consumed, Expression expr)
+			public Return(ConsumedTokens consumed, Expression expr) : base(consumed)
 			{
-				Consumed = consumed;
 				Expression = expr;
 			}
 
-			public ConsumedTokens Consumed { get; }
 			public Expression Expression { get; }
 		}
 
 		public class Access : Statement
 		{
-			public Access(ConsumedTokens consumed, Expression.Access access)
+			public Access(ConsumedTokens consumed, Expression.Access access) : base(consumed)
 			{
-				Consumed = consumed;
 				AccessExpression = access;
 			}
 
-			public ConsumedTokens Consumed { get; }
 			public Expression.Access AccessExpression { get; }
 		}
 	}

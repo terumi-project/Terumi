@@ -486,6 +486,7 @@ namespace Terumi.Parser
 
 		public Expression ConsumeEqualityExpression()
 		{
+			var start = Current();
 			var total = ConsumeComparisonExpression();
 			if (total == null) return null;
 
@@ -502,7 +503,7 @@ namespace Terumi.Parser
 					Unsupported($"Expected right hand of addition statement ({type})");
 				}
 
-				total = new Expression.Binary(total, type, right);
+				total = new Expression.Binary(TakeTokens(start, Current()), total, type, right);
 				ConsumeWhitespace(false);
 			}
 
@@ -512,6 +513,7 @@ namespace Terumi.Parser
 
 		public Expression ConsumeComparisonExpression()
 		{
+			var start = Current();
 			var total = ConsumeAdditionExpression();
 			if (total == null) return null;
 
@@ -530,7 +532,7 @@ namespace Terumi.Parser
 					Unsupported($"Expected right hand of addition statement ({type})");
 				}
 
-				total = new Expression.Binary(total, type, right);
+				total = new Expression.Binary(TakeTokens(start, Current()), total, type, right);
 				ConsumeWhitespace(false);
 			}
 
@@ -540,6 +542,7 @@ namespace Terumi.Parser
 
 		public Expression ConsumeAdditionExpression()
 		{
+			var start = Current();
 			var total = ConsumeMultiplicationExpression();
 			if (total == null) return null;
 
@@ -555,7 +558,7 @@ namespace Terumi.Parser
 					Unsupported($"Expected right hand of addition statement ({type})");
 				}
 
-				total = new Expression.Binary(total, type, right);
+				total = new Expression.Binary(TakeTokens(start, Current()), total, type, right);
 				ConsumeWhitespace(false);
 			}
 
@@ -565,6 +568,7 @@ namespace Terumi.Parser
 
 		public Expression ConsumeMultiplicationExpression()
 		{
+			var start = Current();
 			var total = ConsumeIncrementExpression();
 			if (total == null) return null;
 
@@ -580,7 +584,7 @@ namespace Terumi.Parser
 					Unsupported($"Expected right hand of multiplication statement ({type})");
 				}
 
-				total = new Expression.Binary(total, type, right);
+				total = new Expression.Binary(TakeTokens(start, Current()), total, type, right);
 				ConsumeWhitespace(false);
 			}
 

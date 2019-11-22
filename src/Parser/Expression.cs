@@ -4,40 +4,37 @@ namespace Terumi.Parser
 {
 	public abstract class Expression
 	{
+		protected Expression(ConsumedTokens consumed) => Consumed = consumed;
+		public ConsumedTokens Consumed { get; }
+
 		public class Constant : Expression
 		{
-			public Constant(ConsumedTokens consumed, object value)
+			public Constant(ConsumedTokens consumed, object value) : base(consumed)
 			{
-				Consumed = consumed;
 				Value = value;
 			}
 
-			public ConsumedTokens Consumed { get; }
 			public object Value { get; }
 		}
 
 		public class Reference : Expression
 		{
-			public Reference(ConsumedTokens consumed, string referenceName)
+			public Reference(ConsumedTokens consumed, string referenceName) : base(consumed)
 			{
-				Consumed = consumed;
 				ReferenceName = referenceName;
 			}
 
-			public ConsumedTokens Consumed { get; }
 			public string ReferenceName { get; }
 		}
 
 		public class Access : Expression
 		{
-			public Access(ConsumedTokens consumed, Expression left, Expression right)
+			public Access(ConsumedTokens consumed, Expression left, Expression right) : base(consumed)
 			{
-				Consumed = consumed;
 				Left = left;
 				Right = right;
 			}
 
-			public ConsumedTokens Consumed { get; }
 			public Expression Left { get; }
 			public Expression Right { get; }
 		}
@@ -45,7 +42,7 @@ namespace Terumi.Parser
 		public class MethodCall : Expression
 		{
 			// TODO: easier way to copy and paste
-			public MethodCall(Statement.MethodCall methodCall)
+			public MethodCall(Statement.MethodCall methodCall) : base(methodCall.Consumed)
 			{
 				MethodCallStatement = methodCall;
 			}
@@ -56,7 +53,7 @@ namespace Terumi.Parser
 		// works as a comparison as well
 		public class Binary : Expression
 		{
-			public Binary(Expression left, TokenType @operator, Expression right)
+			public Binary(ConsumedTokens consumed, Expression left, TokenType @operator, Expression right) : base(consumed)
 			{
 				Left = left;
 				Operator = @operator;
@@ -70,7 +67,7 @@ namespace Terumi.Parser
 
 		public class Parenthesized : Expression
 		{
-			public Parenthesized(Expression inner)
+			public Parenthesized(ConsumedTokens consumed, Expression inner) : base(consumed)
 			{
 				Inner = inner;
 			}
@@ -86,15 +83,13 @@ namespace Terumi.Parser
 				Post
 			}
 
-			public Increment(ConsumedTokens consumed, IncrementSide side, TokenType type, Expression expression)
+			public Increment(ConsumedTokens consumed, IncrementSide side, TokenType type, Expression expression) : base(consumed)
 			{
-				Consumed = consumed;
 				Side = side;
 				Type = type;
 				Expression = expression;
 			}
 
-			public ConsumedTokens Consumed { get; }
 			public IncrementSide Side { get; }
 			public TokenType Type { get; }
 			public Expression Expression { get; }

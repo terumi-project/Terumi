@@ -17,6 +17,21 @@ namespace Terumi.Binder
 		public List<BoundFile> BoundProjectFiles;
 	}
 
+	public static class TerumiBinderHelpers
+	{
+		public static TerumiBinderBindings Bind(this TerumiBinderProject project)
+		{
+			var binder = new TerumiBinder(project);
+
+			binder.DiscoverTypes();
+			binder.DiscoverFields();
+			binder.DiscoverMethodHeaders();
+			binder.DiscoverMethodBodies();
+
+			return binder.Bindings;
+		}
+	}
+
 	public class TerumiBinder
 	{
 		private readonly TerumiBinderProject _project;
@@ -26,9 +41,26 @@ namespace Terumi.Binder
 			_project = project;
 		}
 
-		public TerumiBinderBindings BindProject()
+		public TerumiBinderBindings Bindings { get; }
+
+		// only discover the existence of types, eg classes or contracts
+		public void DiscoverTypes()
 		{
-			return default;
+		}
+
+		// discover field names and their types
+		public void DiscoverFields()
+		{
+		}
+
+		// discover method headers (ctors too) - their return types, names, and parameters
+		public void DiscoverMethodHeaders()
+		{
+		}
+
+		// now read into the code of the method body - we have full type information at this point
+		public void DiscoverMethodBodies()
+		{
 		}
 	}
 }

@@ -192,6 +192,16 @@ namespace Terumi.Binder
 
 				public Statement.Assignment Declaration { get; }
 			}
+
+			public class Field : Reference
+			{
+				public Field(Parser.Expression.Reference fromParser, Field field) : base(fromParser)
+				{
+					FieldDeclaration = field;
+				}
+
+				public Field FieldDeclaration { get; }
+			}
 		}
 
 		public class Access : Expression

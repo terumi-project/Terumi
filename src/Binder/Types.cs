@@ -15,18 +15,45 @@ namespace Terumi.Binder
 
 	public class Field
 	{
-		public Field(IType type, string name)
+		public Field(IType parent, IType type, string name)
 		{
+			Parent = parent;
 			Type = type;
 			Name = name;
 		}
 
+		public IType Parent { get; }
 		public IType Type { get; }
 		public string Name { get; }
 	}
 
 	public sealed class BuiltinType : IType
 	{
+		/// <summary>
+		/// Tries to take a given name and pair it with one of the right BuiltinTypes
+		/// </summary>
+		public static bool TryUse(string? name, out IType type)
+		{
+			if (name == null) { type = Void; return true; }
+
+			return Use(Void, out type)
+				|| Use(String, out type)
+				|| Use(Number, out type)
+				|| Use(Boolean, out type);
+
+			bool Use(IType a, out IType type)
+			{
+				if (a.TypeName == name)
+				{
+					type = a;
+					return true;
+				}
+
+				type = default;
+				return false;
+			}
+		}
+
 		public static IType Void { get; } = new BuiltinType("void");
 		public static IType String { get; } = new BuiltinType("string");
 		public static IType Number { get; } = new BuiltinType("number");
@@ -71,41 +98,32 @@ namespace Terumi.Binder
 
 	public class Class : IType
 	{
-		public Class(Parser.Class fromParser, string name, List<IMethod> methods, List<Field> fields)
+		public Class(Parser.Class fromParser, string name)
 		{
 			FromParser = fromParser;
 			Name = name;
-			Methods = methods;
-			Fields = fields;
 		}
 
 		public Parser.Class FromParser { get; }
 		public string Name { get; }
-		public List<IMethod> Methods { get; }
-		public List<Field> Fields { get; }
+		public List<IMethod> Methods { get; set; } = new List<IMethod>();
+		public List<Field> Fields { get; set; } = new List<Field>();
 
 		string IType.TypeName => Name;
 	}
 
 	public class Method : IMethod
 	{
-		public Method(IType returnType, string name, List<MethodParameter> parameters, CodeBody body)
+		public Method(IType returnType, string name)
 		{
 			ReturnType = returnType;
 			Name = name;
-			Parameters = parameters;
-			Body = body;
-
-			foreach (var parameter in parameters)
-			{
-				parameter.Claim(this);
-			}
 		}
 
 		public IType ReturnType { get; }
 		public string Name { get; }
-		public List<MethodParameter> Parameters { get; }
-		public CodeBody Body { get; }
+		public List<MethodParameter> Parameters { get; set; } = new List<MethodParameter>();
+		public CodeBody Body { get; set; }
 	}
 
 	public class MethodParameter

@@ -36,7 +36,7 @@ namespace Terumi.Parser
 		public SourceFile ConsumeSourceFile(PackageLevel defaultLevel)
 		{
 			var start = Current();
-			if (AtEnd()) return new SourceFile(TakeTokens(start, Current()), defaultLevel, EmptyList<PackageLevel>.Instance, EmptyList<Method>.Instance);
+			if (AtEnd()) return new SourceFile(TakeTokens(start, Current()), defaultLevel);
 
 			var packageLevel = defaultLevel;
 
@@ -63,15 +63,21 @@ namespace Terumi.Parser
 
 			// TODO: functions, types & whatnot
 
+			var classes = new List<Class>();
 			var methods = new List<Method>();
 
 			{
 				Method method = null;
+				Class @class = null;
 
 				while (true)
 				{
 					// TODO: types
-					if (TryMethod(ref method))
+					if (TryClass(ref @class))
+					{
+						classes.Add(@class);
+					}
+					else if (TryMethod(ref method))
 					{
 						methods.Add(method);
 					}
@@ -82,7 +88,7 @@ namespace Terumi.Parser
 				}
 			}
 
-			return new SourceFile(TakeTokens(start, Current()), packageLevel, packages, methods);
+			return new SourceFile(TakeTokens(start, Current()), packageLevel, packages, methods, classes);
 		}
 
 		public PackageLevel ConsumePackageLevel()
@@ -114,6 +120,45 @@ namespace Terumi.Parser
 			return new PackageLevel(levels);
 		}
 
+		public bool TryClass(ref Class @class)
+		{
+			var classStart = Current();
+			if (AtEnd()) return Quit();
+			if (Peek().Type != TokenType.Class) return Quit();
+
+			Next(); ConsumeWhitespace();
+			if (Peek().Type != TokenType.IdentifierToken) Unsupported("Must have name for class");
+			var name = Peek().Data as string;
+
+			Next(); ConsumeWhitespace(false);
+			if (Peek().Type != TokenType.OpenBrace) Unsupported("Must have open brace for class");
+			Next(); ConsumeWhitespace(false);
+
+			var methods = new List<Method>();
+			Method method = null;
+
+			while (Peek().Type != TokenType.CloseBrace)
+			{
+				if (TryMethod(ref method))
+				{
+					methods.Add(method);
+				}
+				else
+				{
+					Unsupported("Expected method or field");
+				}
+			}
+
+			@class = new Class(TakeTokens(classStart, Current()), name, methods);
+			return true;
+
+			bool Quit()
+			{
+				_i = classStart;
+				return false;
+			}
+		}
+
 		public bool TryMethod(ref Method method)
 		{
 			var methodStart = Current();
@@ -142,6 +187,7 @@ namespace Terumi.Parser
 			}
 
 			Next();
+			ConsumeWhitespace(false);
 
 			bool expectMore = Peek().Type != TokenType.CloseParen;
 
@@ -160,9 +206,6 @@ namespace Terumi.Parser
 			{
 				var start = Current();
 
-				Next();
-				ConsumeWhitespace(false);
-
 				if (Peek().Type != TokenType.IdentifierToken)
 				{
 					Unsupported($"Expected parameter type or closed parenthesis");
@@ -171,7 +214,8 @@ namespace Terumi.Parser
 				var paramType = Peek().Data as string;
 
 				Next();
-				ConsumeWhitespace();
+				// TODO: force this to consume whitespace
+				ConsumeWhitespace(false);
 
 				if (Peek().Type != TokenType.IdentifierToken)
 				{

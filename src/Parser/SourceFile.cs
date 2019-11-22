@@ -12,13 +12,22 @@ namespace Terumi.Parser
 		public PackageLevel PackageLevel { get; }
 		public List<PackageLevel> Usings { get; }
 		public List<Method> Methods { get; }
+		public List<Class> Classes { get; }
 
-		public SourceFile(ConsumedTokens consumed, PackageLevel packageLevel, List<PackageLevel> usings, List<Method> methods)
+		public SourceFile
+		(
+			ConsumedTokens consumed,
+			PackageLevel packageLevel,
+			List<PackageLevel>? usings = null,
+			List<Method>? methods = null,
+			List<Class>? classes = null
+		)
 		{
 			Consumed = consumed;
 			PackageLevel = packageLevel;
-			Usings = usings;
-			Methods = methods;
+			Usings = usings ?? EmptyList<PackageLevel>.Instance;
+			Methods = methods ?? EmptyList<Method>.Instance;
+			Classes = classes ?? EmptyList<Class>.Instance;
 		}
 	}
 }

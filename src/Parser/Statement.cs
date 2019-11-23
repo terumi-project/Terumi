@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Terumi.Lexer;
-
-namespace Terumi.Parser
+﻿namespace Terumi.Parser
 {
 	public abstract class Statement
 	{

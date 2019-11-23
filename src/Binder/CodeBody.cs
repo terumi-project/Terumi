@@ -151,6 +151,7 @@ namespace Terumi.Binder
 		protected Expression(Parser.Expression fromParser) => FromParser = fromParser;
 
 		public Parser.Expression FromParser { get; }
+		public abstract IType Type { get; }
 
 		public class Constant : Expression
 		{
@@ -161,6 +162,10 @@ namespace Terumi.Binder
 			}
 
 			new public Parser.Expression.Constant FromParser { get; }
+
+			// TODO: verify that it can only be one of these three
+			public override IType Type => (Value is StringData ? BuiltinType.String : (Value is Lexer.Number ? BuiltinType.Number : BuiltinType.Boolean));
+
 			public object Value { get; }
 		}
 
@@ -180,6 +185,7 @@ namespace Terumi.Binder
 					MethodParameter = parameter;
 				}
 
+				public override IType Type => MethodParameter.Type;
 				public MethodParameter MethodParameter { get; }
 			}
 
@@ -190,6 +196,7 @@ namespace Terumi.Binder
 					Declaration = declaration;
 				}
 
+				public override IType Type => Declaration.Type;
 				public Statement.Assignment Declaration { get; }
 			}
 
@@ -200,6 +207,7 @@ namespace Terumi.Binder
 					FieldDeclaration = field;
 				}
 
+				public override IType Type => FieldDeclaration.Type;
 				public Binder.Field FieldDeclaration { get; }
 			}
 		}
@@ -214,6 +222,7 @@ namespace Terumi.Binder
 			}
 
 			new public Parser.Expression.Access FromParser { get; }
+			public override IType Type => Right.Type;
 			public Expression Left { get; }
 			public Expression Right { get; }
 		}
@@ -228,6 +237,7 @@ namespace Terumi.Binder
 			}
 
 			new public Parser.Expression.MethodCall FromParser { get; }
+			public override IType Type => Calling.ReturnType;
 			public IMethod Calling { get; }
 			public List<Expression> Parameters { get; }
 		}
@@ -245,6 +255,10 @@ namespace Terumi.Binder
 			}
 
 			new public Parser.Expression.Binary FromParser { get; }
+
+			// TODO: verify that both sides are the same type
+			public override IType Type => Operator.IsComparisonOperator() ? BuiltinType.Boolean : Left.Type;
+
 			public Expression Left { get; }
 			public BinaryExpression Operator { get; }
 			public Expression Right { get; }
@@ -259,6 +273,7 @@ namespace Terumi.Binder
 			}
 
 			new public Parser.Expression.Parenthesized FromParser { get; }
+			public override IType Type => Inner.Type;
 			public Expression Inner { get; }
 		}
 
@@ -273,6 +288,7 @@ namespace Terumi.Binder
 			}
 
 			new public Parser.Expression.Increment FromParser { get; }
+			public override IType Type => Expression.Type; // should be 'Number' anyways
 			public Expression Expression { get; }
 			public IncrementType IncrementType { get; }
 		}

@@ -205,9 +205,29 @@ namespace Terumi.Binder
 			throw new InvalidOperationException($"Cannot find immediate type {name}");
 		}
 
-		internal bool FindImmediateMethod(Parser.Expression.MethodCall methodCall, out IMethod method)
-		{
+		internal bool FindImmediateMethod(Parser.Expression.MethodCall methodCall, List<Expression> parameters, out IMethod targetMethod)
+			=> FindMethod(methodCall.Name, parameters, _wipMethods.Select(x => x.Item1), out targetMethod);
 
+		internal static bool FindMethod(string name, List<Expression> parameters, IEnumerable<IMethod> methods, out IMethod targetMethod)
+		{
+			foreach (var method in methods)
+			{
+				if (method.Name != name) continue;
+				if (method.Parameters.Count != parameters.Count) continue;
+
+				for (var i = 0; i < method.Parameters.Count; i++)
+				{
+					if (method.Parameters[i].Type != parameters[i].Type) goto fail;
+				}
+
+				targetMethod = method;
+				return true;
+
+				fail:;
+			}
+
+			targetMethod = default;
+			return false;
 		}
 	}
 

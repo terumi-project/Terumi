@@ -9,13 +9,16 @@ namespace Terumi.Binder
 	// used for var decls & whatever else
 	public class Scope
 	{
+		public List<Statement.Assignment> Assignments { get; set; } = new List<Statement.Assignment>();
+		public Expression? AccessExpression { get; set; }
+
 		public void RegisterVariable(Statement.Assignment assignment)
-		{
-		}
+			=> Assignments.Add(assignment);
 
 		public Scope Clone()
 		{
-			return null;
+			var assignmentsCopy = Assignments.Select(x => x).ToList();
+			return new Scope { Assignments = assignmentsCopy };
 		}
 	}
 
@@ -168,7 +171,16 @@ namespace Terumi.Binder
 		}
 
 		public Expression.Access Handle(Parser.Expression.Access o)
-			=> new Expression.Access(o, Handle(o.Left), Handle(o.Right));
+		{
+			// increase scope specifically for the access expression stuff
+			IncreaseScope();
+			var access = Handle(o.Left);
+			_scope.AccessExpression = access;
+			var right = Handle(o.Right);
+			DecreaseScope();
+
+			return new Expression.Access(o, access, right);
+		}
 
 		// TODO: need to invent not expression lol that's pretty critical
 		public Expression.Binary Handle(Parser.Expression.Binary o)
@@ -176,14 +188,8 @@ namespace Terumi.Binder
 
 		public Expression.Constant Handle(Parser.Expression.Constant o)
 		{
-			var newValue = o.Value;
-
-			if (newValue is Lexer.StringData stringData)
-			{
-				// TODO: modify newValue to be an updated stringdata
-			}
-
-			return new Expression.Constant(o, newValue);
+			var value = o.Value is Parser.StringData strData ? Convert(strData) : o.Value;
+			return new Expression.Constant(o, value);
 		}
 
 		public Expression.Increment Handle(Parser.Expression.Increment o)
@@ -191,16 +197,26 @@ namespace Terumi.Binder
 
 		public Expression.MethodCall Handle(Parser.Expression.MethodCall o)
 		{
-			if (!_parent.FindImmediateMethod(o, out var method))
-			{
-				throw new InvalidOperationException($"Call to method {o} but couldn't find any immediate methods.");
-			}
-
 			var exprs = new List<Expression>();
 
 			foreach (var expr in o.Parameters)
 			{
 				exprs.Add(Handle(expr));
+			}
+
+			if (_scope.AccessExpression != null)
+			{
+				if (!TerumiBinder.FindMethod(o.Name, exprs, _scope.AccessExpression.Type.Methods, out var accessMethod))
+				{
+					throw new InvalidOperationException($"Cannot find method '{o}' in access expression '{_scope.AccessExpression}'");
+				}
+
+				return new Expression.MethodCall(o, accessMethod, exprs);
+			}
+
+			if (!_parent.FindImmediateMethod(o, exprs, out var method))
+			{
+				throw new InvalidOperationException($"Call to method {o} but couldn't find any immediate methods.");
 			}
 
 			return new Expression.MethodCall(o, method, exprs);
@@ -211,7 +227,32 @@ namespace Terumi.Binder
 
 		public Expression.Reference Handle(Parser.Expression.Reference o)
 		{
+			// we gotta check if we're handling an access expression
+			if (_scope.AccessExpression != null)
+			{
+				// if we are, we're going to try to reference the fields of the access expression type
+				var fields = _scope.AccessExpression.Type.Fields;
+
+				foreach (var field in fields)
+				{
+					if (field.Name == o.ReferenceName)
+					{
+						return new Expression.Reference.Field(o, field);
+					}
+				}
+
+				// can't
+				throw new InvalidOperationException($"Cannot find reference to '{o}' in access expression {_scope.AccessExpression}");
+			}
+
 			// first, check variables
+			foreach (var assignment in _scope.Assignments)
+			{
+				if (assignment.Name == o.ReferenceName)
+				{
+					return new Expression.Reference.Variable(o, assignment);
+				}
+			}
 
 			// next, check method parameters
 			foreach (var parameter in _method.Parameters)
@@ -235,6 +276,18 @@ namespace Terumi.Binder
 			}
 
 			throw new InvalidOperationException($"Cannot find reference to '{o}'");
+		}
+
+		private StringData Convert(Parser.StringData stringData)
+		{
+			var interpolations = new List<StringData.Interpolation>();
+
+			foreach (var interpolation in stringData.Interpolations)
+			{
+				interpolations.Add(new StringData.Interpolation(Handle(interpolation.Expression), interpolation.Insert));
+			}
+
+			return new StringData(stringData.Value, interpolations);
 		}
 	}
 }

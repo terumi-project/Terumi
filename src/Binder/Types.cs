@@ -46,6 +46,9 @@ namespace Terumi.Binder
 			}
 		}
 
+		public static bool IsComparisonOperator(this BinaryExpression binaryExpression)
+			=> (int)binaryExpression < (int)BinaryExpression.Add;
+
 		public static IncrementType ToIncrementType(this Parser.Expression.Increment.IncrementSide side, Lexer.TokenType tokenType)
 		{
 			if (side == Parser.Expression.Increment.IncrementSide.Pre)
@@ -67,6 +70,32 @@ namespace Terumi.Binder
 				}
 			}
 		}
+	}
+
+	// stringdata
+
+	public class StringData
+	{
+		public class Interpolation
+		{
+			public Interpolation(Expression expression, int insert)
+			{
+				Expression = expression;
+				Insert = insert;
+			}
+
+			public Expression Expression { get; }
+			public int Insert { get; }
+		}
+
+		public StringData(string value, List<Interpolation> interpolations)
+		{
+			Value = value;
+			Interpolations = interpolations;
+		}
+
+		public string Value { get; }
+		public List<Interpolation> Interpolations { get; }
 	}
 
 	// types

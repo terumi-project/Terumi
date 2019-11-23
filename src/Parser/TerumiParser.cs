@@ -356,9 +356,9 @@ namespace Terumi.Parser
 		{
 			var start = Current();
 			if (Peek().Type != TokenType.CommandToken) return false;
-			var data = Peek().Data as StringData;
+			var data = Peek().Data as Lexer.StringData;
 			Next();
-			command = new Statement.Command(TakeTokens(start, Current()), data);
+			command = new Statement.Command(TakeTokens(start, Current()), Convert(data));
 			ConsumeWhitespace(false);
 			return true;
 		}
@@ -697,7 +697,7 @@ namespace Terumi.Parser
 
 			switch (Peek().Type)
 			{
-				case TokenType.StringToken: { var data = Peek().Data; Next(); return new Expression.Constant(TakeTokens(start, Current()), data); }
+				case TokenType.StringToken: { var data = Peek().Data; Next(); return new Expression.Constant(TakeTokens(start, Current()), Convert(data as Lexer.StringData)); }
 				case TokenType.NumberToken: { var data = Peek().Data; Next(); return new Expression.Constant(TakeTokens(start, Current()), data); }
 				case TokenType.True: { Next(); return new Expression.Constant(TakeTokens(start, Current()), true); }
 				case TokenType.False: { Next(); return new Expression.Constant(TakeTokens(start, Current()), false); }
@@ -787,6 +787,23 @@ namespace Terumi.Parser
 			return true;
 		}
 		#endregion
+
+		/* custom stringdata converter */
+
+		public StringData Convert(Lexer.StringData lexerStringData)
+		{
+			var interpolations = new List<StringData.Interpolation>();
+
+			foreach (var interpolation in lexerStringData.Interpolations)
+			{
+				var parser = new TerumiParser(interpolation.Tokens);
+				var expr = parser.ConsumeExpression();
+				if (expr == null) Unsupported($"Unable to parse expression in string interpolation {lexerStringData}");
+				interpolations.Add(new StringData.Interpolation(expr, interpolation.Position));
+			}
+
+			return new StringData(lexerStringData.StringValue.ToString(), interpolations);
+		}
 
 		/* core */
 

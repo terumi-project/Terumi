@@ -679,6 +679,7 @@ namespace Terumi.Parser
 				Next(); ConsumeWhitespace(false);
 				var action = ConsumePrimaryExpression();
 				total = new Expression.Access(TakeTokens(start, Current()), total, action);
+				if (AtEnd()) return total;
 			}
 
 			return total;

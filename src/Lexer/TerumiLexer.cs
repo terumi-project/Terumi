@@ -182,25 +182,16 @@ namespace Terumi.Lexer
 
 		public Token Command()
 		{
-			// skip /
-			Next();
+			var tkn = String((byte)'\n');
+			var strDat = tkn.Data as StringData;
 
-			var now = Metadata;
-			var capture = _source;
-			var hitEnd = false;
-
-			while (!AtEnd() && !(hitEnd = Peek() == (byte)'\n')) Next();
-
-			if (!hitEnd)
+			while (strDat.StringValue[^1] == '\n'
+				|| strDat.StringValue[^1] == '\r')
 			{
-				Unsupported("Didn't get a newline at the end of command ( @/ )");
+				strDat.StringValue.Length--;
 			}
 
-			var rawData = capture.Slice(0, _offset - now.BinaryOffset);
-			var data = Encoding.UTF8.GetString(rawData);
-
-			// TODO: support interpolation and that yummy goodness
-			return new Token(TokenType.CommandToken, now, Metadata, new StringData(new StringBuilder(data), EmptyList<StringData.Interpolation>.Instance));
+			return new Token(TokenType.CommandToken, tkn.PositionStart, tkn.PositionEnd, strDat);
 		}
 
 		/* whitespace lol */
@@ -221,7 +212,7 @@ namespace Terumi.Lexer
 		/* string */
 
 		[MethodImpl(MaxOpt)]
-		public Token String()
+		public Token String(byte cancelOn = (byte)'"')
 		{
 			var now = Metadata;
 			bool hitEnd = false;
@@ -238,7 +229,7 @@ namespace Terumi.Lexer
 				Next();
 
 				// TODO: in switch
-				if (b == (byte)'"')
+				if (b == cancelOn)
 				{
 					hitEnd = true;
 					break;

@@ -60,6 +60,7 @@ namespace Terumi.Targets
 
 			foreach (var method in methods)
 			{
+				writer.WriteLine();
 				writer.Write($"function {GetName(method.Id)}");
 
 				if (method.Parameters.Count > 0)
@@ -86,7 +87,7 @@ namespace Terumi.Targets
 				Write(writer, method, method.Parameters.Count);
 
 				writer.Indent--;
-				writer.Write('}');
+				writer.WriteLine('}');
 			}
 		}
 

@@ -103,7 +103,7 @@ namespace Terumi
 		{
 #if DEBUG
 			Directory.SetCurrentDirectory("D:\\test");
-			Compile("sample_project", new PowershellTarget());
+			Compile("sample_project", new BashTarget());
 #endif
 		}
 	}

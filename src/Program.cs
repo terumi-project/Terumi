@@ -5,6 +5,7 @@ using System.Text;
 using Terumi.Binder;
 using Terumi.Parser;
 using Terumi.Targets;
+using Terumi.VarCode;
 using Terumi.Workspace;
 
 namespace Terumi
@@ -25,8 +26,18 @@ namespace Terumi
 			Log.Stage("PARSE", "Parsing project source code");
 
 			var terumiProject = project.ParseProject(resolver, target);
-
 			Console.WriteLine(terumiProject);
+
+			var translator = new Translator(target);
+
+			foreach (var item in terumiProject.IndirectDependencies
+				.Concat(terumiProject.DirectDependencies)
+				.Concat(terumiProject.BoundProjectFiles))
+			{
+				translator.Visit(item);
+			}
+
+			Console.WriteLine(translator);
 
 			/*
 			var parsedFiles = project.ParseProject(_lexer, _parser, resolver).ToList();

@@ -6,14 +6,16 @@ namespace Terumi.VarCode
 {
 	public class InstructionMethod
 	{
-		public InstructionMethod(List<int> parameters, InstructionBody code)
+		public InstructionMethod(int id, List<int> parameters, InstructionBody code)
 		{
 			Parameters = parameters;
 			Code = code;
+			Id = id;
 		}
 
 		public List<int> Parameters { get; }
 		public InstructionBody Code { get; }
+		public int Id { get; }
 	}
 
 	public class InstructionBody
@@ -32,22 +34,26 @@ namespace Terumi.VarCode
 		{
 			public class Constant : Assignment
 			{
-				public Constant(object value)
+				public Constant(object value, int storeId)
 				{
 					Value = value;
+					StoreId = storeId;
 				}
 
 				public object Value { get; }
+				public int StoreId { get; }
 			}
 
 			public class Reference : Assignment
 			{
-				public Reference(int id)
+				public Reference(int id, int valueId)
 				{
 					Id = id;
+					ValueId = valueId;
 				}
 
 				public int Id { get; }
+				public int ValueId { get; }
 			}
 
 			public class New : Assignment
@@ -127,6 +133,16 @@ namespace Terumi.VarCode
 
 			public int CompareVar { get; }
 			public InstructionBody Clause { get; }
+		}
+
+		public class Return : Instruction
+		{
+			public Return(int returnValueId)
+			{
+				ReturnValueId = returnValueId;
+			}
+
+			public int ReturnValueId { get; }
 		}
 	}
 }

@@ -93,26 +93,52 @@ namespace Terumi.VarCode
 						BindStatement(line);
 					}
 
-					_parent._diary.Methods[_selfMethodId] = new InstructionMethod
+					_parent._diary.Methods.Add(new InstructionMethod
 					(
+						_selfMethodId,
 						_thisReference == -1 ? _methodParams : new int[] { _thisReference }.Concat(_methodParams).ToList(),
 						new InstructionBody(_instructions)
-					);
+					));
 				}
 
 				public void BindStatement(Statement stmt)
 				{
 					switch (stmt)
 					{
-						case Statement.Access o: break;
-						case Statement.Assignment o: break;
-						case Statement.Command o: break;
+						case Statement.Access o: BindExpression(o.Expression); break;
+
+						case Statement.Assignment o:
+						{
+							var id = GetVariable(o);
+							var value = BindExpression(o.Value);
+
+							_instructions.Add(new Instruction.Assignment.Reference(id, value));
+						}
+						break;
+
+						case Statement.Command o:
+						{
+							// TODO: handle stringdata
+							throw new NotImplementedException();
+						}
+						break;
+
 						case Statement.For o: break;
 						case Statement.If o: break;
-						case Statement.Increment o: break;
-						case Statement.MethodCall o: break;
-						case Statement.Return o: break;
+
+						case Statement.Increment o: BindExpression(o.Expression); break;
+						case Statement.MethodCall o: BindExpression(o.MethodCallExpression); break;
+
+						case Statement.Return o:
+						{
+							var value = BindExpression(o.Value);
+							_instructions.Add(new Instruction.Return(value));
+						}
+						break;
+
 						case Statement.While o: break;
+
+						default: throw new InvalidOperationException();
 					}
 				}
 
@@ -165,7 +191,7 @@ namespace Terumi.VarCode
 							var resultId = _parent._unique++;
 
 							// TODO: for StringData values, convert them into multiple assignments and concatenations
-							_instructions.Add(new Instruction.Assignment.Constant(o.Value));
+							_instructions.Add(new Instruction.Assignment.Constant(o.Value, resultId));
 
 							return resultId;
 						}

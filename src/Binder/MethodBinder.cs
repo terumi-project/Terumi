@@ -103,7 +103,7 @@ namespace Terumi.Binder
 		}
 
 		public Statement.Command Handle(Parser.Statement.Command o)
-			=> new Statement.Command(o);
+			=> new Statement.Command(o, Convert(o.String));
 
 		public Statement.For Handle(Parser.Statement.For o)
 		{
@@ -249,6 +249,7 @@ namespace Terumi.Binder
 
 			var type = _parent.FindImmediateType(o.Type, _file);
 
+			if (!_parent.FindMethod(false, "ctor", exprs, type.Methods, out var ctorMethod))
 			{
 				throw new InvalidOperationException($"Failed to find constructor method for {o}");
 			}

@@ -51,12 +51,14 @@ namespace Terumi.Binder
 		public class Command : Statement
 		{
 			// TODO: string interpolation data
-			public Command(Parser.Statement.Command fromParser) : base(fromParser)
+			public Command(Parser.Statement.Command fromParser, StringData stringData) : base(fromParser)
 			{
 				FromParser = fromParser;
+				StringData = stringData;
 			}
 
 			new public Parser.Statement.Command FromParser { get; }
+			public StringData StringData { get; }
 		}
 
 		public class If : Statement

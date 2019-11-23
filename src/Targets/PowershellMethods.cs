@@ -29,9 +29,16 @@ namespace Terumi.Targets
 				case TargetMethodNames.OperatorGreaterThan: return ReturnMethod(BuiltinType.Boolean);
 				case TargetMethodNames.OperatorLessThanOrEqualTo: return ReturnMethod(BuiltinType.Boolean);
 				case TargetMethodNames.OperatorGreaterThanOrEqualTo: return ReturnMethod(BuiltinType.Boolean);
+
+				// TODO: verify that both operands are the same
+				case TargetMethodNames.OperatorAdd: return ReturnMethod(arguments[0].Type);
+				case TargetMethodNames.OperatorSubtract: return ReturnMethod(arguments[0].Type);
+				case TargetMethodNames.OperatorMultiply: return ReturnMethod(arguments[0].Type);
+				case TargetMethodNames.OperatorDivide: return ReturnMethod(arguments[0].Type);
+				case TargetMethodNames.OperatorExponent: return ReturnMethod(arguments[0].Type);
 			}
 
-			return null;
+			throw new NotImplementedException();
 			CompilerMethod ReturnMethod(IType returnType) => new CompilerMethod(returnType, name, Match(arguments));
 		}
 

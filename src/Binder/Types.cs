@@ -191,6 +191,8 @@ namespace Terumi.Binder
 		public IType ReturnType { get; }
 		public string Name { get; }
 		public List<MethodParameter> Parameters { get; }
+
+		public Func<List<string>, string> CodeGen { get; set; }
 	}
 
 	//

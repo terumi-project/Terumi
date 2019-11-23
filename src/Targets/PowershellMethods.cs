@@ -17,32 +17,35 @@ namespace Terumi.Targets
 			switch (name)
 			{
 				// TODO: supply code
-				case TargetMethodNames.TargetName: return ReturnMethod(BuiltinType.String);
+				case TargetMethodNames.TargetName: return ReturnMethod(BuiltinType.String, _ => "powershell");
 
-				case TargetMethodNames.IsSupported: return ReturnMethod(BuiltinType.Boolean);
-				case TargetMethodNames.Println: return ReturnMethod(BuiltinType.Void);
-				case TargetMethodNames.Command: return ReturnMethod(BuiltinType.Void);
+				case TargetMethodNames.IsSupported: return ReturnMethod(BuiltinType.Boolean, _ => "$TRUE"); // TODO: exauhstive
+				case TargetMethodNames.Println: return ReturnMethod(BuiltinType.Void, a => $"Write-Host {a[0]}");
+				case TargetMethodNames.Command: return ReturnMethod(BuiltinType.Void, a => $"iex \"& {a[0]}\"");
 
-				case TargetMethodNames.OperatorNot: return ReturnMethod(BuiltinType.Boolean);
+				case TargetMethodNames.OperatorNot: return ReturnMethod(BuiltinType.Boolean, a => $"-Not {a[0]}");
 
-				case TargetMethodNames.OperatorEqualTo: return ReturnMethod(BuiltinType.Boolean);
-				case TargetMethodNames.OperatorNotEqualTo: return ReturnMethod(BuiltinType.Boolean);
+				case TargetMethodNames.OperatorEqualTo: return ReturnMethod(BuiltinType.Boolean, a => $"{a[0]} -eq {a[1]}");
+				case TargetMethodNames.OperatorNotEqualTo: return ReturnMethod(BuiltinType.Boolean, a => $"{a[0]} -ne {a[1]}");
 
-				case TargetMethodNames.OperatorLessThan: return ReturnMethod(BuiltinType.Boolean);
-				case TargetMethodNames.OperatorGreaterThan: return ReturnMethod(BuiltinType.Boolean);
-				case TargetMethodNames.OperatorLessThanOrEqualTo: return ReturnMethod(BuiltinType.Boolean);
-				case TargetMethodNames.OperatorGreaterThanOrEqualTo: return ReturnMethod(BuiltinType.Boolean);
+				case TargetMethodNames.OperatorLessThan: return ReturnMethod(BuiltinType.Boolean, a => $"{a[0]} -lt {a[1]}");
+				case TargetMethodNames.OperatorGreaterThan: return ReturnMethod(BuiltinType.Boolean, a => $"{a[0]} -gt {a[1]}");
+				case TargetMethodNames.OperatorLessThanOrEqualTo: return ReturnMethod(BuiltinType.Boolean, a => $"{a[0]} -le {a[1]}");
+				case TargetMethodNames.OperatorGreaterThanOrEqualTo: return ReturnMethod(BuiltinType.Boolean, a => $"{a[0]} -ge {a[1]}");
 
 				// TODO: verify that both operands are the same
-				case TargetMethodNames.OperatorAdd: return ReturnMethod(types[0]);
-				case TargetMethodNames.OperatorSubtract: return ReturnMethod(types[0]);
-				case TargetMethodNames.OperatorMultiply: return ReturnMethod(types[0]);
-				case TargetMethodNames.OperatorDivide: return ReturnMethod(types[0]);
-				case TargetMethodNames.OperatorExponent: return ReturnMethod(types[0]);
+				case TargetMethodNames.OperatorAdd: return ReturnMethod(types[0], a => $"{a[0]} + {a[1]}");
+				case TargetMethodNames.OperatorSubtract: return ReturnMethod(types[0], a => $"{a[0]} - {a[1]}");
+				case TargetMethodNames.OperatorMultiply: return ReturnMethod(types[0], a => $"{a[0]} * {a[1]}");
+				case TargetMethodNames.OperatorDivide: return ReturnMethod(types[0], a => $"{a[0]} / {a[1]}");
+				case TargetMethodNames.OperatorExponent: return ReturnMethod(types[0], a => $"[Math]::Pow({a[0]}, {a[1]})");
 			}
 
 			throw new NotImplementedException();
-			CompilerMethod ReturnMethod(IType returnType) => new CompilerMethod(returnType, name, Match(types));
+			CompilerMethod ReturnMethod(IType returnType, Func<List<string>, string> codegen) => new CompilerMethod(returnType, name, Match(types))
+			{
+				CodeGen = codegen
+			};
 		}
 
 		private List<MethodParameter> Match(IType[] arguments)
@@ -155,7 +158,7 @@ namespace Terumi.Targets
 				{
 					var args = o.Arguments.Count == 0 ? "" : o.Arguments.Select(x => "$" + GetName(x)).Aggregate((a, b) => $"{a} {b}");
 
-					if (o.Store == -1)
+					if (o.Store == Instruction.Nowhere)
 					{
 						writer.WriteLine($"{PowershellTarget.GetName(o.Method.Id)} {args}");
 					}
@@ -168,7 +171,16 @@ namespace Terumi.Targets
 
 				case Instruction.CompilerCall o:
 				{
-					writer.WriteLine($"# TODO: implement compiler method '{o.CompilerMethod.Name}' - {o.Arguments.Count} args");
+					var toNames = o.Arguments.Select(x => "$" + GetName(x)).ToList();
+
+					if (o.Store == Instruction.Nowhere)
+					{
+						writer.WriteLine($"{o.CompilerMethod.CodeGen(toNames)}");
+					}
+					else
+					{
+						writer.WriteLine($"${GetName(o.Store)} = {o.CompilerMethod.CodeGen(toNames)}");
+					}
 				}
 				break;
 

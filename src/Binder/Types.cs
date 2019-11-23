@@ -4,6 +4,73 @@ using System.Text;
 
 namespace Terumi.Binder
 {
+	// important enums
+
+	public enum BinaryExpression
+	{
+		Not, // !
+		EqualTo, NotEqualTo, // == !=
+		LessThan, LessThanOrEqualTo, // < <=
+		GreaterThan, GreaterThanOrEqualTo, // > >=
+
+		Add, Subtract, Multiply, Divide, Exponent, // + - * / **
+	}
+
+	public enum IncrementType
+	{
+		DecrementPre,
+		DecrementPost,
+		IncrementPre,
+		IncrementPost,
+	}
+
+	public static class EnumHelper
+	{
+		public static BinaryExpression ToBinaryExpression(this Lexer.TokenType tokenType)
+		{
+			switch (tokenType)
+			{
+				case Lexer.TokenType.EqualTo: return BinaryExpression.EqualTo;
+				case Lexer.TokenType.NotEqualTo: return BinaryExpression.NotEqualTo;
+				case Lexer.TokenType.Not: return BinaryExpression.Not;
+				case Lexer.TokenType.GreaterThan: return BinaryExpression.GreaterThan;
+				case Lexer.TokenType.GreaterThanOrEqualTo: return BinaryExpression.GreaterThanOrEqualTo;
+				case Lexer.TokenType.LessThan: return BinaryExpression.LessThan;
+				case Lexer.TokenType.LessThanOrEqualTo: return BinaryExpression.LessThanOrEqualTo;
+				case Lexer.TokenType.Add: return BinaryExpression.Add;
+				case Lexer.TokenType.Subtract: return BinaryExpression.Subtract;
+				case Lexer.TokenType.Exponent: return BinaryExpression.Exponent;
+				case Lexer.TokenType.Multiply: return BinaryExpression.Multiply;
+				case Lexer.TokenType.Divide: return BinaryExpression.Divide;
+				default: throw new InvalidOperationException($"Cannot convert token type {tokenType} to enum {nameof(BinaryExpression)}");
+			}
+		}
+
+		public static IncrementType ToIncrementType(this Parser.Expression.Increment.IncrementSide side, Lexer.TokenType tokenType)
+		{
+			if (side == Parser.Expression.Increment.IncrementSide.Pre)
+			{
+				switch (tokenType)
+				{
+					case Lexer.TokenType.Decrement: return IncrementType.DecrementPre;
+					case Lexer.TokenType.Increment: return IncrementType.IncrementPre;
+					default: throw new InvalidOperationException($"Unrecognized pre increment {tokenType}");
+				}
+			}
+			else
+			{
+				switch (tokenType)
+				{
+					case Lexer.TokenType.Decrement: return IncrementType.DecrementPost;
+					case Lexer.TokenType.Increment: return IncrementType.IncrementPost;
+					default: throw new InvalidOperationException($"Unrecognized pre increment {tokenType}");
+				}
+			}
+		}
+	}
+
+	// types
+
 	public interface IType
 	{
 		string TypeName { get; }

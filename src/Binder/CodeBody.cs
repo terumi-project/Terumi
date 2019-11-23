@@ -236,15 +236,17 @@ namespace Terumi.Binder
 		public class Binary : Expression
 		{
 			// TODO: binary enum
-			public Binary(Parser.Expression.Binary fromParser, Expression left, Expression right) : base(fromParser)
+			public Binary(Parser.Expression.Binary fromParser, Expression left, BinaryExpression @operator, Expression right) : base(fromParser)
 			{
 				FromParser = fromParser;
 				Left = left;
+				Operator = @operator;
 				Right = right;
 			}
 
 			new public Parser.Expression.Binary FromParser { get; }
 			public Expression Left { get; }
+			public BinaryExpression Operator { get; }
 			public Expression Right { get; }
 		}
 
@@ -263,14 +265,16 @@ namespace Terumi.Binder
 		public class Increment : Expression
 		{
 			// TODO: other fields
-			public Increment(Parser.Expression.Increment fromParser, Expression expression) : base(fromParser)
+			public Increment(Parser.Expression.Increment fromParser, Expression expression, IncrementType incrementType) : base(fromParser)
 			{
 				FromParser = fromParser;
 				Expression = expression;
+				IncrementType = incrementType;
 			}
 
 			new public Parser.Expression.Increment FromParser { get; }
 			public Expression Expression { get; }
+			public IncrementType IncrementType { get; }
 		}
 	}
 }

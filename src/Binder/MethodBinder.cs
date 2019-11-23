@@ -13,7 +13,7 @@ namespace Terumi.Binder
 		{
 		}
 
-		public Scope DeepClone()
+		public Scope Clone()
 		{
 			return null;
 		}
@@ -28,7 +28,7 @@ namespace Terumi.Binder
 		private readonly SourceFile _file;
 
 		private List<Scope> _levels = new List<Scope>();
-		public void IncreaseScope() { _levels.Add(_scope); _scope = _scope.DeepClone(); }
+		public void IncreaseScope() { _levels.Add(_scope); _scope = _scope.Clone(); }
 		public void DecreaseScope() { _scope = _levels[^1]; _levels.RemoveAt(_levels.Count - 1); }
 
 		public MethodBinder(TerumiBinder parent, Class? context, Method method, SourceFile file)
@@ -170,10 +170,9 @@ namespace Terumi.Binder
 		public Expression.Access Handle(Parser.Expression.Access o)
 			=> new Expression.Access(o, Handle(o.Left), Handle(o.Right));
 
+		// TODO: need to invent not expression lol that's pretty critical
 		public Expression.Binary Handle(Parser.Expression.Binary o)
-		{
-			return null;
-		}
+			=> new Expression.Binary(o, Handle(o.Left), o.Operator.ToBinaryExpression(), Handle(o.Right));
 
 		public Expression.Constant Handle(Parser.Expression.Constant o)
 		{
@@ -188,10 +187,7 @@ namespace Terumi.Binder
 		}
 
 		public Expression.Increment Handle(Parser.Expression.Increment o)
-		{
-			// TODO: pre/post, inc/dec, etc.
-			return new Expression.Increment(o, Handle(o.Expression));
-		}
+			=> new Expression.Increment(o, Handle(o.Expression), o.Side.ToIncrementType(o.Type));
 
 		public Expression.MethodCall Handle(Parser.Expression.MethodCall o)
 		{

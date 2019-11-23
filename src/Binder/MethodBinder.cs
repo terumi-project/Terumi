@@ -81,7 +81,22 @@ namespace Terumi.Binder
 		public Statement.Assignment Handle(Parser.Statement.Assignment o)
 		{
 			var type = _parent.FindImmediateType(o.Type, _file);
-			var assignment = new Statement.Assignment(o, type, o.Name, Handle(o.Value));
+			var value = Handle(o.Value);
+
+			if (type == BuiltinType.Void)
+			{
+				type = value.Type;
+			}
+			else
+			{
+				if (type != value.Type)
+				{
+					throw new InvalidOperationException($"Invalid type mismatch when setting {o} to {value}");
+				}
+			}
+
+			System.Diagnostics.Debug.Assert(type != BuiltinType.Void, "Assignment cannot result in a void type");
+			var assignment = new Statement.Assignment(o, type, o.Name, value);
 
 			_scope.RegisterVariable(assignment);
 			return assignment;
@@ -164,6 +179,7 @@ namespace Terumi.Binder
 				case Parser.Expression.Constant o: return Handle(o);
 				case Parser.Expression.Increment o: return Handle(o);
 				case Parser.Expression.MethodCall o: return Handle(o);
+				case Parser.Expression.New o: return Handle(o);
 				case Parser.Expression.Parenthesized o: return Handle(o);
 				case Parser.Expression.Reference o: return Handle(o);
 				default: throw new NotSupportedException($"{expr.GetType()}");
@@ -220,6 +236,25 @@ namespace Terumi.Binder
 			}
 
 			return new Expression.MethodCall(o, method, exprs);
+		}
+
+		public Expression.New Handle(Parser.Expression.New o)
+		{
+			var exprs = new List<Expression>();
+
+			foreach (var expr in o.Expressions)
+			{
+				exprs.Add(Handle(expr));
+			}
+
+			var type = _parent.FindImmediateType(o.Type, _file);
+
+			if (!TerumiBinder.FindMethod("ctor", exprs, type.Methods, out var ctorMethod))
+			{
+				throw new InvalidOperationException($"Failed to find constructor method for {o}");
+			}
+
+			return new Expression.New(o, type, ctorMethod, exprs);
 		}
 
 		public Expression.Parenthesized Handle(Parser.Expression.Parenthesized o)

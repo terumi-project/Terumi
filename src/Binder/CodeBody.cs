@@ -292,5 +292,20 @@ namespace Terumi.Binder
 			public Expression Expression { get; }
 			public IncrementType IncrementType { get; }
 		}
+
+		public class New : Expression
+		{
+			public New(Parser.Expression.New fromParser, IType target, IMethod constructor, List<Expression> parameters) : base(fromParser)
+			{
+				Target = target;
+				Constructor = constructor;
+				Parameters = parameters;
+			}
+
+			public override IType Type => Target;
+			public IType Target { get; }
+			public IMethod Constructor { get; }
+			public List<Expression> Parameters { get; }
+		}
 	}
 }

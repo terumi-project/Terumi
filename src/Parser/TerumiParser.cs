@@ -719,6 +719,19 @@ namespace Terumi.Parser
 				case TokenType.NumberToken: { var data = Peek().Data; Next(); return new Expression.Constant(TakeTokens(start, Current()), data); }
 				case TokenType.True: { Next(); return new Expression.Constant(TakeTokens(start, Current()), true); }
 				case TokenType.False: { Next(); return new Expression.Constant(TakeTokens(start, Current()), false); }
+
+				case TokenType.New:
+				{
+					Next(); ConsumeWhitespace(false);
+
+					Expression.MethodCall ctor = null;
+					if (!TryConsumeMethodCallExpression(ref ctor))
+					{
+						Unsupported($"Expected valid method call after new, didn't get one");
+					}
+
+					return new Expression.New(TakeTokens(start, Current()), ctor.Name, ctor.Parameters);
+				}
 			}
 
 			if (Peek().Type == TokenType.OpenParen)

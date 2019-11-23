@@ -98,5 +98,17 @@ namespace Terumi.Parser
 			public TokenType Type { get; }
 			public Expression Expression { get; }
 		}
+
+		public class New : Expression
+		{
+			public New(ConsumedTokens consumed, string type, List<Expression> expressions) : base(consumed)
+			{
+				Type = type;
+				Expressions = expressions;
+			}
+
+			public string Type { get; }
+			public List<Expression> Expressions { get; }
+		}
 	}
 }

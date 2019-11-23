@@ -68,7 +68,7 @@ namespace Terumi.Targets
 			foreach (var method in methods) method.Id = id++;
 
 			writer.WriteLine($"_gc=a");
-			writer.WriteLine($"_ret=''");
+			writer.WriteLine($"ret=''");
 
 			foreach (var method in methods)
 			{
@@ -100,37 +100,37 @@ namespace Terumi.Targets
 			{
 				case Instruction.Load.String o:
 				{
-					writer.WriteLine($"{GetName(o.Store)}='{o.Value}'");
+					writer.WriteLine($"local {GetName(o.Store)}='{o.Value}'");
 				}
 				break;
 
 				case Instruction.Load.Parameter o:
 				{
-					writer.WriteLine($"{GetName(o.Store)}=${o.ParameterNumber + 1}");
+					writer.WriteLine($"local {GetName(o.Store)}=${o.ParameterNumber + 1}");
 				}
 				break;
 
 				case Instruction.Load.Boolean o:
 				{
-					writer.WriteLine($"{GetName(o.Store)}=${(o.Value ? "1" : "0")}");
+					writer.WriteLine($"local {GetName(o.Store)}=${(o.Value ? "1" : "0")}");
 				}
 				break;
 
 				case Instruction.Load.Number o:
 				{
-					writer.WriteLine($"{GetName(o.Store)}={o.Value.Value.ToString()}");
+					writer.WriteLine($"local {GetName(o.Store)}={o.Value.Value.ToString()}");
 				}
 				break;
 
 				case Instruction.Assign o:
 				{
-					writer.WriteLine($"{GetName(o.Store)}=${GetName(o.Value)}");
+					writer.WriteLine($"local {GetName(o.Store)}=${GetName(o.Value)}");
 				}
 				break;
 
 				case Instruction.New o:
 				{
-					writer.WriteLine($"{GetName(o.StoreId)}=\"$_gc\"");
+					writer.WriteLine($"local {GetName(o.StoreId)}=\"$_gc\"");
 					writer.WriteLine($"_gc=\"$_gc\"\"a\"");
 				}
 				break;
@@ -144,8 +144,8 @@ namespace Terumi.Targets
 
 				case Instruction.GetField o:
 				{
-					writer.WriteLine($"find=\"${GetName(o.VariableId)}\"\"{BashTarget.GetName(o.FieldId)}\"");
-					writer.WriteLine($"{GetName(o.StoreId)}=${{!find}}");
+					writer.WriteLine($"local find=\"${GetName(o.VariableId)}\"\"{BashTarget.GetName(o.FieldId)}\"");
+					writer.WriteLine($"local {GetName(o.StoreId)}=${{!find}}");
 				}
 				break;
 
@@ -157,7 +157,7 @@ namespace Terumi.Targets
 
 					if (o.Store != Instruction.Nowhere)
 					{
-						writer.WriteLine($"{GetName(o.Store)}=$_ret");
+						writer.WriteLine($"local {GetName(o.Store)}=$ret");
 					}
 				}
 				break;
@@ -170,14 +170,14 @@ namespace Terumi.Targets
 
 					if (o.Store != Instruction.Nowhere)
 					{
-						writer.WriteLine($"{GetName(o.Store)}=$ret");
+						writer.WriteLine($"local {GetName(o.Store)}=$ret");
 					}
 				}
 				break;
 
 				case Instruction.Return o:
 				{
-					writer.WriteLine($"_ret=${GetName(o.ValueId)}");
+					writer.WriteLine($"ret=${GetName(o.ValueId)}");
 				}
 				break;
 

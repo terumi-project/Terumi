@@ -78,7 +78,7 @@ namespace Terumi.VarCode
 			public class Diary
 			{
 				public List<Instruction> Instructions { get; set; } = new List<Instruction>();
-				public Dictionary<Binder.Statement.Assignment, int> Assignments { get; set; } = new Dictionary<Binder.Statement.Assignment, int>();
+				public Dictionary<string, int> Assignments { get; set; } = new Dictionary<string, int>();
 
 				private int _unique;
 
@@ -151,9 +151,9 @@ namespace Terumi.VarCode
 							}
 						}
 
-						if (!_diary.Assignments.TryGetValue(o, out var id))
+						if (!_diary.Assignments.TryGetValue(o.Name, out var id))
 						{
-							id = _diary.Assignments[o] = _diary.Unique();
+							id = _diary.Assignments[o.Name] = _diary.Unique();
 						}
 
 						_diary.Instructions.Add(new Instruction.Assign(id, valueId));
@@ -476,7 +476,7 @@ namespace Terumi.VarCode
 
 					case Binder.Expression.Reference.Variable o:
 					{
-						return _diary.Assignments[o.Declaration];
+						return _diary.Assignments[o.Declaration.Name];
 					}
 
 					case Binder.Expression.Reference.Field o:
@@ -512,6 +512,8 @@ namespace Terumi.VarCode
 					var str = data.Slice(0, stringData.Interpolations[0].Insert);
 					_diary.Instructions.Add(new Instruction.Load.String(id, new string(str)));
 
+					var load = _diary.Unique();
+
 					// now iterate through every interpolation
 					for (var i = 0; i < stringData.Interpolations.Count; i++)
 					{
@@ -524,8 +526,8 @@ namespace Terumi.VarCode
 						str = data[(stringData.Interpolations[i].Insert)..(end)];
 
 						// append string
-						_diary.Instructions.Add(new Instruction.Load.String(result, new string(str)));
-						_diary.Instructions.Add(new Instruction.CompilerCall(id, add, new List<int> { id, result }));
+						_diary.Instructions.Add(new Instruction.Load.String(load, new string(str)));
+						_diary.Instructions.Add(new Instruction.CompilerCall(id, add, new List<int> { id, load }));
 					}
 				}
 				return id;

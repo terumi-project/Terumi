@@ -1,4 +1,5 @@
 ﻿using System;
+using System.CodeDom.Compiler;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -37,7 +38,18 @@ namespace Terumi
 				translator.Visit(item);
 			}
 
-			Console.WriteLine(translator);
+			Log.Stage("WRITING", "Writing input code to target powershell file.");
+
+			// try/catching to delete files w/ IOException is a good practice
+			try { File.Delete("out.ps1"); } catch (IOException __) { }
+
+			// looks ugly but meh
+			using var fs = File.OpenWrite("out.ps1");
+			using var sw = new StreamWriter(fs);
+
+			// tabs <3
+			using var indentedWriter = new IndentedTextWriter(sw, "\t");
+			target.Write(indentedWriter, translator._diary.Methods);
 
 			/*
 			var parsedFiles = project.ParseProject(_lexer, _parser, resolver).ToList();

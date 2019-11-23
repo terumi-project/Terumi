@@ -47,7 +47,135 @@ namespace Terumi.Targets
 
 		public void Write(IndentedTextWriter writer, List<InstructionMethod> methods)
 		{
-			throw new NotImplementedException();
+			writer.WriteLine($"$_gc = 0");
+
+			foreach (var method in methods)
+			{
+				writer.Write($"function {GetName(method.Id)}");
+
+				if (method.Parameters.Count > 0)
+				{
+					writer.Write($"(${GetName(method.Parameters[0])}");
+
+					for (var i = 1; i < method.Parameters.Count; i++)
+					{
+						writer.Write(", ");
+						writer.Write('$');
+						writer.Write(GetName(method.Parameters[i]));
+					}
+
+					writer.Write(')');
+				}
+				else
+				{
+					writer.Write("()");
+				}
+
+				writer.WriteLine('{');
+				writer.Indent++;
+
+				Write(writer, method);
+
+				writer.Indent--;
+				writer.Write('}');
+			}
+		}
+
+		public void Write(IndentedTextWriter writer, InstructionMethod method)
+			=> Write(writer, method.Code);
+
+		public void Write(IndentedTextWriter writer, InstructionBody body)
+		{
+			foreach (var i in body.Instructions)
+			{
+				Write(writer, i);
+			}
+		}
+
+		public void Write(IndentedTextWriter writer, Instruction instruction)
+		{
+			switch (instruction)
+			{
+				case Instruction.Assignment.Constant o:
+				{
+					// todo:
+					switch (o.Value)
+					{
+						case StringData stringData:
+						{
+							writer.WriteLine($"${GetName(o.StoreId)} = \"{stringData.Value}\"");
+						}
+						break;
+					}
+				}
+				break;
+
+				case Instruction.Assignment.Reference o:
+				{
+					writer.WriteLine($"${GetName(o.Id)} = ${GetName(o.ValueId)}");
+				}
+				break;
+
+				case Instruction.Assignment.New o:
+				{
+					writer.WriteLine($"${GetName(o.StoreId)} = $_gc++");
+				}
+				break;
+
+				// TODO: figure this out lol
+				case Instruction.SetField o:
+				{
+					writer.WriteLine($"${GetName(o.Id)}");
+				}
+				break;
+
+				case Instruction.GetField o:
+				{
+					writer.WriteLine($"${GetName(o.StoreValue)} = Get-Variable -Scope 'Global' -ValueOnly -Name \"${GetName(o.Id)}.{GetName(o.FieldName)}\"");
+				}
+				break;
+
+				case Instruction.MethodCall o:
+				{
+					var args = o.Parameters.Count == 0 ? "" : o.Parameters.Select(x => "$" + GetName(x)).Aggregate((a, b) => $"{a} {b}");
+
+					if (o.Result == -1)
+					{
+						writer.WriteLine($"{GetName(o.Method)} {args}");
+					}
+					else
+					{
+						writer.WriteLine($"${GetName(o.Result)} = {GetName(o.Method)} {args}");
+					}
+				}
+				break;
+
+				case Instruction.Return o:
+				{
+					writer.WriteLine($"return ${GetName(o.ReturnValueId)}");
+				}
+				break;
+			}
+		}
+
+		private static string GetName(int id)
+		{
+			return new string(id.ToString().Select(ToChar).ToArray());
+
+			static char ToChar(char i)
+				=> (i - '0') switch
+				{
+					0 => 'a',
+					1 => 'b',
+					2 => 'c',
+					3 => 'd',
+					4 => 'e',
+					5 => 'f',
+					6 => 'g',
+					7 => 'h',
+					8 => 'i',
+					9 => 'j'
+				};
 		}
 
 		/*
@@ -291,26 +419,6 @@ namespace Terumi.Targets
 			}
 
 			return strb.ToString();
-		}
-
-		private static string GetName(VarCodeId id)
-		{
-			return new string(id.ToString().Select(ToChar).ToArray());
-
-			static char ToChar(char i)
-				=> (i - '0') switch
-				{
-					0 => 'a',
-					1 => 'b',
-					2 => 'c',
-					3 => 'd',
-					4 => 'e',
-					5 => 'f',
-					6 => 'g',
-					7 => 'h',
-					8 => 'i',
-					9 => 'j'
-				};
 		}
 		*/
 	}

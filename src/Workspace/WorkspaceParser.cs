@@ -6,12 +6,13 @@ using System.Text;
 using Terumi.Binder;
 using Terumi.Lexer;
 using Terumi.Parser;
+using Terumi.Targets;
 
 namespace Terumi.Workspace
 {
 	public static class WorkspaceParser
 	{
-		public static TerumiBinderBindings ParseProject(this Project project, DependencyResolver resolver)
+		public static TerumiBinderBindings ParseProject(this Project project, DependencyResolver resolver, ICompilerTarget target)
 		{
 			// TODO: make this way better, atm it's garbage
 			// need to properly scope indirect and direct dependencies
@@ -27,7 +28,7 @@ namespace Terumi.Workspace
 
 			foreach (var dependency in immediateDependencies)
 			{
-				var dependencyBinderProject = dependency.ParseProject(resolver);
+				var dependencyBinderProject = dependency.ParseProject(resolver, target);
 				binderProject.DirectDependencies.AddRange(dependencyBinderProject.BoundProjectFiles);
 			}
 
@@ -39,7 +40,7 @@ namespace Terumi.Workspace
 				binderProject.ProjectFiles.Add(sourceFile);
 			}
 
-			return binderProject.Bind();
+			return binderProject.Bind(target);
 		}
 
 		public static List<Token> ParseTokens(this TerumiLexer lexer)

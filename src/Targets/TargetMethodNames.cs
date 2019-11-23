@@ -1,14 +1,4 @@
-﻿using System;
-using System.CodeDom.Compiler;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-
-using Terumi.Binder;
-using Terumi.VarCode;
-
-namespace Terumi.Targets
+﻿namespace Terumi.Targets
 {
 	/// <summary>
 	/// A group of method names (as constants) that all terumi targets should support
@@ -27,5 +17,11 @@ namespace Terumi.Targets
 		public const string OperatorGreaterThan = "operator_greater_than";
 		public const string OperatorLessThanOrEqualTo = "operator_less_than_or_equal_to";
 		public const string OperatorGreaterThanOrEqualTo = "operator_greater_than_or_equal_to";
+
+		public const string OperatorAdd = "operator_add";
+		public const string OperatorSubtract = "operator_subtract";
+		public const string OperatorMultiply = "operator_multiply";
+		public const string OperatorDivide = "operator_divide";
+		public const string OperatorExponent = "operator_exponent";
 	}
 }

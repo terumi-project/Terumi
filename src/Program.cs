@@ -4,13 +4,14 @@ using System.Linq;
 using System.Text;
 using Terumi.Binder;
 using Terumi.Parser;
+using Terumi.Targets;
 using Terumi.Workspace;
 
 namespace Terumi
 {
 	internal static class Program
 	{
-		public static bool Compile(string projectName)//, ICompilerTarget target)
+		public static bool Compile(string projectName, ICompilerTarget target)
 		{
 			var resolver = new DependencyResolver(Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), projectName, ".libs")));
 
@@ -23,7 +24,7 @@ namespace Terumi
 
 			Log.Stage("PARSE", "Parsing project source code");
 
-			var terumiProject = project.ParseProject(resolver);
+			var terumiProject = project.ParseProject(resolver, target);
 
 			Console.WriteLine(terumiProject);
 
@@ -77,7 +78,7 @@ namespace Terumi
 		{
 #if DEBUG
 			Directory.SetCurrentDirectory("D:\\test");
-			Compile("sample_project");//, new PowershellTarget());
+			Compile("sample_project", new PowershellTarget());
 #endif
 		}
 	}

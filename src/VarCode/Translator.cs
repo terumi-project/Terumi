@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Terumi.Binder;
+using Terumi.Targets;
 
 namespace Terumi.VarCode
 {
@@ -29,8 +30,14 @@ namespace Terumi.VarCode
 			}
 		}
 
+		public Translator(ICompilerTarget target)
+		{
+			_target = target;
+		}
+
 		internal Diary _diary = new Diary();
 		internal int _unique;
+		internal readonly ICompilerTarget _target;
 
 		public void Visit(BoundFile file)
 		{
@@ -138,7 +145,20 @@ namespace Terumi.VarCode
 							}
 						}
 
-						case Expression.Binary o: break;
+						case Expression.Binary o:
+						{
+							var left = BindExpression(o.Left);
+							var right = BindExpression(o.Right);
+							var methodOp = this.GetBinaryOperand(o.Operator, new List<Expression> { o.Left, o.Right });
+							System.Diagnostics.Debug.Assert(methodOp != null, "comp comp method cant b null");
+
+							var methodId = _parent._diary.GetMethodId("<>comp_", methodOp, ref _parent._unique);
+
+							var resultId = _parent._unique++;
+							var call = new Instruction.MethodCall(resultId, methodId, new List<int> { left, right });
+							_instructions.Add(call);
+							return resultId;
+						}
 
 						case Expression.Constant o:
 						{
@@ -156,7 +176,8 @@ namespace Terumi.VarCode
 							throw new InvalidOperationException();
 						}
 
-						case Expression.MethodCall o: return BindMethod(_parent._diary.GetMethodId("<>global_", o.Calling, ref _parent._unique), o);
+						case Expression.MethodCall o:
+						return BindMethod(_parent._diary.GetMethodId(o.Calling.IsCompilerDefined ? "<>comp_" : "<>global_", o.Calling, ref _parent._unique), o);
 
 						case Expression.New o:
 						{
@@ -196,6 +217,8 @@ namespace Terumi.VarCode
 
 							return getField.StoreValue;
 						}
+
+						default: throw new InvalidOperationException();
 					}
 				}
 
@@ -238,6 +261,27 @@ namespace Terumi.VarCode
 					if (_vars.TryGetValue(assignment, out var id)) return id;
 					_vars[assignment] = id = _parent._unique++;
 					return id;
+				}
+
+				private IMethod GetBinaryOperand(BinaryExpression @operator, List<Expression> arguments)
+				{
+					switch (@operator)
+					{
+						case BinaryExpression.Not: throw new NotImplementedException();
+						case BinaryExpression.EqualTo: return _parent._target.Match(TargetMethodNames.OperatorEqualTo, arguments);
+						case BinaryExpression.NotEqualTo: return _parent._target.Match(TargetMethodNames.OperatorNotEqualTo, arguments);
+						case BinaryExpression.LessThan: return _parent._target.Match(TargetMethodNames.OperatorLessThan, arguments);
+						case BinaryExpression.LessThanOrEqualTo: return _parent._target.Match(TargetMethodNames.OperatorLessThanOrEqualTo, arguments);
+						case BinaryExpression.GreaterThan: return _parent._target.Match(TargetMethodNames.OperatorGreaterThan, arguments);
+						case BinaryExpression.GreaterThanOrEqualTo: return _parent._target.Match(TargetMethodNames.OperatorGreaterThanOrEqualTo, arguments);
+						case BinaryExpression.Add: return _parent._target.Match(TargetMethodNames.OperatorAdd, arguments);
+						case BinaryExpression.Subtract: return _parent._target.Match(TargetMethodNames.OperatorSubtract, arguments);
+						case BinaryExpression.Multiply: return _parent._target.Match(TargetMethodNames.OperatorMultiply, arguments);
+						case BinaryExpression.Divide: return _parent._target.Match(TargetMethodNames.OperatorDivide, arguments);
+						case BinaryExpression.Exponent: return _parent._target.Match(TargetMethodNames.OperatorExponent, arguments);
+					}
+
+					throw new NotImplementedException();
 				}
 			}
 		}

@@ -222,7 +222,7 @@ namespace Terumi.Binder
 
 			if (_scope.AccessExpression != null)
 			{
-				if (!TerumiBinder.FindMethod(o.Name, exprs, _scope.AccessExpression.Type.Methods, out var accessMethod))
+				if (!_parent.FindMethod(o.IsCompilerCall, o.Name, exprs, _scope.AccessExpression.Type.Methods, out var accessMethod))
 				{
 					throw new InvalidOperationException($"Cannot find method '{o}' in access expression '{_scope.AccessExpression}'");
 				}
@@ -249,7 +249,6 @@ namespace Terumi.Binder
 
 			var type = _parent.FindImmediateType(o.Type, _file);
 
-			if (!TerumiBinder.FindMethod("ctor", exprs, type.Methods, out var ctorMethod))
 			{
 				throw new InvalidOperationException($"Failed to find constructor method for {o}");
 			}

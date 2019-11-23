@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Terumi.Parser;
+using Terumi.Targets;
 
 namespace Terumi.Binder
 {
@@ -22,9 +23,9 @@ namespace Terumi.Binder
 
 	public static class TerumiBinderHelpers
 	{
-		public static TerumiBinderBindings Bind(this TerumiBinderProject project)
+		public static TerumiBinderBindings Bind(this TerumiBinderProject project, ICompilerTarget target)
 		{
-			var binder = new TerumiBinder(project);
+			var binder = new TerumiBinder(project, target);
 
 			binder.DiscoverTypes();
 			binder.DiscoverFields();
@@ -40,10 +41,12 @@ namespace Terumi.Binder
 		internal readonly TerumiBinderProject _project;
 		internal readonly List<(Class, SourceFile)> _wipClasses = new List<(Class, SourceFile)>();
 		internal readonly List<(Method, SourceFile)> _wipMethods = new List<(Method, SourceFile)>();
+		private readonly ICompilerTarget _target;
 
-		public TerumiBinder(TerumiBinderProject project)
+		public TerumiBinder(TerumiBinderProject project, ICompilerTarget target)
 		{
 			_project = project;
+			_target = target;
 		}
 
 		public TerumiBinderBindings Finalize()
@@ -210,21 +213,32 @@ namespace Terumi.Binder
 		}
 
 		internal bool FindImmediateMethod(Parser.Expression.MethodCall methodCall, List<Expression> parameters, out IMethod targetMethod)
-			=> FindMethod(methodCall.Name, parameters, _wipMethods.Select(x => x.Item1), out targetMethod);
+			=> FindMethod(methodCall.IsCompilerCall, methodCall.Name, parameters, _wipMethods.Select(x => x.Item1), out targetMethod);
 
-		internal static bool FindMethod(string name, List<Expression> parameters, IEnumerable<IMethod> methods, out IMethod targetMethod)
+		internal bool FindMethod(bool isCompilerMethod, string name, List<Expression> arguments, IEnumerable<IMethod> methods, out IMethod targetMethod)
 		{
-			// TODO: compiler methods
-			if (name == "println") { targetMethod = new CompilerMethod(null, null, null); return true; }
+			if (isCompilerMethod)
+			{
+				var compilerMethod = _target.Match(name, arguments);
+
+				if (compilerMethod != null)
+				{
+					targetMethod = compilerMethod;
+					return true;
+				}
+
+				targetMethod = default;
+				return false;
+			}
 
 			foreach (var method in methods)
 			{
 				if (method.Name != name) continue;
-				if (method.Parameters.Count != parameters.Count) continue;
+				if (method.Parameters.Count != arguments.Count) continue;
 
 				for (var i = 0; i < method.Parameters.Count; i++)
 				{
-					if (method.Parameters[i].Type != parameters[i].Type) goto fail;
+					if (method.Parameters[i].Type != arguments[i].Type) goto fail;
 				}
 
 				targetMethod = method;

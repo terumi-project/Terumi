@@ -16,6 +16,8 @@ namespace Terumi.Binder
 	public struct TerumiBinderBindings
 	{
 		public List<BoundFile> BoundProjectFiles;
+		public List<BoundFile> DirectDependencies;
+		public List<BoundFile> IndirectDependencies;
 	}
 
 	public static class TerumiBinderHelpers
@@ -79,7 +81,9 @@ namespace Terumi.Binder
 
 			return new TerumiBinderBindings
 			{
-				BoundProjectFiles = binds
+				BoundProjectFiles = binds,
+				DirectDependencies = _project.DirectDependencies,
+				IndirectDependencies = _project.IndirectDependencies
 			};
 		}
 

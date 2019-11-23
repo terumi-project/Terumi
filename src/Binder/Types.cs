@@ -169,6 +169,8 @@ namespace Terumi.Binder
 
 	public interface IMethod
 	{
+		bool IsCompilerDefined { get; }
+
 		IType ReturnType { get; }
 
 		string Name { get; }
@@ -185,6 +187,7 @@ namespace Terumi.Binder
 			Parameters = parameters;
 		}
 
+		public bool IsCompilerDefined => true;
 		public IType ReturnType { get; }
 		public string Name { get; }
 		public List<MethodParameter> Parameters { get; }
@@ -217,6 +220,7 @@ namespace Terumi.Binder
 			Name = name;
 		}
 
+		public bool IsCompilerDefined => false;
 		public Parser.Method FromParser { get; }
 		public IType ReturnType { get; }
 		public string Name { get; }

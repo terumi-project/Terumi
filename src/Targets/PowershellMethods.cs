@@ -1,20 +1,49 @@
-﻿/*
-using System;
+﻿using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Numerics;
 using System.Text;
 
-using Terumi.Ast;
 using Terumi.Binder;
 using Terumi.VarCode;
-using Terumi.VarCode.Optimizer.Omega;
 
 namespace Terumi.Targets
 {
 	public class PowershellTarget : ICompilerTarget
 	{
+		public CompilerMethod? Match(string name, List<Expression> arguments)
+		{
+			switch (name)
+			{
+				// TODO: supply code
+				case TargetMethodNames.TargetName: return ReturnMethod(BuiltinType.String);
+
+				case TargetMethodNames.IsSupported: return ReturnMethod(BuiltinType.Boolean);
+				case TargetMethodNames.Println: return ReturnMethod(BuiltinType.Void);
+
+				case TargetMethodNames.OperatorEqualTo: return ReturnMethod(BuiltinType.Boolean);
+				case TargetMethodNames.OperatorNotEqualTo: return ReturnMethod(BuiltinType.Boolean);
+
+				case TargetMethodNames.OperatorLessThan: return ReturnMethod(BuiltinType.Boolean);
+				case TargetMethodNames.OperatorGreaterThan: return ReturnMethod(BuiltinType.Boolean);
+				case TargetMethodNames.OperatorLessThanOrEqualTo: return ReturnMethod(BuiltinType.Boolean);
+				case TargetMethodNames.OperatorGreaterThanOrEqualTo: return ReturnMethod(BuiltinType.Boolean);
+			}
+
+			return null;
+			CompilerMethod ReturnMethod(IType returnType) => new CompilerMethod(returnType, name, Match(arguments));
+		}
+
+		private List<MethodParameter> Match(List<Expression> arguments)
+			=> arguments.Select(x => x.Type).Select((x, i) => new MethodParameter(x, $"p{i}")).ToList();
+
+		public void Write(IndentedTextWriter writer, List<InstructionMethod> methods)
+		{
+			throw new NotImplementedException();
+		}
+
+		/*
 		public CompilerMethod? MatchMethod(string name, params IType[] parameters)
 		{
 			if (name == "println" && parameters.Length > 0)
@@ -276,6 +305,6 @@ namespace Terumi.Targets
 					9 => 'j'
 				};
 		}
+		*/
 	}
 }
-*/

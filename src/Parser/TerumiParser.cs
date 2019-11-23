@@ -155,6 +155,9 @@ namespace Terumi.Parser
 				}
 			}
 
+			// consume close brace
+			Next(); ConsumeWhitespace(false);
+
 			@class = new Class(TakeTokens(classStart, Current()), name, methods, fields);
 			return true;
 
@@ -338,7 +341,18 @@ namespace Terumi.Parser
 				|| ConsumeGeneric<Statement, Statement.MethodCall>(ConsumeMethodCall, ref statement)
 				|| ConsumeGeneric<Statement, Statement.If>(ConsumeIf, ref statement)
 				|| ConsumeGeneric<Statement, Statement.While>(ConsumeWhile, ref statement)
-				|| ConsumeGeneric<Statement, Statement.For>(ConsumeFor, ref statement);
+				|| ConsumeGeneric<Statement, Statement.For>(ConsumeFor, ref statement)
+				|| ConsumeGeneric<Statement, Statement.Access>(ConsumeAccess, ref statement);
+		}
+
+		private bool ConsumeAccess(ref Statement.Access access)
+		{
+			var start = Current();
+			var expr = ConsumeAccessExpression();
+			if (expr == null || !(expr is Expression.Access accessExpr)) return false;
+
+			access = new Statement.Access(TakeTokens(start, Current()), accessExpr);
+			return true;
 		}
 
 		private bool ConsumeReturn(ref Statement.Return @return)
@@ -523,6 +537,7 @@ namespace Terumi.Parser
 			var total = ConsumeComparisonExpression();
 			if (total == null) return null;
 
+			if (AtEnd()) return total;
 			while (Peek().Type == TokenType.EqualTo
 				|| Peek().Type == TokenType.NotEqualTo)
 			{
@@ -550,6 +565,7 @@ namespace Terumi.Parser
 			var total = ConsumeAdditionExpression();
 			if (total == null) return null;
 
+			if (AtEnd()) return total;
 			while (Peek().Type == TokenType.GreaterThan
 				|| Peek().Type == TokenType.GreaterThanOrEqualTo
 				|| Peek().Type == TokenType.LessThan
@@ -579,6 +595,7 @@ namespace Terumi.Parser
 			var total = ConsumeMultiplicationExpression();
 			if (total == null) return null;
 
+			if (AtEnd()) return total;
 			while (Peek().Type == TokenType.Add || Peek().Type == TokenType.Subtract)
 			{
 				var type = Peek().Type;
@@ -605,6 +622,7 @@ namespace Terumi.Parser
 			var total = ConsumeIncrementExpression();
 			if (total == null) return null;
 
+			if (AtEnd()) return total;
 			while (Peek().Type == TokenType.Multiply || Peek().Type == TokenType.Divide)
 			{
 				var type = Peek().Type;

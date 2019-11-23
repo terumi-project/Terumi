@@ -1,5 +1,8 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
+using System.Text;
+using Terumi.Binder;
 using Terumi.Parser;
 using Terumi.Workspace;
 
@@ -20,7 +23,25 @@ namespace Terumi
 
 			Log.Stage("PARSE", "Parsing project source code");
 
-			var parsedFiles = project.ParseProject(tokens => new TerumiParser(tokens), resolver).ToList();
+			var binderProject = new Terumi.Binder.TerumiBinderProject
+			{
+				ProjectFiles = new System.Collections.Generic.List<SourceFile>(),
+				DirectDependencies = new System.Collections.Generic.List<Binder.BoundFile>(),
+				IndirectDependencies = new System.Collections.Generic.List<Binder.BoundFile>()
+			};
+
+			foreach (var file in project.GetSources())
+			{
+				var src = Encoding.UTF8.GetBytes(file.Source).AsSpan();
+				var lexer = new Terumi.Lexer.TerumiLexer(file.Path, src);
+				var tokens = WorkspaceParser.ParseTokens(src, file.Path);
+				var parser = new TerumiParser(tokens);
+				var srcFile = parser.ConsumeSourceFile(file.PackageLevel);
+				binderProject.ProjectFiles.Add(srcFile);
+			}
+
+			var bound = binderProject.Bind();
+			Console.WriteLine(bound);
 
 			/*
 			var parsedFiles = project.ParseProject(_lexer, _parser, resolver).ToList();

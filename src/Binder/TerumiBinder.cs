@@ -210,6 +210,9 @@ namespace Terumi.Binder
 
 		internal static bool FindMethod(string name, List<Expression> parameters, IEnumerable<IMethod> methods, out IMethod targetMethod)
 		{
+			// TODO: compiler methods
+			if (name == "println") { targetMethod = new CompilerMethod(null, null, null); return true; }
+
 			foreach (var method in methods)
 			{
 				if (method.Name != name) continue;
@@ -235,9 +238,9 @@ namespace Terumi.Binder
 	{
 		// these two are so we only use things in the namespaces we've included
 		public static bool CanUseFile(this SourceFile source, SourceFile wantToUse)
-			=> source.Usings.Contains(wantToUse.PackageLevel);
+			=> source.UsingsWithSelf.Contains(wantToUse.PackageLevel);
 
 		public static bool CanUseFile(this SourceFile source, BoundFile wantToUse)
-			=> source.Usings.Contains(wantToUse.Namespace);
+			=> source.UsingsWithSelf.Contains(wantToUse.Namespace);
 	}
 }

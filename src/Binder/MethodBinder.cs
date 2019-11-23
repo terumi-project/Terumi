@@ -27,7 +27,7 @@ namespace Terumi.Binder
 		private readonly TerumiBinder _parent;
 		private readonly Class _context;
 		private readonly Method _method;
-		private Scope _scope;
+		private Scope _scope = new Scope();
 		private readonly SourceFile _file;
 
 		private List<Scope> _levels = new List<Scope>();

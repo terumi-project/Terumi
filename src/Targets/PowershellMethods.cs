@@ -12,7 +12,7 @@ namespace Terumi.Targets
 {
 	public class PowershellTarget : ICompilerTarget
 	{
-		public CompilerMethod? Match(string name, List<Expression> arguments)
+		public CompilerMethod? Match(string name, params IType[] types)
 		{
 			switch (name)
 			{
@@ -21,6 +21,9 @@ namespace Terumi.Targets
 
 				case TargetMethodNames.IsSupported: return ReturnMethod(BuiltinType.Boolean);
 				case TargetMethodNames.Println: return ReturnMethod(BuiltinType.Void);
+				case TargetMethodNames.Command: return ReturnMethod(BuiltinType.Void);
+
+				case TargetMethodNames.OperatorNot: return ReturnMethod(BuiltinType.Boolean);
 
 				case TargetMethodNames.OperatorEqualTo: return ReturnMethod(BuiltinType.Boolean);
 				case TargetMethodNames.OperatorNotEqualTo: return ReturnMethod(BuiltinType.Boolean);
@@ -31,19 +34,19 @@ namespace Terumi.Targets
 				case TargetMethodNames.OperatorGreaterThanOrEqualTo: return ReturnMethod(BuiltinType.Boolean);
 
 				// TODO: verify that both operands are the same
-				case TargetMethodNames.OperatorAdd: return ReturnMethod(arguments[0].Type);
-				case TargetMethodNames.OperatorSubtract: return ReturnMethod(arguments[0].Type);
-				case TargetMethodNames.OperatorMultiply: return ReturnMethod(arguments[0].Type);
-				case TargetMethodNames.OperatorDivide: return ReturnMethod(arguments[0].Type);
-				case TargetMethodNames.OperatorExponent: return ReturnMethod(arguments[0].Type);
+				case TargetMethodNames.OperatorAdd: return ReturnMethod(types[0]);
+				case TargetMethodNames.OperatorSubtract: return ReturnMethod(types[0]);
+				case TargetMethodNames.OperatorMultiply: return ReturnMethod(types[0]);
+				case TargetMethodNames.OperatorDivide: return ReturnMethod(types[0]);
+				case TargetMethodNames.OperatorExponent: return ReturnMethod(types[0]);
 			}
 
 			throw new NotImplementedException();
-			CompilerMethod ReturnMethod(IType returnType) => new CompilerMethod(returnType, name, Match(arguments));
+			CompilerMethod ReturnMethod(IType returnType) => new CompilerMethod(returnType, name, Match(types));
 		}
 
-		private List<MethodParameter> Match(List<Expression> arguments)
-			=> arguments.Select(x => x.Type).Select((x, i) => new MethodParameter(x, $"p{i}")).ToList();
+		private List<MethodParameter> Match(IType[] arguments)
+			=> arguments.Select((x, i) => new MethodParameter(x, $"p{i}")).ToList();
 
 		public void Write(IndentedTextWriter writer, List<VarCode.Method> methods)
 		{
@@ -111,6 +114,18 @@ namespace Terumi.Targets
 				}
 				break;
 
+				case Instruction.Load.Boolean o:
+				{
+					writer.WriteLine($"${GetName(o.Store)} = ${(o.Value ? "TRUE" : "FALSE")}");
+				}
+				break;
+
+				case Instruction.Load.Number o:
+				{
+					writer.WriteLine($"${GetName(o.Store)} = {o.Value.Value.ToString()}");
+				}
+				break;
+
 				case Instruction.Assign o:
 				{
 					writer.WriteLine($"${GetName(o.Store)} = ${GetName(o.Value)}");
@@ -151,13 +166,43 @@ namespace Terumi.Targets
 				}
 				break;
 
+				case Instruction.CompilerCall o:
+				{
+					writer.WriteLine($"# TODO: implement compiler method '{o.CompilerMethod.Name}' - {o.Arguments.Count} args");
+				}
+				break;
+
 				case Instruction.Return o:
 				{
 					writer.WriteLine($"return ${GetName(o.ValueId)}");
 				}
 				break;
 
-				// default: throw new NotImplementedException();
+				case Instruction.If o:
+				{
+					writer.WriteLine($"if (${GetName(o.Variable)}) {{");
+
+					writer.Indent++;
+					Write(writer, o.Clause, offset);
+					writer.Indent--;
+
+					writer.WriteLine('}');
+				}
+				break;
+
+				case Instruction.While o:
+				{
+					writer.WriteLine($"while (${GetName(o.Comparison)}) {{");
+
+					writer.Indent++;
+					Write(writer, o.Clause, offset);
+					writer.Indent--;
+
+					writer.WriteLine('}');
+				}
+				break;
+
+				default: throw new NotImplementedException();
 			}
 
 			string GetName(int id) => PowershellTarget.GetName(id + offset);

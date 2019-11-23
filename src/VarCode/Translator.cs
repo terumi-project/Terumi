@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using Terumi.Targets;
 
 namespace Terumi.VarCode
 {
@@ -19,6 +20,12 @@ namespace Terumi.VarCode
 	{
 		internal Diary _diary = new Diary();
 		internal int _unique;
+		internal readonly ICompilerTarget _target;
+
+		public Translator(ICompilerTarget target)
+		{
+			_target = target;
+		}
 
 		public void TranslateLight(Binder.BoundFile file)
 		{
@@ -82,6 +89,22 @@ namespace Terumi.VarCode
 			private readonly Method _method;
 			internal Diary _diary = new Diary();
 
+			private List<List<Instruction>> _instructionStack = new List<List<Instruction>>();
+
+			public void IncreaseScope()
+			{
+				_instructionStack.Add(_diary.Instructions);
+				_diary.Instructions = new List<Instruction>();
+			}
+
+			public List<Instruction> DecreaseScope()
+			{
+				var result = _diary.Instructions;
+				_diary.Instructions = _instructionStack[^1];
+				_instructionStack.RemoveAt(_instructionStack.Count - 1);
+				return result;
+			}
+
 			public MethodMorpher(Translator translator, Method method)
 			{
 				_translator = translator;
@@ -139,25 +162,68 @@ namespace Terumi.VarCode
 
 					case Binder.Statement.Command o:
 					{
-						throw new NotImplementedException();
+						var stringData = ParseStringData(o.StringData);
+						var command = _translator._target.Match(TargetMethodNames.Command, Binder.BuiltinType.String);
+
+						_diary.Instructions.Add(new Instruction.CompilerCall(Instruction.Nowhere, command, new List<int> { stringData }));
 					}
 					break;
 
 					case Binder.Statement.For o:
 					{
-						throw new NotImplementedException();
+						// a for loop operates as such:
+						// 0: <init>
+						// 1: <compare> (if false, jump 4)
+						// 2: <code>
+						// 3: <increment
+						// 4: end
+
+						IncreaseScope();
+						Bind(o.Initialization);
+
+						var comparison = Bind(o.Comparison);
+						IncreaseScope();
+						Bind(o.Code);
+						Bind(o.End);
+						_diary.Instructions.Add(new Instruction.Assign(comparison, Bind(o.Comparison)));
+
+						var whileBody = DecreaseScope();
+						_diary.Instructions.Add(new Instruction.While(comparison, whileBody));
+
+						// we scoped it here just to scope the for loop initialization to the for loop,
+						// but now we gotta unscope it
+						var allBody = DecreaseScope();
+						_diary.Instructions.AddRange(allBody);
 					}
 					break;
 
 					case Binder.Statement.If o:
 					{
-						throw new NotImplementedException();
+						var comparison = Bind(o.Comparison);
+
+						IncreaseScope();
+						Bind(o.TrueClause);
+						var trueClause = DecreaseScope();
+						_diary.Instructions.Add(new Instruction.If(comparison, trueClause));
+
+						if (o.ElseClause.Statements.Count > 0)
+						{
+							IncreaseScope();
+							Bind(o.ElseClause);
+							var elseClause = DecreaseScope();
+
+							var not = _translator._target.Match(TargetMethodNames.OperatorNot, Binder.BuiltinType.Boolean);
+							Debug.Assert(not != null);
+
+							_diary.Instructions.Add(new Instruction.CompilerCall(comparison, not, new List<int> { comparison }));
+							_diary.Instructions.Add(new Instruction.If(comparison, elseClause));
+						}
 					}
 					break;
 
 					case Binder.Statement.Increment o:
 					{
-						throw new NotImplementedException();
+						Bind(o.Expression);
 					}
 					break;
 
@@ -175,7 +241,36 @@ namespace Terumi.VarCode
 
 					case Binder.Statement.While o:
 					{
-						throw new NotImplementedException();
+						if (!o.IsDoWhile)
+						{
+							var comparison = Bind(o.Comparison);
+
+							IncreaseScope();
+							Bind(o.Body);
+
+							// not only do we bind the body, we re-calculate the expression in the while
+							_diary.Instructions.Add(new Instruction.Assign(comparison, Bind(o.Comparison)));
+							var whileCode = DecreaseScope();
+
+							_diary.Instructions.Add(new Instruction.While(comparison, whileCode));
+						}
+						else
+						{
+							// we set the comparison variable to 'true',
+							// then run the while loop,
+							// and then check the statement
+
+							var comparison = _diary.Unique();
+							_diary.Instructions.Add(new Instruction.Load.Boolean(comparison, true));
+
+							IncreaseScope();
+							Bind(o.Body);
+
+							_diary.Instructions.Add(new Instruction.Assign(comparison, Bind(o.Comparison)));
+							var whileCode = DecreaseScope();
+
+							_diary.Instructions.Add(new Instruction.While(comparison, whileCode));
+						}
 					}
 					break;
 				}
@@ -222,35 +317,94 @@ namespace Terumi.VarCode
 
 					case Binder.Expression.Binary o:
 					{
-						var left = Bind(o);
+						var left = Bind(o.Left);
 						Debug.Assert(left != Instruction.Nowhere);
 
-						var right = Bind(o);
+						var right = Bind(o.Right);
 						Debug.Assert(right != Instruction.Nowhere);
 
-						throw new NotImplementedException();
-						return Instruction.Nowhere;
+						var compilerMethod = _translator._target.Match(o.Operator.ToMethodName(), o.Left.Type, o.Right.Type);
+						Debug.Assert(compilerMethod != null);
+
+						var id = _diary.Unique();
+						_diary.Instructions.Add(new Instruction.CompilerCall(id, compilerMethod, new List<int> { left, right }));
+						return id;
 					}
 
 					case Binder.Expression.Constant o:
 					{
+						if (o.Value is Binder.StringData stringData) return ParseStringData(stringData);
+
+						var id = _diary.Unique();
+
 						switch (o.Value)
 						{
-							case Binder.StringData data:
+							case Lexer.Number number:
 							{
-								var id = _diary.Unique();
-								_diary.Instructions.Add(new Instruction.Load.String(id, data.Value));
-								return id;
+								_diary.Instructions.Add(new Instruction.Load.Number(id, number));
 							}
+							break;
+
+							case bool b:
+							{
+								_diary.Instructions.Add(new Instruction.Load.Boolean(id, b));
+							}
+							break;
+
+							default: throw new NotSupportedException();
 						}
 
-						throw new NotSupportedException();
+						return id;
 					}
 
 					case Binder.Expression.Increment o:
 					{
-						throw new NotImplementedException();
-						return Instruction.Nowhere;
+						var bound = Bind(o.Expression);
+
+						var one = _diary.Unique();
+						_diary.Instructions.Add(new Instruction.Load.Number(one, new Lexer.Number(1)));
+
+						switch (o.IncrementType)
+						{
+							case Binder.IncrementType.DecrementPost:
+							{
+								var target = _diary.Unique();
+								_diary.Instructions.Add(new Instruction.Assign(target, bound));
+								_diary.Instructions.Add(new Instruction.CompilerCall(bound, GetMethod(Binder.BinaryExpression.Subtract), new List<int> { bound, one }));
+								return target;
+							}
+
+							case Binder.IncrementType.IncrementPost:
+							{
+								var target = _diary.Unique();
+								_diary.Instructions.Add(new Instruction.Assign(target, bound));
+								_diary.Instructions.Add(new Instruction.CompilerCall(bound, GetMethod(Binder.BinaryExpression.Add), new List<int> { bound, one }));
+								return target;
+							}
+
+							// pre increments, we can just re-assign to the variable
+							case Binder.IncrementType.DecrementPre:
+							{
+								_diary.Instructions.Add(new Instruction.CompilerCall(bound, GetMethod(Binder.BinaryExpression.Subtract), new List<int> { bound, one }));
+								return bound;
+							}
+
+							case Binder.IncrementType.IncrementPre:
+							{
+								_diary.Instructions.Add(new Instruction.CompilerCall(bound, GetMethod(Binder.BinaryExpression.Add), new List<int> { bound, one }));
+								return bound;
+							}
+
+							default: throw new NotImplementedException();
+						}
+
+						Binder.CompilerMethod GetMethod(Binder.BinaryExpression binaryExpression)
+						{
+							var compilerMethod = _translator._target.Match(binaryExpression.ToMethodName(), o.Expression.Type, Binder.BuiltinType.Number);
+							Debug.Assert(compilerMethod != null);
+
+							return compilerMethod;
+						}
 					}
 
 					case Binder.Expression.MethodCall o:
@@ -332,6 +486,49 @@ namespace Terumi.VarCode
 
 					default: throw new NotSupportedException();
 				}
+			}
+
+			private int	ParseStringData(Binder.StringData stringData)
+			{
+				var id = _diary.Unique();
+				if (stringData.Interpolations.Count == 0)
+				{
+					_diary.Instructions.Add(new Instruction.Load.String(id, stringData.Value));
+				}
+				else
+				{
+					var add = _translator._target.Match(TargetMethodNames.OperatorAdd, Binder.BuiltinType.String, Binder.BuiltinType.String);
+					Debug.Assert(add != null);
+
+					// ...<>...<>...
+					// we can break that into
+					// ...
+					// <>... (loop part)
+					// <>...
+
+					// let's first load in the first string
+					ReadOnlySpan<char> data = stringData.Value;
+
+					var str = data.Slice(0, stringData.Interpolations[0].Insert);
+					_diary.Instructions.Add(new Instruction.Load.String(id, new string(str)));
+
+					// now iterate through every interpolation
+					for (var i = 0; i < stringData.Interpolations.Count; i++)
+					{
+						// append expression
+						var result = Bind(stringData.Interpolations[i].Expression);
+						_diary.Instructions.Add(new Instruction.CompilerCall(id, add, new List<int> { id, result }));
+
+						// calc the string to append
+						var end = i == stringData.Interpolations.Count - 1 ? stringData.Value.Length : stringData.Interpolations[i + 1].Insert;
+						str = data[(stringData.Interpolations[i].Insert)..(end)];
+
+						// append string
+						_diary.Instructions.Add(new Instruction.Load.String(result, new string(str)));
+						_diary.Instructions.Add(new Instruction.CompilerCall(id, add, new List<int> { id, result }));
+					}
+				}
+				return id;
 			}
 
 			private int ReferenceField(string fieldName, int? theSelf)

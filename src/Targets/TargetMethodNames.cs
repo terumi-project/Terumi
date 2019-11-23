@@ -1,4 +1,7 @@
-﻿namespace Terumi.Targets
+﻿using System;
+using Terumi.Binder;
+
+namespace Terumi.Targets
 {
 	/// <summary>
 	/// A group of method names (as constants) that all terumi targets should support
@@ -9,6 +12,9 @@
 
 		public const string IsSupported = "is_supported";
 		public const string Println = "println";
+		public const string Command = "command";
+
+		public const string OperatorNot = "operator_not";
 
 		public const string OperatorNotEqualTo = "operator_equal_to";
 		public const string OperatorEqualTo = "operator_not_equal_to";
@@ -23,5 +29,23 @@
 		public const string OperatorMultiply = "operator_multiply";
 		public const string OperatorDivide = "operator_divide";
 		public const string OperatorExponent = "operator_exponent";
+
+		public static string ToMethodName(this BinaryExpression binaryExpression)
+			=> binaryExpression switch
+		{
+			BinaryExpression.Not => OperatorNot,
+			BinaryExpression.EqualTo => OperatorEqualTo,
+			BinaryExpression.NotEqualTo => OperatorNotEqualTo,
+			BinaryExpression.LessThan => OperatorLessThan,
+			BinaryExpression.LessThanOrEqualTo => OperatorLessThanOrEqualTo,
+			BinaryExpression.GreaterThan => OperatorGreaterThan,
+			BinaryExpression.GreaterThanOrEqualTo => OperatorGreaterThanOrEqualTo,
+			BinaryExpression.Add => OperatorAdd,
+			BinaryExpression.Subtract => OperatorSubtract,
+			BinaryExpression.Multiply => OperatorMultiply,
+			BinaryExpression.Divide => OperatorDivide,
+			BinaryExpression.Exponent => OperatorExponent,
+			_ => throw new InvalidOperationException(),
+		};
 	}
 }

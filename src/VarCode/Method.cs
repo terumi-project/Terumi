@@ -43,7 +43,31 @@ namespace Terumi.VarCode
 				public string Value { get; }
 			}
 
-			public class Parameter : Instruction
+			public class Number : Load
+			{
+				public Number(int store, Lexer.Number value)
+				{
+					Store = store;
+					Value = value;
+				}
+
+				public int Store { get; }
+				public Lexer.Number Value { get; }
+			}
+
+			public class Boolean : Load
+			{
+				public Boolean(int store, bool value)
+				{
+					Store = store;
+					Value = value;
+				}
+
+				public int Store { get; }
+				public bool Value { get; }
+			}
+
+			public class Parameter : Load
 			{
 				public Parameter(int store, int parameterNumber)
 				{
@@ -142,6 +166,30 @@ namespace Terumi.VarCode
 			}
 
 			public int ValueId { get; }
+		}
+
+		public class If : Instruction
+		{
+			public If(int variable, List<Instruction> clause)
+			{
+				Variable = variable;
+				Clause = clause;
+			}
+
+			public int Variable { get; }
+			public List<Instruction> Clause { get; }
+		}
+
+		public class While : Instruction
+		{
+			public While(int comparison, List<Instruction> clause)
+			{
+				Comparison = comparison;
+				Clause = clause;
+			}
+
+			public int Comparison { get; }
+			public List<Instruction> Clause { get; }
 		}
 	}
 }

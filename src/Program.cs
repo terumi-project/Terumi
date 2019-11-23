@@ -29,7 +29,7 @@ namespace Terumi
 			var terumiProject = project.ParseProject(resolver, target);
 			Console.WriteLine(terumiProject);
 
-			var translator = new Translator();
+			var translator = new Translator(target);
 
 			foreach (var item in terumiProject.IndirectDependencies
 				.Concat(terumiProject.DirectDependencies)

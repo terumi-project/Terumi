@@ -1,314 +1,359 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using Terumi.Binder;
-using Terumi.Targets;
 
 namespace Terumi.VarCode
 {
+	public class Diary
+	{
+		// we use a global dictionary for ALL field names so that we can have castability between two different types, eg.
+		// if two types both have the field "ree", we can theoretically have a method that accepts in both and returns 'ree'
+		public Dictionary<string, int> FieldNames { get; set; } = new Dictionary<string, int>();
+
+		public List<Method> Methods { get; set; } = new List<Method>();
+	}
+
 	public class Translator
 	{
-		public class Diary
-		{
-			public Dictionary<Field, int> FieldMappings { get; set; } = new Dictionary<Field, int>();
-			public Dictionary<(string, IMethod), int> MethodMappings { get; set; } = new Dictionary<(string, IMethod), int>();
-			public List<InstructionMethod> Methods { get; set; } = new List<InstructionMethod>();
-
-			public int GetFieldId(Field f, ref int unique)
-			{
-				if (FieldMappings.TryGetValue(f, out var result)) return result;
-				FieldMappings[f] = result = unique++;
-				return result;
-			}
-
-			public int GetMethodId(string prepend, IMethod method, ref int unique)
-			{
-				if (MethodMappings.TryGetValue((prepend, method), out var result)) return result;
-				MethodMappings[(prepend, method)] = result = unique++;
-				return result;
-			}
-		}
-
-		public Translator(ICompilerTarget target)
-		{
-			_target = target;
-		}
-
 		internal Diary _diary = new Diary();
 		internal int _unique;
-		internal readonly ICompilerTarget _target;
 
-		public void Visit(BoundFile file)
+		public void TranslateLight(Binder.BoundFile file)
 		{
+			// first, match all fields to an id
+			foreach (var @class in file.Classes)
+			{
+				foreach (var field in @class.Fields)
+				{
+					if (!_diary.FieldNames.ContainsKey(field.Name))
+					{
+						_diary.FieldNames[field.Name] = _unique++;
+					}
+				}
+			}
+
+			// next, take all class methods and put them as a Method (with a prefix ofc)
 			foreach (var @class in file.Classes)
 			{
 				foreach (var method in @class.Methods)
 				{
-					// TODO: encapsulate this way of getting method ids (<>global_ & classname_)
-					var id = _diary.GetMethodId(@class.Name + "_", method, ref _unique);
+					var arguments = new List<Binder.MethodParameter>
+					{
+						new Binder.MethodParameter(@class, "self")
+					};
 
-					System.Diagnostics.Debug.Assert(method is Method, "Class methods must be Method");
+					arguments.AddRange(method.Parameters);
 
-					var gear = new Gears.Method(this, id, @class, method as Method, _unique++);
-					gear.Bind();
+					_diary.Methods.Add(new Method(@class, method as Binder.Method, $"<{@class.Name}>{method.Name}", arguments));
 				}
 			}
 
 			foreach (var method in file.Methods)
 			{
-				var id = _diary.GetMethodId("<>global_", method, ref _unique);
-				var gear = new Gears.Method(this, id, null, method, -1);
-				gear.Bind();
+				_diary.Methods.Add(new Method(null, method, $"<>{method.Name}", method.Parameters));
 			}
 		}
 
-		public abstract class Gears
+		public void TranslateHard()
 		{
-			public class Method : Gears
+			foreach (var method in _diary.Methods)
 			{
-				private readonly Translator _parent;
-				private readonly Class? _context;
-				private readonly Binder.Method _method;
-				private readonly List<Instruction> _instructions = new List<Instruction>();
-				private readonly int _selfMethodId;
-				private readonly int _thisReference;
-				private readonly List<int> _methodParams;
-				private readonly Dictionary<Statement.Assignment, int> _vars = new Dictionary<Statement.Assignment, int>();
+				var morpher = new MethodMorpher(this, method);
+				morpher.Bind();
+				method.Code.AddRange(morpher._diary.Instructions);
+			}
+		}
 
-				public Method(Translator parent, int id, Class? context, Binder.Method method, int thisReference)
+		public class MethodMorpher
+		{
+			public class Diary
+			{
+				public List<Instruction> Instructions { get; set; } = new List<Instruction>();
+				public Dictionary<Binder.Statement.Assignment, int> Assignments { get; set; } = new Dictionary<Binder.Statement.Assignment, int>();
+
+				private int _unique;
+
+				public int Unique() => _unique++;
+			}
+
+			private readonly Translator _translator;
+			private readonly Method _method;
+			internal Diary _diary = new Diary();
+
+			public MethodMorpher(Translator translator, Method method)
+			{
+				_translator = translator;
+				_method = method;
+			}
+
+			public void Bind() => Bind(_method.FromBinder.Body);
+
+			public void Bind(Binder.CodeBody body)
+			{
+				foreach (var i in body.Statements)
 				{
-					_parent = parent;
-					_context = context;
-					_method = method;
-					_selfMethodId = id;
-					_thisReference = thisReference;
-					_methodParams = _method.Parameters.Select(x => _parent._unique++).ToList();
+					Bind(i);
 				}
+			}
 
-				public void Bind()
+			public void Bind(Binder.Statement statement)
+			{
+				switch (statement)
 				{
-					foreach (var line in _method.Body.Statements)
+					case Binder.Statement.Access o:
 					{
-						BindStatement(line);
+						Bind(o.Expression);
 					}
+					break;
 
-					_parent._diary.Methods.Add(new InstructionMethod
-					(
-						_selfMethodId,
-						_thisReference == -1 ? _methodParams : new int[] { _thisReference }.Concat(_methodParams).ToList(),
-						new InstructionBody(_instructions)
-					));
-				}
-
-				public void BindStatement(Statement stmt)
-				{
-					switch (stmt)
+					case Binder.Statement.Assignment o:
 					{
-						case Statement.Access o: BindExpression(o.Expression); break;
+						var valueId = Bind(o.Value);
 
-						case Statement.Assignment o:
+						// first, let's figure out if we're assigning a field
+						if (_method.Context != null)
 						{
-							var id = GetVariable(o);
-							var value = BindExpression(o.Value);
-
-							_instructions.Add(new Instruction.Assignment.Reference(id, value));
-						}
-						break;
-
-						case Statement.Command o:
-						{
-							// TODO: handle stringdata
-							throw new NotImplementedException();
-						}
-						break;
-
-						case Statement.For o: break;
-						case Statement.If o: break;
-
-						case Statement.Increment o: BindExpression(o.Expression); break;
-						case Statement.MethodCall o: BindExpression(o.MethodCallExpression); break;
-
-						case Statement.Return o:
-						{
-							var value = BindExpression(o.Value);
-							_instructions.Add(new Instruction.Return(value));
-						}
-						break;
-
-						case Statement.While o: break;
-
-						default: throw new InvalidOperationException();
-					}
-				}
-
-				public int BindExpression(Expression e)
-				{
-					switch (e)
-					{
-						case Expression.Access o:
-						{
-							// TODO: accesses need to have a ref to their self
-							var left = BindExpression(o.Left);
-
-							if (o.Right is Expression.MethodCall m)
+							if (_method.Context.Fields.Any(x => x.Name == o.Name && x.Type == o.Type))
 							{
-								var methodId = _parent._diary.GetMethodId(o.Left.Type.TypeName + "_", m.Calling, ref _parent._unique);
+								// we're assigning a field
+								var fieldId = _translator._diary.FieldNames[o.Name];
 
-								return BindMethod(methodId, m);
-							}
-							else if (o.Right is Expression.Reference.Field f)
-							{
-								var fieldId = _parent._diary.GetFieldId(f.FieldDeclaration, ref _parent._unique);
-								var getField = new Instruction.GetField(left, fieldId, _parent._unique++);
-								_instructions.Add(getField);
+								var selfId = _diary.Unique();
+								_diary.Instructions.Add(new Instruction.Load.Parameter(selfId, 0));
 
-								return getField.StoreValue;
-							}
-							else
-							{
-								throw new InvalidOperationException();
+								_diary.Instructions.Add(new Instruction.SetField(selfId, fieldId, valueId));
+								return;
 							}
 						}
 
-						case Expression.Binary o:
+						if (!_diary.Assignments.TryGetValue(o, out var id))
 						{
-							var left = BindExpression(o.Left);
-							var right = BindExpression(o.Right);
-							var methodOp = this.GetBinaryOperand(o.Operator, new List<Expression> { o.Left, o.Right });
-							System.Diagnostics.Debug.Assert(methodOp != null, "comp comp method cant b null");
-
-							var methodId = _parent._diary.GetMethodId("<>comp_", methodOp, ref _parent._unique);
-
-							var resultId = _parent._unique++;
-							var call = new Instruction.MethodCall(resultId, methodId, new List<int> { left, right });
-							_instructions.Add(call);
-							return resultId;
+							id = _diary.Assignments[o] = _diary.Unique();
 						}
 
-						case Expression.Constant o:
+						_diary.Instructions.Add(new Instruction.Assign(id, valueId));
+					}
+					break;
+
+					case Binder.Statement.Command o:
+					{
+						throw new NotImplementedException();
+					}
+					break;
+
+					case Binder.Statement.For o:
+					{
+						throw new NotImplementedException();
+					}
+					break;
+
+					case Binder.Statement.If o:
+					{
+						throw new NotImplementedException();
+					}
+					break;
+
+					case Binder.Statement.Increment o:
+					{
+						throw new NotImplementedException();
+					}
+					break;
+
+					case Binder.Statement.MethodCall o:
+					{
+						Bind(o.MethodCallExpression);
+					}
+					break;
+
+					case Binder.Statement.Return o:
+					{
+						_diary.Instructions.Add(new Instruction.Return(Bind(o.Value)));
+					}
+					break;
+
+					case Binder.Statement.While o:
+					{
+						throw new NotImplementedException();
+					}
+					break;
+				}
+			}
+
+			public int Bind(Binder.Expression expression)
+			{
+				switch (expression)
+				{
+					case Binder.Expression.Access o:
+					{
+						var left = Bind(o.Left);
+						Debug.Assert(left != Instruction.Nowhere);
+
+						switch (o.Right)
 						{
-							var resultId = _parent._unique++;
-
-							// TODO: for StringData values, convert them into multiple assignments and concatenations
-							_instructions.Add(new Instruction.Assignment.Constant(o.Value, resultId));
-
-							return resultId;
-						}
-
-						case Expression.Increment o:
-						{
-							// need binary instructions
-							throw new InvalidOperationException();
-						}
-
-						case Expression.MethodCall o:
-						return BindMethod(_parent._diary.GetMethodId(o.Calling.IsCompilerDefined ? "<>comp_" : "<>global_", o.Calling, ref _parent._unique), o);
-
-						case Expression.New o:
-						{
-							// TODO: ctors need to have a ref to their self
-							var id = _parent._unique++;
-							_instructions.Add(new Instruction.Assignment.New(id));
-
-							var args = new List<int>();
-
-							foreach (var arg in o.Parameters)
+							case Binder.Expression.Reference.Field f:
 							{
-								args.Add(BindExpression(arg));
+								return ReferenceField(f.FieldDeclaration.Name, left);
 							}
 
-							var ctorId = _parent._diary.GetMethodId(o.Type.TypeName + "_", o.Constructor, ref _parent._unique);
-							var resultId = GetMethodCallResultId(o.Type);
+							case Binder.Expression.MethodCall m:
+							{
+								var id = _diary.Unique();
 
-							return BindMethod(ctorId, args, resultId);
+								var method = _translator._diary.Methods.First(x => x.Name == $"<{o.Left.Type.TypeName}>{m.Calling.Name}");
+
+								var args = new List<int> { left };
+
+								foreach (var arg in m.Parameters)
+								{
+									var argId = Bind(arg);
+									Debug.Assert(argId != Instruction.Nowhere);
+									args.Add(argId);
+								}
+
+								_diary.Instructions.Add(new Instruction.Call(id, method, args));
+								return id;
+							}
+
+							default: throw new InvalidOperationException();
 						}
+					}
 
-						case Expression.Parenthesized o: return BindExpression(o.Inner);
+					case Binder.Expression.Binary o:
+					{
+						var left = Bind(o);
+						Debug.Assert(left != Instruction.Nowhere);
 
-						case Expression.Reference.Parameter o:
+						var right = Bind(o);
+						Debug.Assert(right != Instruction.Nowhere);
+
+						throw new NotImplementedException();
+						return Instruction.Nowhere;
+					}
+
+					case Binder.Expression.Constant o:
+					{
+						switch (o.Value)
 						{
-							var id = _method.Parameters.IndexOf(o.MethodParameter);
-							return _methodParams[id];
+							case Binder.StringData data:
+							{
+								var id = _diary.Unique();
+								_diary.Instructions.Add(new Instruction.Load.String(id, data.Value));
+								return id;
+							}
 						}
 
-						case Expression.Reference.Variable o: return GetVariable(o.Declaration);
+						throw new NotSupportedException();
+					}
 
-						case Expression.Reference.Field o:
+					case Binder.Expression.Increment o:
+					{
+						throw new NotImplementedException();
+						return Instruction.Nowhere;
+					}
+
+					case Binder.Expression.MethodCall o:
+					{
+						var id = Instruction.Nowhere;
+
+						if (o.Type != Binder.BuiltinType.Void)
 						{
-							if (_thisReference == -1) throw new InvalidOperationException("cant ref field if no this ref");
-
-							var fieldId = _parent._diary.GetFieldId(o.FieldDeclaration, ref _parent._unique);
-							var getField = new Instruction.GetField(_thisReference, fieldId, _parent._unique++);
-
-							return getField.StoreValue;
+							id = _diary.Unique();
 						}
 
-						default: throw new InvalidOperationException();
+						var args = new List<int>();
+
+						foreach (var arg in o.Parameters)
+						{
+							var argId = Bind(arg);
+							Debug.Assert(argId != Instruction.Nowhere);
+							args.Add(argId);
+						}
+
+						if (o.Calling is Binder.CompilerMethod compilerMethod)
+						{
+							_diary.Instructions.Add(new Instruction.CompilerCall(id, compilerMethod, args));
+							return id;
+						}
+
+						var method = _translator._diary.Methods.First(x => x.FromBinder == o.Calling);
+						_diary.Instructions.Add(new Instruction.Call(id, method, args));
+
+						return id;
 					}
-				}
 
-				public int BindMethod(int methodId, Expression.MethodCall m)
-				{
-					var args = new List<int>();
-
-					foreach (var arg in m.Parameters)
+					case Binder.Expression.New o:
 					{
-						args.Add(BindExpression(arg));
+						var id = _diary.Unique();
+
+						_diary.Instructions.Add(new Instruction.New(id));
+						var ctorMethod = _translator._diary.Methods.First(x => x.FromBinder == o.Constructor);
+
+						var args = new List<int> { id };
+
+						foreach (var arg in o.Parameters)
+						{
+							var argId = Bind(arg);
+							Debug.Assert(argId != Instruction.Nowhere);
+							args.Add(argId);
+						}
+
+						var result = _diary.Unique();
+						_diary.Instructions.Add(new Instruction.Call(result, ctorMethod, args));
+
+						return id;
 					}
 
-					var resultId = GetMethodCallResultId(m);
-
-					return BindMethod(methodId, args, resultId);
-				}
-
-				public int BindMethod(int methodId, List<int> args, int resultId)
-				{
-					_instructions.Add(new Instruction.MethodCall(resultId, methodId, args));
-
-					return resultId;
-				}
-
-				private int GetMethodCallResultId(Expression.MethodCall m)
-					=> GetMethodCallResultId(m.Type);
-
-				private int GetMethodCallResultId(IType m)
-				{
-					if (m == BuiltinType.Void)
+					case Binder.Expression.Parenthesized o:
 					{
-						return -1;
+						return Bind(o.Inner);
 					}
 
-					return _parent._unique++;
-				}
-
-				private int GetVariable(Statement.Assignment assignment)
-				{
-					if (_vars.TryGetValue(assignment, out var id)) return id;
-					_vars[assignment] = id = _parent._unique++;
-					return id;
-				}
-
-				private IMethod GetBinaryOperand(BinaryExpression @operator, List<Expression> arguments)
-				{
-					switch (@operator)
+					case Binder.Expression.Reference.Parameter o:
 					{
-						case BinaryExpression.Not: throw new NotImplementedException();
-						case BinaryExpression.EqualTo: return _parent._target.Match(TargetMethodNames.OperatorEqualTo, arguments);
-						case BinaryExpression.NotEqualTo: return _parent._target.Match(TargetMethodNames.OperatorNotEqualTo, arguments);
-						case BinaryExpression.LessThan: return _parent._target.Match(TargetMethodNames.OperatorLessThan, arguments);
-						case BinaryExpression.LessThanOrEqualTo: return _parent._target.Match(TargetMethodNames.OperatorLessThanOrEqualTo, arguments);
-						case BinaryExpression.GreaterThan: return _parent._target.Match(TargetMethodNames.OperatorGreaterThan, arguments);
-						case BinaryExpression.GreaterThanOrEqualTo: return _parent._target.Match(TargetMethodNames.OperatorGreaterThanOrEqualTo, arguments);
-						case BinaryExpression.Add: return _parent._target.Match(TargetMethodNames.OperatorAdd, arguments);
-						case BinaryExpression.Subtract: return _parent._target.Match(TargetMethodNames.OperatorSubtract, arguments);
-						case BinaryExpression.Multiply: return _parent._target.Match(TargetMethodNames.OperatorMultiply, arguments);
-						case BinaryExpression.Divide: return _parent._target.Match(TargetMethodNames.OperatorDivide, arguments);
-						case BinaryExpression.Exponent: return _parent._target.Match(TargetMethodNames.OperatorExponent, arguments);
+						var id = _diary.Unique();
+
+						var parameterIndex = _method.Parameters.IndexOf(_method.Parameters.First(x => x == o.MethodParameter));
+						_diary.Instructions.Add(new Instruction.Load.Parameter(id, parameterIndex));
+
+						return id;
 					}
 
-					throw new NotImplementedException();
+					case Binder.Expression.Reference.Variable o:
+					{
+						return _diary.Assignments[o.Declaration];
+					}
+
+					case Binder.Expression.Reference.Field o:
+					{
+						return ReferenceField(o.FieldDeclaration.Name, null);
+					}
+
+					default: throw new NotSupportedException();
 				}
+			}
+
+			private int ReferenceField(string fieldName, int? theSelf)
+			{
+				var id = _diary.Unique();
+
+				int self;
+
+				if (theSelf == null)
+				{
+					self = _diary.Unique();
+					_diary.Instructions.Add(new Instruction.Load.Parameter(self, 0));
+				}
+				else
+				{
+					self = (int)theSelf;
+				}
+
+				var getField = new Instruction.GetField(id, self, _translator._diary.FieldNames[fieldName]);
+				_diary.Instructions.Add(getField);
+
+				return id;
 			}
 		}
 	}

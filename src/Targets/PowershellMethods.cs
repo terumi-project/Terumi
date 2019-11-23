@@ -45,8 +45,11 @@ namespace Terumi.Targets
 		private List<MethodParameter> Match(List<Expression> arguments)
 			=> arguments.Select(x => x.Type).Select((x, i) => new MethodParameter(x, $"p{i}")).ToList();
 
-		public void Write(IndentedTextWriter writer, List<InstructionMethod> methods)
+		public void Write(IndentedTextWriter writer, List<VarCode.Method> methods)
 		{
+			int id = 0;
+			foreach (var method in methods) method.Id = id++;
+
 			writer.WriteLine($"$_gc = 0");
 
 			foreach (var method in methods)
@@ -55,13 +58,13 @@ namespace Terumi.Targets
 
 				if (method.Parameters.Count > 0)
 				{
-					writer.Write($"(${GetName(method.Parameters[0])}");
+					writer.Write($"(${GetName(0)}");
 
 					for (var i = 1; i < method.Parameters.Count; i++)
 					{
 						writer.Write(", ");
 						writer.Write('$');
-						writer.Write(GetName(method.Parameters[i]));
+						writer.Write(GetName(i));
 					}
 
 					writer.Write(')');
@@ -74,49 +77,47 @@ namespace Terumi.Targets
 				writer.WriteLine('{');
 				writer.Indent++;
 
-				Write(writer, method);
+				Write(writer, method, method.Parameters.Count);
 
 				writer.Indent--;
 				writer.Write('}');
 			}
 		}
 
-		public void Write(IndentedTextWriter writer, InstructionMethod method)
-			=> Write(writer, method.Code);
+		public void Write(IndentedTextWriter writer, VarCode.Method method, int offset)
+			=> Write(writer, method.Code, offset);
 
-		public void Write(IndentedTextWriter writer, InstructionBody body)
+		public void Write(IndentedTextWriter writer, List<Instruction> body, int offset)
 		{
-			foreach (var i in body.Instructions)
+			foreach (var i in body)
 			{
-				Write(writer, i);
+				Write(writer, i, offset);
 			}
 		}
 
-		public void Write(IndentedTextWriter writer, Instruction instruction)
+		public void Write(IndentedTextWriter writer, Instruction instruction, int offset)
 		{
 			switch (instruction)
 			{
-				case Instruction.Assignment.Constant o:
+				case Instruction.Load.String o:
 				{
-					// todo:
-					switch (o.Value)
-					{
-						case StringData stringData:
-						{
-							writer.WriteLine($"${GetName(o.StoreId)} = \"{stringData.Value}\"");
-						}
-						break;
-					}
+					writer.WriteLine($"${GetName(o.Store)} = \"{o.Value}\"");
 				}
 				break;
 
-				case Instruction.Assignment.Reference o:
+				case Instruction.Load.Parameter o:
 				{
-					writer.WriteLine($"${GetName(o.Id)} = ${GetName(o.ValueId)}");
+					writer.WriteLine($"${GetName(o.Store)} = ${PowershellTarget.GetName(o.ParameterNumber)}");
 				}
 				break;
 
-				case Instruction.Assignment.New o:
+				case Instruction.Assign o:
+				{
+					writer.WriteLine($"${GetName(o.Store)} = ${GetName(o.Value)}");
+				}
+				break;
+
+				case Instruction.New o:
 				{
 					writer.WriteLine($"${GetName(o.StoreId)} = $_gc++");
 				}
@@ -125,37 +126,41 @@ namespace Terumi.Targets
 				// TODO: figure this out lol
 				case Instruction.SetField o:
 				{
-					writer.WriteLine($"${GetName(o.Id)}");
+					writer.WriteLine($"Set-Variable -Scope 'Global' -Name \"${GetName(o.VariableId)}.{PowershellTarget.GetName(o.FieldId)}\" -Value ${GetName(o.ValueId)}");
 				}
 				break;
 
 				case Instruction.GetField o:
 				{
-					writer.WriteLine($"${GetName(o.StoreValue)} = Get-Variable -Scope 'Global' -ValueOnly -Name \"${GetName(o.Id)}.{GetName(o.FieldName)}\"");
+					writer.WriteLine($"${GetName(o.StoreId)} = Get-Variable -Scope 'Global' -ValueOnly -Name \"${GetName(o.VariableId)}.{PowershellTarget.GetName(o.FieldId)}\"");
 				}
 				break;
 
-				case Instruction.MethodCall o:
+				case Instruction.Call o:
 				{
-					var args = o.Parameters.Count == 0 ? "" : o.Parameters.Select(x => "$" + GetName(x)).Aggregate((a, b) => $"{a} {b}");
+					var args = o.Arguments.Count == 0 ? "" : o.Arguments.Select(x => "$" + GetName(x)).Aggregate((a, b) => $"{a} {b}");
 
-					if (o.Result == -1)
+					if (o.Store == -1)
 					{
-						writer.WriteLine($"{GetName(o.Method)} {args}");
+						writer.WriteLine($"{PowershellTarget.GetName(o.Method.Id)} {args}");
 					}
 					else
 					{
-						writer.WriteLine($"${GetName(o.Result)} = {GetName(o.Method)} {args}");
+						writer.WriteLine($"${GetName(o.Store)} = {PowershellTarget.GetName(o.Method.Id)} {args}");
 					}
 				}
 				break;
 
 				case Instruction.Return o:
 				{
-					writer.WriteLine($"return ${GetName(o.ReturnValueId)}");
+					writer.WriteLine($"return ${GetName(o.ValueId)}");
 				}
 				break;
+
+				// default: throw new NotImplementedException();
 			}
+
+			string GetName(int id) => PowershellTarget.GetName(id + offset);
 		}
 
 		private static string GetName(int id)

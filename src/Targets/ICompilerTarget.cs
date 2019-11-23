@@ -9,6 +9,6 @@ namespace Terumi.Targets
 	{
 		CompilerMethod? Match(string name, List<Expression> arguments);
 
-		void Write(IndentedTextWriter writer, List<VarCode.InstructionMethod> methods);
+		void Write(IndentedTextWriter writer, List<VarCode.Method> methods);
 	}
 }

@@ -29,14 +29,16 @@ namespace Terumi
 			var terumiProject = project.ParseProject(resolver, target);
 			Console.WriteLine(terumiProject);
 
-			var translator = new Translator(target);
+			var translator = new Translator();
 
 			foreach (var item in terumiProject.IndirectDependencies
 				.Concat(terumiProject.DirectDependencies)
 				.Concat(terumiProject.BoundProjectFiles))
 			{
-				translator.Visit(item);
+				translator.TranslateLight(item);
 			}
+
+			translator.TranslateHard();
 
 			Log.Stage("WRITING", "Writing input code to target powershell file.");
 

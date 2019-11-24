@@ -867,7 +867,7 @@ namespace Terumi.Parser
 #else
 			{
 				Log.Warn("Couldn't read anymore tokens - returning 'Unknown' TokenType");
-				return TokenType.Unknown;
+				return new Token(TokenType.Unknown, default, default, null);
 			}
 #endif
 			return _tokens[amt + _i];

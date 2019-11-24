@@ -28,8 +28,9 @@ namespace Terumi
 
 		public static void Error
 		(
-			string message,
+			string message
 #if DEBUG
+			,
 			[CallerMemberName] string memberName = "",
 			[CallerFilePath] string filePath = "",
 			[CallerLineNumber] int lineNumber = 0

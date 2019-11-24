@@ -12,5 +12,7 @@ namespace Terumi.Targets
 		CompilerMethod? Match(string name, params IType[] types);
 
 		void Write(IndentedTextWriter writer, List<VarCode.Method> methods);
+
+		string ShellFileName { get; }
 	}
 }

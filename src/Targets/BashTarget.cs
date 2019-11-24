@@ -12,6 +12,8 @@ namespace Terumi.Targets
 {
 	public class BashTarget : ICompilerTarget
 	{
+		public string ShellFileName => "out.sh";
+
 		public CompilerMethod? Match(string name, params IType[] types)
 		{
 			switch (name)
@@ -59,6 +61,8 @@ namespace Terumi.Targets
 			};
 		}
 
+		private List<string> _run = new List<string>();
+
 		private List<MethodParameter> Match(IType[] arguments)
 			=> arguments.Select((x, i) => new MethodParameter(x, $"p{i}")).ToList();
 
@@ -75,11 +79,19 @@ namespace Terumi.Targets
 				writer.WriteLine();
 				writer.WriteLine($"function {GetName(method.Id)} {{");
 
+				if (method.Name == "<>main" && method.Parameters.Count == 0) _run.Add(GetName(method.Id));
+
 				writer.Indent++;
 				Write(writer, method, method.Parameters.Count);
 				writer.Indent--;
 
 				writer.WriteLine('}');
+			}
+
+			foreach (var run in _run)
+			{
+				writer.WriteLine();
+				writer.Write(run);
 			}
 		}
 

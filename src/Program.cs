@@ -1,8 +1,11 @@
 ﻿using System;
 using System.CodeDom.Compiler;
+using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Terumi.Binder;
 using Terumi.Parser;
 using Terumi.Targets;
@@ -11,6 +14,12 @@ using Terumi.Workspace;
 
 namespace Terumi
 {
+	public enum Target
+	{
+		Powershell,
+		Bash
+	}
+
 	internal static class Program
 	{
 		public static bool Compile(string projectName, ICompilerTarget target)
@@ -40,71 +49,97 @@ namespace Terumi
 
 			translator.TranslateHard();
 
-			Log.Stage("WRITING", "Writing input code to target powershell file.");
+			Log.Stage("WRITING", "Writing code to output.");
+
+			var bin = $"{projectName}/bin";
+			var outFile = $"{bin}/{target.ShellFileName}";
+
+			if (!Directory.Exists(bin)) Directory.CreateDirectory(bin);
 
 			// try/catching to delete files w/ IOException is a good practice
-			try { File.Delete("out.ps1"); } catch (IOException __) { }
+			try { File.Delete(outFile); } catch (IOException __) { }
 
 			// looks ugly but meh
-			using var fs = File.OpenWrite("out.ps1");
+			using var fs = File.OpenWrite(outFile);
 			using var sw = new StreamWriter(fs);
 
 			// tabs <3
 			using var indentedWriter = new IndentedTextWriter(sw, "\t");
 			target.Write(indentedWriter, translator._diary.Methods);
 
-			/*
-			var parsedFiles = project.ParseProject(_lexer, _parser, resolver).ToList();
-
-			Log.Stage("BINDING", "Binding parsed source files to in memory representations");
-
-			var binder = new BinderEnvironment(target, parsedFiles);
-			binder.PassOverTypeDeclarations();
-			binder.PassOverMethodBodies();
-
-			Log.Stage("OPTIMIZATION", "Optimizing TypeInformation");
-
-			var translator = new VarCodeTranslator(binder.TypeInformation.Main, target);
-			translator.Visit(binder.TypeInformation.Binds);
-			var store = translator.Store;
-
-			var optimizer = new VarCodeOptimizer(store, GetOptimizations());
-			optimizer.Optimize();
-
-			// now we need to convert the store to an omega store
-			var omegaStore = VarCode.Optimizer.Omega.VarCodeTranslator.Translate(store);
-			var omegaOptimizer = new VarCode.Optimizer.Omega.VarCodeOptimizer(omegaStore, GetOmegaOptimizations());
-			omegaOptimizer.Optimize();
-
-			// Optimizer.Optimize(binder.TypeInformation);
-
-			Log.Stage("WRITING", "Writing input code to target powershell file.");
-
-			// try/catching to delete files w/ IOException is a good practice
-			try { File.Delete("out.ps1"); } catch (IOException __) { }
-
-			// looks ugly but meh
-			using var fs = File.OpenWrite("out.ps1");
-			using var sw = new StreamWriter(fs);
-
-			// tabs <3
-			using var indentedWriter = new IndentedTextWriter(sw, "\t");
-			target.Write(indentedWriter, omegaStore);
-			
-			*/
 			Log.StageEnd();
 			return true;
 		}
 
-		/// <summary>
-		/// Terumi application - WIP
-		/// </summary>
-		private static void Main(string[] args)
+		private static Task<int> Main(string[] args)
 		{
-#if DEBUG
-			Directory.SetCurrentDirectory("D:\\test");
-			Compile("sample_project", new BashTarget());
+			var newCommand = new Command("new", "Creates a new, blank terumi project")
+			{
+				new Option(new string[] { "--name", "-n" }, "Name of the project")
+				{
+					Required = true,
+					Argument = new Argument<string>()
+				}
+			};
+
+			var compileCommand = new Command("compile", "Compiles a terumi project")
+			{
+				new Option(new string[] { "--name", "-n" }, "Name of the project")
+				{
+					Required = true,
+					Argument = new Argument<string>()
+				},
+
+				new Option(new string[] { "--target", "-t" }, "Target language to compile into")
+				{
+					Required = true,
+					Argument = new Argument<Target>()
+				}
+			};
+
+			var rootCommand = new RootCommand("Terumi Compiler")
+			{
+				newCommand,
+				compileCommand
+			};
+
+			newCommand.Handler = CommandHandler.Create<string>(NewProject);
+			compileCommand.Handler = CommandHandler.Create<string, Target>(CompileProject);
+
+#if false && DEBUG
+			return rootCommand.InvokeAsync(new string[] { "compile", "-n", "radical_thing", "-t", "bash" });
+#else
+			return rootCommand.InvokeAsync(args);
 #endif
+		}
+
+		private static void NewProject(string name)
+		{
+			Log.Stage("Creating project", name);
+
+			File.WriteAllText($"{name}.toml", @"# Include dependencies here!");
+			Directory.CreateDirectory(name);
+
+			File.WriteAllText($"{name}/main.trm", @"main()
+{
+	@println(""Hello, World!"")
+}");
+
+			Log.StageEnd();
+		}
+
+		private static void CompileProject(string name, Target target)
+		{
+			ICompilerTarget compilerTarget;
+
+			switch (target)
+			{
+				case Target.Bash: compilerTarget = new BashTarget(); break;
+				case Target.Powershell: compilerTarget = new PowershellTarget(); break;
+				default: throw new InvalidOperationException();
+			}
+
+			Log.Info($"Could compile project: {Compile(name, compilerTarget)}");
 		}
 	}
 }

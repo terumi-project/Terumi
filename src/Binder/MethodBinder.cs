@@ -95,10 +95,21 @@ namespace Terumi.Binder
 				}
 			}
 
+			var registerVar = true;
+			if (_context != null)
+			{
+				// we may be setting a field
+				if (_context.Fields.Any(x => x.Name == o.Name))
+				{
+					var field = _context.Fields.First(x => x.Name == o.Name);
+					registerVar = false;
+				}
+			}
+
 			System.Diagnostics.Debug.Assert(type != BuiltinType.Void, "Assignment cannot result in a void type");
 			var assignment = new Statement.Assignment(o, type, o.Name, value);
 
-			_scope.RegisterVariable(assignment);
+			if (registerVar) _scope.RegisterVariable(assignment);
 			return assignment;
 		}
 
@@ -140,7 +151,7 @@ namespace Terumi.Binder
 			=> new Statement.MethodCall(o, Handle(o.MethodCallExpression));
 
 		public Statement.Return Handle(Parser.Statement.Return o)
-			=> new Statement.Return(o, Handle(o.Expression));
+			=> new Statement.Return(o, o.Expression == null ? null : Handle(o.Expression));
 
 		public Statement.While Handle(Parser.Statement.While o)
 		{
@@ -239,6 +250,14 @@ namespace Terumi.Binder
 				}
 
 				return new Expression.MethodCall(o, accessMethod, exprs);
+			}
+
+			if (_context != null)
+			{
+				if (_parent.FindMethod(o.IsCompilerCall, o.Name, exprs, _context.Methods, out var targetMethod))
+				{
+					return new Expression.MethodCall(o, targetMethod, exprs);
+				}
 			}
 
 			if (!_parent.FindImmediateMethod(o, exprs, out var method))

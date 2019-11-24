@@ -95,12 +95,12 @@
 
 		public class Return : Statement
 		{
-			public Return(ConsumedTokens consumed, Expression expr) : base(consumed)
+			public Return(ConsumedTokens consumed, Expression? expr) : base(consumed)
 			{
 				Expression = expr;
 			}
 
-			public Expression Expression { get; }
+			public Expression? Expression { get; }
 		}
 
 		public class Access : Statement

@@ -125,14 +125,14 @@ namespace Terumi.Binder
 
 		public class Return : Statement
 		{
-			public Return(Parser.Statement.Return fromParser, Expression value) : base(fromParser)
+			public Return(Parser.Statement.Return fromParser, Expression? value) : base(fromParser)
 			{
 				FromParser = fromParser;
 				Value = value;
 			}
 
 			new public Parser.Statement.Return FromParser { get; }
-			public Expression Value { get; }
+			public Expression? Value { get; }
 		}
 
 		public class Access : Statement

@@ -112,13 +112,13 @@ namespace Terumi.Targets
 
 				case Instruction.Load.Boolean o:
 				{
-					writer.WriteLine($"local {GetName(o.Store)}=${(o.Value ? "1" : "0")}");
+					writer.WriteLine($"local {GetName(o.Store)}=$(({(o.Value ? "1" : "0")}))");
 				}
 				break;
 
 				case Instruction.Load.Number o:
 				{
-					writer.WriteLine($"local {GetName(o.Store)}={o.Value.Value.ToString()}");
+					writer.WriteLine($"local {GetName(o.Store)}=$(({o.Value.Value.ToString()}))");
 				}
 				break;
 
@@ -151,7 +151,7 @@ namespace Terumi.Targets
 
 				case Instruction.Call o:
 				{
-					var args = o.Arguments.Count == 0 ? "" : o.Arguments.Select(x => "$" + GetName(x)).Aggregate((a, b) => $"{a} {b}");
+					var args = o.Arguments.Count == 0 ? "" : o.Arguments.Select(x => "\"$" + GetName(x) + "\"").Aggregate((a, b) => $"{a} {b}");
 
 					writer.WriteLine($"{BashTarget.GetName(o.Method.Id)} {args}");
 
@@ -177,13 +177,18 @@ namespace Terumi.Targets
 
 				case Instruction.Return o:
 				{
-					writer.WriteLine($"ret=${GetName(o.ValueId)}");
+					if (o.ValueId != Instruction.Nowhere)
+					{
+						writer.WriteLine($"ret=${GetName(o.ValueId)}");
+					}
+
+					writer.WriteLine("return 0");
 				}
 				break;
 
 				case Instruction.If o:
 				{
-					writer.WriteLine($"if [[ ${GetName(o.Variable)} -eq 1 ]]; then");
+					writer.WriteLine($"if [[ $((${GetName(o.Variable)})) -eq 1 ]]; then");
 
 					writer.Indent++;
 					Write(writer, o.Clause, offset);
@@ -195,7 +200,7 @@ namespace Terumi.Targets
 
 				case Instruction.While o:
 				{
-					writer.WriteLine($"while [[ ${GetName(o.Comparison)} -eq 1 ]]; do");
+					writer.WriteLine($"while [[ $((${GetName(o.Comparison)})) -eq 1 ]]; do");
 
 					writer.Indent++;
 					Write(writer, o.Clause, offset);

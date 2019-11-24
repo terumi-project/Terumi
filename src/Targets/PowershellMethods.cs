@@ -187,7 +187,14 @@ namespace Terumi.Targets
 
 				case Instruction.Return o:
 				{
-					writer.WriteLine($"return ${GetName(o.ValueId)}");
+					if (o.ValueId == Instruction.Nowhere)
+					{
+						writer.WriteLine("return");
+					}
+					else
+					{
+						writer.WriteLine($"return ${GetName(o.ValueId)}");
+					}
 				}
 				break;
 

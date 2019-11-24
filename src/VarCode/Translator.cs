@@ -235,7 +235,7 @@ namespace Terumi.VarCode
 
 					case Binder.Statement.Return o:
 					{
-						_diary.Instructions.Add(new Instruction.Return(Bind(o.Value)));
+						_diary.Instructions.Add(new Instruction.Return(o.Value == null ? Instruction.Nowhere : Bind(o.Value)));
 					}
 					break;
 

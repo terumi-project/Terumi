@@ -424,6 +424,12 @@ namespace Terumi.VarCode
 
 						var args = new List<int>();
 
+						if (_method.Context != null)
+						{
+							// `this`
+							args.Add(Bind(new Binder.Expression.Reference.Parameter(null, _method.Parameters[0])));
+						}
+
 						foreach (var arg in o.Parameters)
 						{
 							var argId = Bind(arg);

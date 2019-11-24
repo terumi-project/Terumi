@@ -244,12 +244,10 @@ namespace Terumi.Binder
 
 			if (_scope.AccessExpression != null)
 			{
-				if (!_parent.FindMethod(o.IsCompilerCall, o.Name, exprs, _scope.AccessExpression.Type.Methods, out var accessMethod))
+				if (_parent.FindMethod(o.IsCompilerCall, o.Name, exprs, _scope.AccessExpression.Type.Methods, out var accessMethod))
 				{
-					throw new InvalidOperationException($"Cannot find method '{o}' in access expression '{_scope.AccessExpression}'");
+					return new Expression.MethodCall(o, accessMethod, exprs);
 				}
-
-				return new Expression.MethodCall(o, accessMethod, exprs);
 			}
 
 			if (_context != null)

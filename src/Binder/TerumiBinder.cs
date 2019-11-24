@@ -213,7 +213,7 @@ namespace Terumi.Binder
 		}
 
 		internal bool FindImmediateMethod(Parser.Expression.MethodCall methodCall, List<Expression> parameters, out IMethod targetMethod)
-			=> FindMethod(methodCall.IsCompilerCall, methodCall.Name, parameters, _wipMethods.Select(x => x.Item1), out targetMethod);
+			=> FindMethod(methodCall.IsCompilerCall, methodCall.Name, parameters, _wipMethods.Select(x => x.Item1).Concat(_project.DirectDependencies.SelectMany(x => x.Methods)), out targetMethod);
 
 		internal bool FindMethod(bool isCompilerMethod, string name, List<Expression> arguments, IEnumerable<IMethod> methods, out IMethod targetMethod)
 		{

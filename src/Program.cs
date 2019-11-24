@@ -1,73 +1,18 @@
-﻿using System.CodeDom.Compiler;
-using System.Collections.Generic;
+﻿using System;
+using System.CodeDom.Compiler;
 using System.IO;
 using System.Linq;
-
+using System.Text;
 using Terumi.Binder;
-using Terumi.Lexer;
 using Terumi.Parser;
 using Terumi.Targets;
-using Terumi.Tokens;
-using Terumi.VarCode.Optimizer;
-using Terumi.VarCode.Optimizer.Alpha;
+using Terumi.VarCode;
 using Terumi.Workspace;
 
 namespace Terumi
 {
 	internal static class Program
 	{
-		private static readonly StreamLexer _lexer = new StreamLexer(GetPatterns());
-		private static readonly StreamParser _parser = new StreamParser();
-
-		private static IPattern[] GetPatterns()
-			=> new IPattern[]
-		{
-			new CharacterPattern('\n'),
-			new WhitespacePattern(),
-			new CommentPattern(),
-
-			new KeywordPattern(new KeyValuePair<string, Keyword>[]
-			{
-				KeyValuePair.Create("if", Keyword.If),
-				KeyValuePair.Create("else", Keyword.Else),
-				KeyValuePair.Create("this", Keyword.This),
-				KeyValuePair.Create("true", Keyword.True),
-				KeyValuePair.Create("using", Keyword.Using),
-				KeyValuePair.Create("false", Keyword.False),
-				KeyValuePair.Create("class", Keyword.Class),
-				KeyValuePair.Create("return", Keyword.Return),
-				KeyValuePair.Create("contract", Keyword.Contract),
-				KeyValuePair.Create("readonly", Keyword.Readonly),
-				KeyValuePair.Create("namespace", Keyword.Namespace),
-			}),
-
-			new CharacterPattern(';', '@', '=', ',', '.', '(', ')', '[', ']', '{', '}', '+', '-', '/', '*'),
-
-			new IdentifierPattern(IdentifierCase.SnakeCase),
-			new IdentifierPattern(IdentifierCase.PascalCase),
-			new NumericPattern(),
-			new StringPattern(),
-		};
-
-		private static IOptimization[] GetOptimizations()
-			=> new IOptimization[]
-			{
-				new RemoveAllUnreferencedMethodsOptimization(),
-				new MethodInliningOptimization(),
-				new VariableInliningOptimization(),
-				new BodyFoldingOptimization(),
-				new RemoveAllUnreferencedVariablesOptimization(),
-			};
-
-		private static VarCode.Optimizer.Omega.IOptimization[] GetOmegaOptimizations()
-			=> new VarCode.Optimizer.Omega.IOptimization[]
-			{
-				new VarCode.Optimizer.Omega.InlineVariableReferences(),
-				new VarCode.Optimizer.Omega.RemoveAllUnreferencedVariablesOptimization(),
-				new VarCode.Optimizer.Omega.CompilerMethodFoldingOptimization(),
-				new VarCode.Optimizer.Omega.BodyFoldingOptimization(),
-			};
-
 		public static bool Compile(string projectName, ICompilerTarget target)
 		{
 			var resolver = new DependencyResolver(Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), projectName, ".libs")));
@@ -80,6 +25,35 @@ namespace Terumi
 			}
 
 			Log.Stage("PARSE", "Parsing project source code");
+
+			var terumiProject = project.ParseProject(resolver, target);
+			Console.WriteLine(terumiProject);
+
+			var translator = new Translator(target);
+
+			foreach (var item in terumiProject.IndirectDependencies
+				.Concat(terumiProject.DirectDependencies)
+				.Concat(terumiProject.BoundProjectFiles))
+			{
+				translator.TranslateLight(item);
+			}
+
+			translator.TranslateHard();
+
+			Log.Stage("WRITING", "Writing input code to target powershell file.");
+
+			// try/catching to delete files w/ IOException is a good practice
+			try { File.Delete("out.ps1"); } catch (IOException __) { }
+
+			// looks ugly but meh
+			using var fs = File.OpenWrite("out.ps1");
+			using var sw = new StreamWriter(fs);
+
+			// tabs <3
+			using var indentedWriter = new IndentedTextWriter(sw, "\t");
+			target.Write(indentedWriter, translator._diary.Methods);
+
+			/*
 			var parsedFiles = project.ParseProject(_lexer, _parser, resolver).ToList();
 
 			Log.Stage("BINDING", "Binding parsed source files to in memory representations");
@@ -116,7 +90,8 @@ namespace Terumi
 			// tabs <3
 			using var indentedWriter = new IndentedTextWriter(sw, "\t");
 			target.Write(indentedWriter, omegaStore);
-
+			
+			*/
 			Log.StageEnd();
 			return true;
 		}
@@ -128,7 +103,7 @@ namespace Terumi
 		{
 #if DEBUG
 			Directory.SetCurrentDirectory("D:\\test");
-			Compile("sample_project", new PowershellTarget());
+			Compile("sample_project", new BashTarget());
 #endif
 		}
 	}

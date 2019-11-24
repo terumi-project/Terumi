@@ -294,9 +294,15 @@ namespace Terumi.VarCode
 
 							case Binder.Expression.MethodCall m:
 							{
-								var id = _diary.Unique();
+								var id = Instruction.Nowhere;
 
-								var method = _translator._diary.Methods.First(x => x.Name == $"<{o.Left.Type.TypeName}>{m.Calling.Name}");
+								if (m.Type != Binder.BuiltinType.Void)
+								{
+									id = _diary.Unique();
+								}
+
+								var method = _translator._diary.Methods.First(x => x.Name == $"<{o.Left.Type.TypeName}>{m.Calling.Name}"
+									&& x.Parameters.Select(x => x.Type).SequenceEqual(m.Parameters.Select(x => x.Type).Prepend(o.Left.Type)));
 
 								var args = new List<int> { left };
 
@@ -454,7 +460,7 @@ namespace Terumi.VarCode
 						}
 
 						var result = _diary.Unique();
-						_diary.Instructions.Add(new Instruction.Call(result, ctorMethod, args));
+						_diary.Instructions.Add(new Instruction.Call(Instruction.Nowhere, ctorMethod, args));
 
 						return id;
 					}

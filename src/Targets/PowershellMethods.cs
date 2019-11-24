@@ -56,7 +56,7 @@ namespace Terumi.Targets
 			int id = 0;
 			foreach (var method in methods) method.Id = id++;
 
-			writer.WriteLine($"$_gc = 0");
+			writer.WriteLine($"$global:_gc = 0");
 
 			foreach (var method in methods)
 			{
@@ -138,7 +138,7 @@ namespace Terumi.Targets
 
 				case Instruction.New o:
 				{
-					writer.WriteLine($"${GetName(o.StoreId)} = $_gc++");
+					writer.WriteLine($"${GetName(o.StoreId)} = $global:_gc++");
 				}
 				break;
 
@@ -223,7 +223,7 @@ namespace Terumi.Targets
 
 		private static string GetName(int id)
 		{
-			return new string(id.ToString().Select(ToChar).ToArray());
+			return new string(id.ToString().Select(ToChar).Prepend('t').ToArray());
 
 			static char ToChar(char i)
 				=> (i - '0') switch

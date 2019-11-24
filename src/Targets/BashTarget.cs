@@ -138,7 +138,7 @@ namespace Terumi.Targets
 				// TODO: figure this out lol
 				case Instruction.SetField o:
 				{
-					writer.WriteLine($"declare -g \"${GetName(o.VariableId)}\"\"{BashTarget.GetName(o.FieldId)}\"=${GetName(o.ValueId)}");
+					writer.WriteLine($"declare -g \"${GetName(o.VariableId)}\"\"{BashTarget.GetName(o.FieldId)}\"=\"${GetName(o.ValueId)}\"");
 				}
 				break;
 

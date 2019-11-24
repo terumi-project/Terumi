@@ -170,20 +170,30 @@ namespace Terumi.Binder
 		// expressions
 		// TODO: [MAJOR] need to account for access expressions
 
-		public Expression Handle(Parser.Expression expr)
+		public Expression Handle(Parser.Expression expr, bool clearAccess = true)
 		{
+			var acc = _scope.AccessExpression;
+
+			if (clearAccess) _scope.AccessExpression = null;
+
+			Expression result;
+
 			switch (expr)
 			{
-				case Parser.Expression.Access o: return Handle(o);
-				case Parser.Expression.Binary o: return Handle(o);
-				case Parser.Expression.Constant o: return Handle(o);
-				case Parser.Expression.Increment o: return Handle(o);
-				case Parser.Expression.MethodCall o: return Handle(o);
-				case Parser.Expression.New o: return Handle(o);
-				case Parser.Expression.Parenthesized o: return Handle(o);
-				case Parser.Expression.Reference o: return Handle(o);
+				case Parser.Expression.Access o: result = Handle(o); break;
+				case Parser.Expression.Binary o: result = Handle(o); break;
+				case Parser.Expression.Constant o: result = Handle(o); break;
+				case Parser.Expression.Increment o: result = Handle(o); break;
+				case Parser.Expression.MethodCall o: result = Handle(o); break;
+				case Parser.Expression.New o: result = Handle(o); break;
+				case Parser.Expression.Parenthesized o: result = Handle(o); break;
+				case Parser.Expression.Reference o: result = Handle(o); break;
 				default: throw new NotSupportedException($"{expr.GetType()}");
 			}
+
+			_scope.AccessExpression = acc;
+
+			return result;
 		}
 
 		public Expression.Access Handle(Parser.Expression.Access o)
@@ -192,7 +202,8 @@ namespace Terumi.Binder
 			IncreaseScope();
 			var access = Handle(o.Left);
 			_scope.AccessExpression = access;
-			var right = Handle(o.Right);
+			var right = Handle(o.Right, false);
+			_scope.AccessExpression = null;
 			DecreaseScope();
 
 			return new Expression.Access(o, access, right);

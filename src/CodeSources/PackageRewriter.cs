@@ -12,6 +12,7 @@ namespace Terumi.CodeSources
 		{
 			return new Configuration
 			{
+				Name = configuration.Name,
 				Libraries = configuration.Libraries
 					.Append(new LibraryReference
 					{

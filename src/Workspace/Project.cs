@@ -19,7 +19,7 @@ namespace Terumi.Workspace
 				return false;
 			}
 
-			var projectName = Path.GetFileName(projectPath);
+			var defaultProjectName = Path.GetFileName(projectPath);
 
 			var configurationPath = Path.Combine(projectPath, "config.toml");
 			var gitignorePath = Path.Combine(projectPath, ".gitignore");
@@ -34,19 +34,18 @@ namespace Terumi.Workspace
 				return false;
 			}
 
-			var config = Configuration.Default;
+			var config = Configuration.Default(defaultProjectName);
 
 			if (File.Exists(configurationPath))
 			{
-				Log.Info($"Reading config for '{projectName}'@'{configurationPath}'");
+				Log.Info($"Reading config for @'{configurationPath}'");
 				config = Configuration.ReadFile(configurationPath);
-				Log.Info($"Read config");
+				Log.Info($"Read config for {config.Name}");
 			}
 
 			project = new Project
 			(
 				projectPath: projectPath,
-				projectName: projectName,
 				srcPath: srcPath,
 
 				binPath: binPath,
@@ -62,7 +61,6 @@ namespace Terumi.Workspace
 		public Project
 		(
 			string projectPath,
-			string projectName,
 			string srcPath,
 
 			string binPath,
@@ -73,7 +71,6 @@ namespace Terumi.Workspace
 		)
 		{
 			ProjectPath = projectPath;
-			ProjectName = projectName;
 			SrcPath = srcPath;
 
 			BinPath = binPath;
@@ -84,7 +81,7 @@ namespace Terumi.Workspace
 		}
 
 		public string ProjectPath { get; }
-		public string ProjectName { get; }
+		public string ProjectName => Configuration.Name;
 		public string SrcPath { get; }
 
 		public string BinPath { get; }
@@ -113,7 +110,7 @@ namespace Terumi.Workspace
 				var packageLevel =
 
 					// take out the base path to the project
-					file.Substring(ProjectPath.Length)
+					file.Substring(SrcPath.Length)
 
 					// now we should have something like 'terumi/json/reader.trm'
 					.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)

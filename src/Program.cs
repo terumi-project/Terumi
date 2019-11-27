@@ -3,6 +3,7 @@ using System;
 using System.CodeDom.Compiler;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -121,7 +122,7 @@ namespace Terumi
 			installCommand.Handler = CommandHandler.Create<string, string>(InstallProject);
 
 #if false && DEBUG
-			return rootCommand.InvokeAsync(new string[] { "compile", "-n", "shopping_list", "-t", "bash" });
+			return rootCommand.InvokeAsync(new string[] { "compile", "-t", "bash" });
 #else
 			return rootCommand.InvokeAsync(args);
 #endif
@@ -129,6 +130,12 @@ namespace Terumi
 
 		private static void NewProject(string name)
 		{
+			Log.Stage("GIT", "Initializing git repository");
+			var targetDirectory = Path.GetFullPath(name);
+
+			Git.Init(targetDirectory);
+			Log.StageEnd();
+
 			Log.Stage("NEW", $"Creating project {name}");
 
 			/*
@@ -164,10 +171,6 @@ namespace Terumi
 			 * /{name}/.gitignore
 			 */
 
-			var targetDirectory = Path.GetFullPath(name);
-
-			Git.Init(targetDirectory);
-
 			var configurationFile = Path.Combine(targetDirectory, "config.toml");
 			var gitignoreFile = Path.Combine(targetDirectory, ".gitignore");
 
@@ -182,9 +185,6 @@ namespace Terumi
 			Directory.CreateDirectory(srcDirectory);
 			Directory.CreateDirectory(inferredNamespaces);
 			Directory.CreateDirectory(testsDirectory);
-
-			File.WriteAllText(configurationFile, @"# Use 'terumi install -p <name>' to install dependencies! Try install the terumi standard library, 'terumi'!
-");
 
 			File.WriteAllText(gitignoreFile, @"# ignore build artifacts
 bin
@@ -201,6 +201,11 @@ bin
 
 			File.WriteAllText(testsMainFile, @"// TODO: get tests working
 ");
+
+			var load = Project.TryLoad(targetDirectory, out var project);
+			Debug.Assert(load);
+
+			Configuration.Save(project.Configuration, configurationFile);
 
 			Log.StageEnd();
 		}

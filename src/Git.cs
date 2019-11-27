@@ -22,6 +22,9 @@ namespace Terumi
 			if (!string.IsNullOrWhiteSpace(commitHash))
 			{
 				repo.Reset(ResetMode.Hard, repo.Commits.First(commit => commit.Sha == commitHash));
+			}
+			else
+			{
 				// TODO: print ERROR saying they should specify a commit
 				Log.Warn($"Please specify a commit to pull the repository '{gitUrl}` from!");
 			}

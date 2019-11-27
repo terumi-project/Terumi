@@ -45,7 +45,7 @@ namespace Terumi.Workspace
 				config = Configuration.ReadFile(configPath);
 			}
 
-			sourceProject = new Project(basePath, projectName, config, projectPath);
+			sourceProject = new Project(basePath, projectName, config, configPath, projectPath);
 			return true;
 		}
 
@@ -54,18 +54,21 @@ namespace Terumi.Workspace
 			string basePath,
 			string projectName,
 			Configuration configuration,
+			string? configPath = null,
 			string? projectPath = null
 		)
 		{
 			BasePath = basePath;
 			ProjectName = projectName;
 			ProjectPath = projectPath ?? Path.GetFullPath(Path.Combine(BasePath, ProjectName));
+			ConfigurationPath = configPath ?? Path.GetFullPath(Path.Combine(BasePath, $"{ProjectName}.{TerumiConfigEnding}"));
 			Configuration = configuration;
 		}
 
 		public string BasePath { get; }
 		public string ProjectName { get; }
 		public string ProjectPath { get; }
+		public string ConfigurationPath { get; }
 		public Configuration Configuration { get; }
 
 		public IEnumerable<Project> ResolveDependencies(DependencyResolver resolver)
@@ -121,8 +124,8 @@ namespace Terumi.Workspace
 		{
 			// TODO: use constants
 			// special directories
-			if (Path.GetDirectoryName(folder) == ".libs"
-				|| Path.GetDirectoryName(folder) == "bin")
+			if (Path.GetFileName(folder) == ".libs"
+				|| Path.GetFileName(folder) == "bin")
 			{
 				yield break;
 			}

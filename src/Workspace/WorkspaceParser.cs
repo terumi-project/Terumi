@@ -34,8 +34,7 @@ namespace Terumi.Workspace
 
 			foreach (var source in project.GetSources())
 			{
-				var tokens = new TerumiLexer(source.Path, Encoding.UTF8.GetBytes(source.Source)).ParseTokens();
-				var parser = new TerumiParser(tokens);
+				var parser = new TerumiParser(ParseTokens(source.Source, source.Path));
 				var sourceFile = parser.ConsumeSourceFile(source.PackageLevel);
 				binderProject.ProjectFiles.Add(sourceFile);
 			}
@@ -43,13 +42,75 @@ namespace Terumi.Workspace
 			return binderProject.Bind(target);
 		}
 
-		public static List<Token> ParseTokens(this TerumiLexer lexer)
+		public static List<Token> ParseTokens(string source, string fileName)
 		{
-			var tokens = new List<Token>();
+			var lexer = new TerumiLexer(source, fileName);
+			var tokens = lexer.ConsumeTokens();
 
-			while (!lexer.AtEnd())
+			if (lexer.WasError)
 			{
-				tokens.Add(lexer.NextToken());
+				Log.Error("Lexer error: '" + lexer.ErrorMessage + "' at " + lexer.ErrorLocation);
+
+				// find the line where the error occured
+				// TODO: function
+				int start = 0;
+				int offset = 0;
+
+				for (int i = 0, line = 1; i < lexer.Source.Length; i++)
+				{
+					if (line == lexer.ErrorLocation.Line)
+					{
+						start = i;
+						break;
+					}
+
+					if (lexer.Source[i] == '\n')
+					{
+						line++;
+					}
+
+					offset++;
+				}
+
+				int end = 0;
+				for (int i = start; i < lexer.Source.Length; i++)
+				{
+					if (lexer.Source[i] == '\n')
+					{
+						end = i;
+						break;
+					}
+				}
+
+				ReadOnlySpan<char> lineData;
+
+				if (end == 0)
+				{
+					lineData = lexer.Source.Slice(start);
+				}
+				else
+				{
+					lineData = lexer.Source.Slice(start, end);
+				}
+
+				// display the line
+				Log.Error(new string(lineData));
+
+				// display ^
+				Span<char> marker = lineData.Length <= 1024 ? stackalloc char[lineData.Length] : new char[lineData.Length];
+
+				int targetPos = lexer.ErrorLocation.BinaryOffset - offset;
+
+				for (int i = 0; i < marker.Length; i++)
+				{
+					if (i == targetPos)
+					{
+						marker[i] = '^';
+						break;
+					}
+				}
+
+				Log.Error(new string(marker));
 			}
 
 			return tokens;

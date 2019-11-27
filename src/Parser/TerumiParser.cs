@@ -839,14 +839,17 @@ namespace Terumi.Parser
 
 		/* core */
 
-		private bool ConsumeWhitespace(bool mustConsumeWhitespace = true)
+		private bool ConsumeWhitespace(bool mustConsumeWhitespace = true, bool mustConsumeNewline = false)
 		{
 			bool didConsume = false;
+			bool didConsumeNewline = false;
 
 			while (!AtEnd()
 				&& (Peek().Type == TokenType.Whitespace
-				|| Peek().Type == TokenType.Comment))
+				|| Peek().Type == TokenType.Comment
+				|| Peek().Type == TokenType.Newline))
 			{
+				didConsumeNewline = didConsumeNewline || Peek().Type == TokenType.Newline;
 				didConsume = true;
 				Next();
 			}
@@ -854,6 +857,11 @@ namespace Terumi.Parser
 			if (mustConsumeWhitespace && !didConsume)
 			{
 				Unsupported($"Didn't consume necessary whitespace");
+			}
+
+			if (mustConsumeNewline && !didConsumeNewline)
+			{
+				Unsupported($"Didn't consume necessary newline");
 			}
 
 			return didConsume;

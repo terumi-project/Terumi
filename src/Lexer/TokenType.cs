@@ -12,6 +12,7 @@ namespace Terumi.Lexer
 
 		Comment,
 		Whitespace,
+		Newline,
 
 		Comma, // ,
 		OpenParen, CloseParen, // ( )

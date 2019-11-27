@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -9,439 +10,629 @@ namespace Terumi.Lexer
 {
 	public ref struct TerumiLexer
 	{
-		private const MethodImplOptions MaxOpt = MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization;
-		public const int TabSize = 4;
+		private SourceTraverser _source;
+		private readonly string _fileName;
 
-		private Span<byte> _source;
-		private readonly string _file;
-		private int _line;
-		private int _column;
-		private int _offset;
+		// allow for consumers to use these fields instead of allocation a Token
+		public TokenType TokenType;
+		public LexerMetadata Start;
+		public LexerMetadata End;
+		public object? Data;
 
-		public LexerMetadata Metadata => new LexerMetadata { BinaryOffset = _offset, Line = _line, Column = _column, File = _file };
+		// for detailed errors
+		public bool WasError;
+		public LexerMetadata ErrorLocation;
+		public string ErrorMessage;
 
-		public TerumiLexer(string file, Span<byte> source)
+		public TerumiLexer(ReadOnlySpan<char> source, string fileName)
 		{
-			_source = source;
-			_line = 1;
-			_column = 1;
-			_offset = 0;
-			_file = file;
+			// don't want to copy
+			_source = new SourceTraverser(source, fileName);
+			_fileName = fileName;
+
+			TokenType = TokenType.Unknown;
+			Start = default;
+			End = default;
+			Data = default;
+
+			WasError = default;
+			ErrorLocation = default;
+			ErrorMessage = default;
 		}
 
-		[MethodImpl(MaxOpt)]
-		public Token NextToken()
+		public ReadOnlySpan<char> Source => _source.Source;
+
+		public List<Token> ConsumeTokens()
 		{
-			var b = Peek();
+			var tokens = new List<Token>();
 
-			if (IsWhitespace(b)) return Whitespace();
-
-			switch (b)
+			while (NextToken())
 			{
-				case (byte)'@': return IsNext((byte)'/') ? Command() : Char(TokenType.At);
-				case (byte)'.': return Char(TokenType.Dot);
-				case (byte)',': return Char(TokenType.Comma);
-				case (byte)'(': return Char(TokenType.OpenParen);
-				case (byte)')': return Char(TokenType.CloseParen);
-				case (byte)'[': return Char(TokenType.OpenBracket);
-				case (byte)']': return Char(TokenType.CloseBracket);
-				case (byte)'{': return Char(TokenType.OpenBrace);
-				case (byte)'}': return Char(TokenType.CloseBrace);
-				case (byte)';': return Char(TokenType.Semicolon);
-				case (byte)'=': return IsNext((byte)'=') ? Char(TokenType.EqualTo) : Char(TokenType.Assignment);
-				case (byte)'!': return IsNext((byte)'=') ? Char(TokenType.NotEqualTo) : Char(TokenType.Not);
-				case (byte)'>': return IsNext((byte)'=') ? Char(TokenType.GreaterThanOrEqualTo) : Char(TokenType.GreaterThan);
-				case (byte)'<': return IsNext((byte)'=') ? Char(TokenType.LessThanOrEqualTo) : Char(TokenType.LessThan);
-				case (byte)'+': return IsNext((byte)'+') ? Char(TokenType.Increment) : Char(TokenType.Add);
-				case (byte)'-': return IsNext((byte)'-') ? Char(TokenType.Decrement) : Char(TokenType.Subtract);
-				case (byte)'*': return IsNext((byte)'*') ? Char(TokenType.Exponent) : Char(TokenType.Multiply);
-				case (byte)'/': return IsNext((byte)'/') ? SinglelineComment() : (IsNext((byte)'*') ? MultilineComment() : Char(TokenType.Divide));
-				case (byte)'"': return String();
+				tokens.Add(new Token(this.TokenType, Start, End, Data));
+			}
+
+			return tokens;
+		}
+
+		public bool NextToken()
+		{
+			Start = _source.Metadata;
+
+			switch (_source.Peek())
+			{
+				// note: tightly coupled to the cases in WhiteSpace.IsWhitespace
+				case ' ':
+				case '\r':
+				case '\t': return Whitespace();
+
+				case '\n': return Newline();
+
+				case '.': return Char(TokenType.Dot);
+				case ',': return Char(TokenType.Comma);
+				case '(': return Char(TokenType.OpenParen);
+				case ')': return Char(TokenType.CloseParen);
+				case '[': return Char(TokenType.OpenBracket);
+				case ']': return Char(TokenType.CloseBracket);
+				case '{': return Char(TokenType.OpenBrace);
+				case '}': return Char(TokenType.CloseBrace);
+				case ';': return Char(TokenType.Semicolon);
+				case '=': return IsNext('=') ? Char(TokenType.EqualTo)				: Char(TokenType.Assignment);
+				case '!': return IsNext('=') ? Char(TokenType.NotEqualTo)			: Char(TokenType.Not);
+				case '>': return IsNext('=') ? Char(TokenType.GreaterThanOrEqualTo)	: Char(TokenType.GreaterThan);
+				case '<': return IsNext('=') ? Char(TokenType.LessThanOrEqualTo)	: Char(TokenType.LessThan);
+				case '+': return IsNext('+') ? Char(TokenType.Increment)			: Char(TokenType.Add);
+				case '-': return IsNext('-') ? Char(TokenType.Decrement)			: Char(TokenType.Subtract);
+				case '*': return IsNext('*') ? Char(TokenType.Exponent)				: Char(TokenType.Multiply);
+
+				case '@': return IsNext('/') ? Command() : Char(TokenType.At);
+
+				case '"': return String();
+
+				case '/': return IsNext('/')
+					? SinglelineComment() // //
+					: (IsNext('*')
+						? MultilineComment() // /*
+						: Char(TokenType.Divide)); // /
+
+				case SourceTraverser.InvalidCharacter: return false;
+
 				default:
 				{
-					// try for numbers
-					if (IsNumber(b)) return Number();
-
-					// try for keywords
-					Token result = null;
-					if (TryString(TokenType.Use, "use", ref result)
-						|| TryString(TokenType.Package, "package", ref result)
-						|| TryString(TokenType.Class, "class", ref result)
-						|| TryString(TokenType.Contract, "contract", ref result)
-						|| TryString(TokenType.True, "true", ref result)
-						|| TryString(TokenType.False, "false", ref result)
-						|| TryString(TokenType.If, "if", ref result)
-						|| TryString(TokenType.Else, "else", ref result)
-						|| TryString(TokenType.For, "for", ref result)
-						|| TryString(TokenType.While, "while", ref result)
-						|| TryString(TokenType.Readonly, "readonly", ref result)
-						|| TryString(TokenType.This, "this", ref result)
-						|| TryString(TokenType.Do, "do", ref result)
-						|| TryString(TokenType.Return, "return", ref result)
-						|| TryString(TokenType.Set, "set", ref result)
-						|| TryString(TokenType.New, "new", ref result))
+					if (TryNumber())
 					{
-						return result;
+						return true;
 					}
 
-					// nothing else matched, must be an identifier
-					if (IsIdentifierStart(b)) return Identifier();
+					// try keywords before identifiers
+					// things like `new_top` shouldn't be counted as keyword `New` identifier `_top`
+					if (TryKeyword("contract", TokenType.Contract)
+					 || TryKeyword("readonly", TokenType.Readonly)
+					 || TryKeyword("package", TokenType.Package)
+					 || TryKeyword("return", TokenType.Return)
+					 || TryKeyword("class", TokenType.Class)
+					 || TryKeyword("false", TokenType.False)
+					 || TryKeyword("while", TokenType.While)
+					 || TryKeyword("true", TokenType.True)
+					 || TryKeyword("else", TokenType.Else)
+					 || TryKeyword("this", TokenType.This)
+					 || TryKeyword("for", TokenType.For)
+					 || TryKeyword("use", TokenType.Use)
+					 || TryKeyword("set", TokenType.Set)
+					 || TryKeyword("new", TokenType.New)
+					 || TryKeyword("if", TokenType.If)
+					 || TryKeyword("do", TokenType.Do))
+					{
+						return true;
+					}
 
-					Unsupported($"Unrecognized byte '{(char)b}' at {Metadata}");
+					if (TryIdentifier())
+					{
+						return true;
+					}
 				}
 				break;
 			}
 
-			Unsupported($"Unreachable");
-			return null;
-		}
-
-		[MethodImpl(MaxOpt)]
-		private Token Char(TokenType type)
-		{
-			var start = Metadata;
-			Next();
-			return new Token(type, start, Metadata, null);
-		}
-
-		[MethodImpl(MaxOpt)]
-		private bool IsNext(byte b)
-		{
-			if (Peek(1) == b) { Next(); return true; }
+			WasError = true;
+			ErrorLocation = _source.Metadata;
+			ErrorMessage = "Unrecognized character";
 			return false;
 		}
 
-		/* comments */
-
-		[MethodImpl(MaxOpt)]
-		public Token MultilineComment()
+		// case ...
+		private bool Char(TokenType type)
 		{
-			var now = Metadata;
-			var capture = _source;
-			bool hitEnd = false;
+			_source.Advance();
 
-			// we want to capture the ending /*, so we only need to go past the /
-			Next();
+			TokenType = type;
+			End = _source.Metadata;
+			Data = null;
 
-			while (!AtEnd() && !(hitEnd = EndOfMultilineComment())) Next();
-
-			if (!hitEnd)
-			{
-				Unsupported($"Didn't get the end of a multiline comment");
-			}
-
-			var commentData = capture.Slice(0, _offset - now.BinaryOffset);
-			var stringData = Encoding.UTF8.GetString(commentData);
-
-			return new Token(TokenType.Comment, now, Metadata, stringData);
+			return true;
 		}
 
-		// modifies state to put us at the end of the comment
-		[MethodImpl(MaxOpt)]
-		private bool EndOfMultilineComment()
+		private bool IsNext(char c)
 		{
-			byte b = (byte)'\0';
+			var result = _source.Peek(1) == c;
 
-			if (TryPeek(ref b) && b == (byte)'*'
-				&& TryPeek(ref b, 1) && b == (byte)'/')
+			if (result)
 			{
-				_source = _source.Slice(2);
-				return true;
+				_source.Advance();
 			}
 
-			return false;
+			return result;
 		}
 
-		/* singleline noise */
-
-		[MethodImpl(MaxOpt)]
-		public Token SinglelineComment()
+		// default:
+		private bool TryKeyword(string compare, TokenType result)
 		{
-			var now = Metadata;
-			var capture = _source;
-			bool hitEnd = false;
-
-			// skip the //
-			Next(); Next();
-
-			while (!AtEnd() && !(hitEnd = Peek() == (byte)'\n')) Next();
-
-			if (!hitEnd)
+			if (!_source.TryExact(compare, c => !IsIdentifierNonStart(c)))
 			{
-				// on second thought, not getting the end of a singleline comment is ok
-				// Unsupported($"Didn't get newline to end singleline comment");
+				return false;
 			}
 
-			var commentData = capture.Slice(0, _offset - now.BinaryOffset);
-			var stringData = Encoding.UTF8.GetString(commentData);
+			TokenType = result;
+			End = _source.Metadata;
+			Data = null;
 
-			return new Token(TokenType.Comment, now, Metadata, stringData);
+			return true;
 		}
 
-		/* command */
-
-		public Token Command()
+		private bool TryNumber()
 		{
-			var tkn = String((byte)'\n');
-			var strDat = tkn.Data as StringData;
-
-			while (strDat.StringValue[^1] == '\n'
-				|| strDat.StringValue[^1] == '\r')
+			if (!IsNumber(_source.Peek())
+				&& _source.Peek() != '-')
 			{
-				strDat.StringValue.Length--;
+				return false;
 			}
 
-			return new Token(TokenType.CommandToken, tkn.PositionStart, tkn.PositionEnd, strDat);
-		}
+			int end = 1;
 
-		/* whitespace lol */
-
-		[MethodImpl(MaxOpt)]
-		public Token Whitespace()
-		{
-			var start = Metadata;
-
-			while (!AtEnd() && IsWhitespace(Peek()))
+			while (IsNumber(_source.Peek(end)))
 			{
-				Next();
+				end++;
 			}
 
-			return new Token(TokenType.Whitespace, start, Metadata, null);
+			var number = _source.Extract(end);
+
+			TokenType = TokenType.NumberToken;
+			End = _source.Metadata;
+			Data = new Number(BigInteger.Parse(number));
+
+			return true;
+
+			static bool IsNumber(char c) => c <= '9' && c >= '0';
 		}
 
-		/* string */
-
-		[MethodImpl(MaxOpt)]
-		public Token String(byte cancelOn = (byte)'"')
+		private bool TryIdentifier()
 		{
-			var now = Metadata;
-			bool hitEnd = false;
-
-			var strb = new StringBuilder();
-			var interpolations = new List<StringData.Interpolation>();
-
-			// skip the first '"'
-			Next();
-
-			while (!AtEnd())
+			if (!IsIdentifierStart(_source.Peek()))
 			{
-				var b = Peek();
-				Next();
+				return false;
+			}
 
-				// TODO: in switch
-				if (b == cancelOn)
+			int end = 1;
+
+			while (IsIdentifierNonStart(_source.Peek(end)))
+			{
+				end++;
+			}
+
+			var identifier = _source.Extract(end);
+
+			TokenType = TokenType.IdentifierToken;
+			End = _source.Metadata;
+			Data = new string(identifier);
+
+			return true;
+		}
+
+		private static bool IsIdentifierStart(char c) => (c <= 'Z' && c >= 'A') || (c <= 'z' && c >= 'a') || c == '_';
+		private static bool IsIdentifierNonStart(char c) => IsIdentifierStart(c) || (c <= '9' && c >= '0');
+
+		// special cases
+		private bool SinglelineComment()
+		{
+			Debug.Assert(_source.Peek() == '/', "First character is a /");
+			Debug.Assert(_source.Peek(1) == '/', "Second character is a /");
+
+			int end = 2;
+			char peek = _source.Peek(end);
+
+			while (peek != '\n' && peek != SourceTraverser.InvalidCharacter)
+			{
+				end++;
+				peek = _source.Peek(end);
+			}
+
+			var rawData = _source.Extract(end);
+			var commentData = rawData.Slice(2, rawData.Length - (1 + 2));
+
+#if DEBUG
+			if (peek == '\n')
+			{
+				Debug.Assert(rawData[0] == '/', "First two characters of raw data should be forward slashes");
+				Debug.Assert(rawData[1] == '/', "First two characters of raw data should be forward slashes");
+				Debug.Assert(rawData[^1] == '\n', "Last character in raw data should be a newline");
+
+				if (commentData.Length != 0)
 				{
-					hitEnd = true;
+					Debug.Assert(commentData[0] != '/', "First character of comment data isn't a foward slash");
+					Debug.Assert(commentData[^1] != '\n', "Last character of comment data isn't a newline");
+				}
+			}
+#endif
+
+			TokenType = TokenType.Comment;
+			End = _source.Metadata;
+			Data = new string(commentData);
+
+			return true;
+		}
+
+		private bool MultilineComment()
+		{
+			Debug.Assert(_source.Peek() == '/', "First character is a /");
+			Debug.Assert(_source.Peek(1) == '*', "Second character is a *");
+
+			// we want to support /*/
+			int length = 1;
+			char peek = _source.Peek(length);
+
+			while (true)
+			{
+				if (peek == SourceTraverser.InvalidCharacter)
+				{
 					break;
 				}
 
-				switch (b)
+				if (peek == '*' && _source.Peek(length + 1) == '/')
 				{
-					case (byte)'{':
+					length++;
+					break;
+				}
+
+				length++;
+			}
+
+			var rawData = _source.Extract(length);
+			ReadOnlySpan<char> commentData;
+
+			if (rawData.Length == 3)
+			{
+				commentData = string.Empty;
+			}
+			else
+			{
+				commentData = rawData.Slice(2, rawData.Length - (2 + 2));
+			}
+
+#if DEBUG
+			Debug.Assert(rawData[0] == '/');
+			Debug.Assert(rawData[1] == '*');
+
+			Debug.Assert(rawData[^1] == '/');
+			Debug.Assert(rawData[^2] == '*');
+#endif
+
+			TokenType = TokenType.Comment;
+			End = _source.Metadata;
+			Data = commentData.Length == 0 ? string.Empty : new string(commentData);
+
+			return true;
+		}
+
+		private bool String()
+		{
+			Debug.Assert(_source.Peek() == '"', "First character of string should be a \"");
+			_source.Advance();
+
+			// if the very first character of the string is a newline, ignore it
+
+			// any sane operating system
+			if (_source.Peek() == '\n')
+			{
+				_source.Advance();
+			}
+			// windows
+			else if (_source.Peek() == '\r' && _source.Peek(1) == '\n')
+			{
+				_source.Advance(2);
+			}
+
+			return InnerString(c => c == '"');
+		}
+
+		private bool Command()
+		{
+			Debug.Assert(_source.Peek() == '@', "First character should be @");
+			Debug.Assert(_source.Peek(1) == '/', "Second character should be /");
+			_source.Advance(2);
+
+			return InnerString(c => c == '\r' || c == '\n');
+		}
+
+		private bool InnerString(Predicate<char> isEnd)
+		{
+			var interpolations = new List<StringData.Interpolation>();
+			var strb = new StringBuilder();
+
+			char current;
+
+			// will get overwritten with interpolations
+			var startCopy = Start;
+
+			while (!isEnd(current = _source.Peek()))
+			{
+				switch (current)
+				{
+					default:
 					{
+						strb.Append(current);
+					}
+					break;
+
+					case '{':
+					{
+						_source.Advance();
+
 						var tokens = new List<Token>();
 
-						while (Peek() != (byte)'}')
+						char c;
+						while ((current = _source.Peek()) != '}')
 						{
-							tokens.Add(NextToken());
-						}
+							if (current == SourceTraverser.InvalidCharacter)
+							{
+								_source.Advance();
 
-						Next();
+								WasError = true;
+								ErrorLocation = _source.Metadata;
+								ErrorMessage = "Reached EOF before interpolation ended";
+								return false;
+							}
+
+							if (!NextToken())
+							{
+								Debug.Assert(WasError, "There must've been an error if a token couldn't be consumed");
+
+								// assume all the error stuff was already set
+								return false;
+							}
+
+							tokens.Add(new Token(this.TokenType, Start, End, Data));
+						}
 
 						interpolations.Add(new StringData.Interpolation(strb.Length, tokens));
 					}
 					break;
 
-					case (byte)'\\':
+					case SourceTraverser.InvalidCharacter:
 					{
-						if (AtEnd()) break;
+						WasError = true;
+						ErrorLocation = _source.Metadata;
+						ErrorMessage = "Reached EOF without a closing quote";
+					}
+					return false;
 
-						switch (Peek())
+					case '\\':
+					{
+						var next = _source.Peek(1);
+
+						switch (next)
 						{
-							// TODO: full escaping of stuff
-							case (byte)'"': strb.Append('"'); break;
-							case (byte)'\\': strb.Append('\\'); break;
-							case (byte)'{': strb.Append('{'); break;
-							case (byte)'}': strb.Append('}'); break;
+							case '\\': strb.Append('\\'); break;
+							case '"': strb.Append('"'); break;
+							case '{': strb.Append('{'); break;
+							case '}': strb.Append('}'); break;
+
+							// TODO: warn that you don't need to escape these
+							case 'n': strb.Append('\n'); break;
+							case 't': strb.Append('\t'); break;
+
 							default:
 							{
-								// TODO: error about unsupported escape sequence
-								Unsupported($"");
+								// the advances bellow won't occur, so we'll advance it manually
+								// to the invalid escaped char
+								_source.Advance();
+
+								WasError = true;
+								ErrorLocation = _source.Metadata;
+								ErrorMessage = "Invalid escape character";
 							}
-							break;
+							return false;
 						}
 
-						Next();
+						_source.Advance();
+					}
+					break;
+				}
+
+				_source.Advance();
+			}
+
+			// consume last char
+			_source.Advance();
+
+			TokenType = TokenType.StringToken;
+			Start = startCopy;
+			End = _source.Metadata;
+			Data = new StringData(strb, interpolations);
+			return true;
+		}
+
+		// whitespace
+		private bool Whitespace()
+		{
+			if (!IsWhitespace(_source.Peek()))
+			{
+				return false;
+			}
+
+			do
+			{
+				_source.Advance();
+			}
+			while (IsWhitespace(_source.Peek()));
+
+			TokenType = TokenType.Whitespace;
+			End = _source.Metadata;
+			Data = null;
+			return true;
+
+			// note: tightly coupled to the cases in the NextToken switch
+			static bool IsWhitespace(char c) => c == '\r' || c == '\t' || c == ' ';
+		}
+
+		private bool Newline()
+		{
+			if (_source.Peek() != '\n')
+			{
+				return false;
+			}
+
+			_source.Advance();
+
+			TokenType = TokenType.Newline;
+			End = _source.Metadata;
+			Data = null;
+			return true;
+		}
+	}
+
+	public ref struct SourceTraverser
+	{
+		public const MethodImplOptions MaxOpt = MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization;
+
+		// https://github.com/dotnet/roslyn/blob/master/src/Compilers/CSharp/Portable/Parser/SlidingTextWindow.cs#L25-L37
+		public const char InvalidCharacter = char.MaxValue;
+
+		// how many columns a sincle tab will account f or
+		public const int TabSize = 4;
+
+		private readonly ReadOnlySpan<char> _source;
+		private readonly string _fileName;
+
+		private int _line;
+		private int _column;
+		private int _offset;
+
+		public SourceTraverser(ReadOnlySpan<char> source, string fileName)
+		{
+			_source = source;
+			_fileName = fileName;
+
+			_line = 1;
+			_column = 1;
+			_offset = 0;
+		}
+
+		public ReadOnlySpan<char> Source => _source;
+
+		public LexerMetadata Metadata => new LexerMetadata { BinaryOffset = _offset, Line = _line, Column = _column, File = _fileName };
+
+		/// <summary>
+		/// Attempts to consume the string specified at the current position.
+		/// </summary>
+		[MethodImpl(MaxOpt)]
+		public bool TryExact(ReadOnlySpan<char> compare, Predicate<char> trailing)
+		{
+			if (_offset + compare.Length + 1 >= _source.Length)
+			{
+				return false;
+			}
+
+			ReadOnlySpan<char> source = _source.Slice(_offset, compare.Length + 1);
+
+			if (compare[0] != source[0])
+			{
+				return false;
+			}
+
+			if (!trailing(source[^1]))
+			{
+				return false;
+			}
+
+			for (int i = 1; i < compare.Length; i++)
+			{
+				if (compare[i] != source[i])
+				{
+					return false;
+				}
+			}
+
+			Advance(compare.Length);
+
+			return true;
+		}
+
+		[MethodImpl(MaxOpt)]
+		public ReadOnlySpan<char> Extract(int amount)
+		{
+			Debug.Assert(_offset + amount < _source.Length, $"Cannot extract {amount} chars from source - not long enough.");
+
+			var extraction = _source.Slice(_offset, amount);
+
+			Advance(amount);
+
+			return extraction;
+		}
+
+		[MethodImpl(MaxOpt)]
+		public char Peek(int amount = 0)
+		{
+			var target = _offset + amount;
+
+			if (target >= _source.Length)
+			{
+				return InvalidCharacter;
+			}
+
+			return _source[target];
+		}
+
+		[MethodImpl(MaxOpt)]
+		public void Advance(int amount)
+		{
+			for (int i = 0; i < amount; i++)
+			{
+				Advance();
+			}
+		}
+
+		[MethodImpl(MaxOpt)]
+		public void Advance()
+		{
+			var current = Peek();
+
+			if (current != InvalidCharacter)
+			{
+				switch (current)
+				{
+					case '\r': break;
+
+					case '\t':
+					{
+						_column += TabSize;
 					}
 					break;
 
-					default: strb.Append((char)b); break;
+					case '\n':
+					{
+						_line++;
+						_column = 1;
+					}
+					break;
+
+					default:
+					{
+						_column++;
+					}
+					break;
 				}
-			}
-
-			if (!hitEnd)
-			{
-				Unsupported($"Didn't hit matching end beginning at {now}");
-			}
-
-			return new Token(TokenType.StringToken, now, Metadata, new StringData(strb, interpolations));
-		}
-
-		/* numbers */
-
-		[MethodImpl(MaxOpt)]
-		public Token Number()
-		{
-			var start = Metadata;
-
-			var strb = new StringBuilder();
-
-			// TODO: minor opt?
-			byte b = Peek();
-			while (IsNumber(b))
-			{
-				strb.Append((char)b);
-				Next();
-				b = Peek();
-			}
-
-			var end = Metadata;
-			var data = new Number(BigInteger.Parse(strb.ToString()));
-			return new Token(TokenType.NumberToken, start, end, data);
-		}
-
-		/* try to consume multiple characters & get out a token type */
-
-		[MethodImpl(MaxOpt)]
-		public bool TryString(TokenType type, string tryFor, ref Token result)
-		{
-			if (_source.Length <= tryFor.Length) return false;
-
-			var cmp = _source.Slice(0, tryFor.Length + 1);
-
-			// quickly fail if the first one fails
-			// we don't want to setup a for loop if the string is bound to fail
-			if (cmp[0] != (byte)tryFor[0]) return false;
-
-			for (var i = 1; i < tryFor.Length; i++)
-			{
-				if (cmp[i] != (byte)tryFor[i]) return false;
-			}
-
-			// if we have search for 'for' but come across 'forever' we don't want to match 'forever' as 'for' 'ever'
-			if (IsIdentifierStart(cmp[^1])) return false;
-
-			var now = Metadata;
-			NextMany(tryFor.Length);
-			var end = Metadata;
-
-			result = new Token(type, now, end, null);
-			return true;
-		}
-
-		/* identifiers */
-
-		[MethodImpl(MaxOpt)]
-		public Token Identifier()
-		{
-			var start = Metadata;
-
-			var strb = new StringBuilder();
-			strb.Append((char)Peek());
-			Next();
-
-			if (!AtEnd())
-			{
-				var current = Peek();
-				while (IsIdentifierStart(current) || IsNumber(current))
-				{
-					strb.Append((char)current);
-
-					Next();
-					current = Peek();
-				}
-			}
-
-			var end = Metadata;
-			return new Token(TokenType.IdentifierToken, start, end, strb.ToString());
-		}
-
-		/* basic */
-
-		[MethodImpl(MaxOpt)]
-		public void NextMany(int amount)
-		{
-			for (var i = 0; i < amount; i++) Next();
-		}
-
-		[MethodImpl(MaxOpt)]
-		public void Next()
-		{
-			switch (Peek())
-			{
-				case (byte)'\n':
-				{
-					_line++;
-					_column = 1;
-				}
-				break;
-
-				case (byte)'\t':
-				{
-					_column += TabSize;
-				}
-				break;
-
-				default: _column++; break;
 			}
 
 			_offset++;
-			_source = _source.Slice(1);
 		}
-
-		[MethodImpl(MaxOpt)]
-		public byte Peek(int amt = 0)
-		{
-			if (AtEnd(amt))
-#if DEBUG
-			Unsupported($"Cannot peek at end");
-#else
-			return (byte)'\0';
-#endif
-			return _source[amt];
-		}
-
-		[MethodImpl(MaxOpt)]
-		public bool TryPeek(ref byte result, int amt = 0)
-		{
-			if (AtEnd(amt)) return false;
-			result = _source[amt];
-			return true;
-		}
-
-		[MethodImpl(MaxOpt)]
-		public bool AtEnd() => AtEnd(amt: 0);
-
-		[MethodImpl(MaxOpt)]
-		private bool AtEnd(int amt) => _source.Length < amt + 1;
-
-		[MethodImpl(MaxOpt)]
-		private bool IsNumber(byte b) => b >= (byte)'0' && b <= (byte)'9';
-
-		[MethodImpl(MaxOpt)]
-		private bool IsWhitespace(byte b)
-			=> b == (byte)' '
-			|| b == (byte)'\t'
-			|| b == (byte)'\r'
-			|| b == (byte)'\n';
-
-		[MethodImpl(MaxOpt)]
-		private bool IsIdentifierStart(byte b)
-			=> (b >= (byte)'a' && b <= (byte)'z')
-			|| (b >= (byte)'A' && b <= (byte)'Z')
-			|| b == (byte)'_';
-
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private void Unsupported(string reason) => throw new InvalidOperationException(reason);
 	}
 }

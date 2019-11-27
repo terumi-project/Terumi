@@ -35,15 +35,14 @@ namespace Terumi
 			[CallerFilePath] string filePath = "",
 			[CallerLineNumber] int lineNumber = 0
 #endif
-		) => DisplayMessage
-		(
-			ConsoleColor.Red,
-			"ERR",
+		)
+		{
+			DisplayMessage(ConsoleColor.Red, "ERR", message);
+
 #if DEBUG
-			$"in '{memberName}'@'{filePath}' line {lineNumber}: " +
+			DisplayMessage(ConsoleColor.Red, "ERR_INFO", $"in '{memberName}'@'{filePath}' line {lineNumber}");
 #endif
-			message
-		);
+		}
 
 		public static void Stage(string stageName, string message)
 		{

@@ -46,7 +46,7 @@ namespace Terumi
 
 		public static void Stage(string stageName, string message)
 		{
-			if (_stageName != "STOP") StageEnd();
+			if (_stageName != "NONE") StageEnd();
 
 			_stageName = stageName;
 			_stopwatch = null;

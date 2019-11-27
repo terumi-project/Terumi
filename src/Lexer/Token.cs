@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Numerics;
 
 // https://www.craftinginterpreters.com/scanning.html
@@ -26,22 +27,12 @@ namespace Terumi.Lexer
 #if DEBUG
 			switch (Type)
 			{
-				case TokenType.IdentifierToken when !(Data is string): throw new InvalidOperationException($"Cannot have identifier token without string data");
-				case TokenType.IdentifierToken: break;
-
-				case TokenType.StringToken when !(Data is StringData): throw new InvalidOperationException($"Must pass in a StringData for a string token");
-				case TokenType.StringToken: break;
-
-				case TokenType.Comment when !(Data is string): throw new InvalidOperationException($"Must pass in a string for a comment token");
-				case TokenType.Comment: break;
-
-				case TokenType.NumberToken when !(Data is Number): throw new InvalidOperationException($"Must pass in Number for a number token");
-				case TokenType.NumberToken: break;
-
-				case TokenType.CommandToken when !(Data is StringData): throw new InvalidOperationException("Must pass in StringData to command token");
-				case TokenType.CommandToken: break;
-
-				default: if (Data != null) throw new InvalidOperationException($"Token type {Type} is not allowed to have data"); break;
+				case TokenType.IdentifierToken:	Debug.Assert(Data is string);		break;
+				case TokenType.CommandToken:	Debug.Assert(Data is StringData);	break;
+				case TokenType.StringToken:		Debug.Assert(Data is StringData);	break;
+				case TokenType.NumberToken:		Debug.Assert(Data is Number);		break;
+				case TokenType.Comment:			Debug.Assert(Data is string);		break;
+				default: Debug.Assert(Data == null); break;
 			}
 #endif
 		}

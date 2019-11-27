@@ -36,7 +36,6 @@ namespace Terumi
 			Log.Stage("PARSE", "Parsing project source code");
 
 			var terumiProject = project.ParseProject(resolver, target);
-			Console.WriteLine(terumiProject);
 
 			var translator = new Translator(target);
 

@@ -44,6 +44,7 @@ namespace Terumi.Workspace
 
 		public static List<Token> ParseTokens(string source, string fileName)
 		{
+			Log.Info($"Discovered {fileName}");
 			var lexer = new TerumiLexer(source, fileName);
 			var tokens = lexer.ConsumeTokens();
 

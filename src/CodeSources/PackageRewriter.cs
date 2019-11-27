@@ -18,7 +18,7 @@ namespace Terumi.CodeSources
 						Branch = snapshot.Branch,
 						CommitId = snapshot.CommitId,
 						GitUrl = snapshot.GitUrl,
-						Projects = new string[] { snapshot.Project }
+						ProjectPath = snapshot.Path ?? ""
 					})
 					.ToArray()
 			};

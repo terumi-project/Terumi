@@ -6,85 +6,106 @@ namespace Terumi.Workspace
 {
 	public class Project
 	{
-		public const string TerumiFileEnding = "trm";
-		public const string TerumiConfigEnding = "toml";
-
-		public static bool TryLoad(string basePath, string projectName, out Project sourceProject)
+		public static bool TryLoad(string path, out Project project)
 		{
-			sourceProject = default;
+			project = default;
+			var projectPath = Path.GetFullPath(path);
 
-			Log.Debug($"Attempting to load '{projectName}'@'{basePath}'");
-
-			if (!Directory.Exists(basePath))
-			{
-				Log.Error($"Path doesn't exist: '{basePath}'");
-				return false;
-			}
-
-			var projectPath = Path.GetFullPath(Path.Combine(basePath, projectName));
+			Log.Info($"Loading project @'{projectPath}");
 
 			if (!Directory.Exists(projectPath))
 			{
-				Log.Error($"Path to project doesn't exist: '{projectPath}'");
+				Log.Error($"Path doesn't exist: '{projectPath}'");
 				return false;
 			}
 
-			if (!GetSourceFiles(projectPath).Any())
+			var projectName = Path.GetFileName(projectPath);
+
+			var configurationPath = Path.Combine(projectPath, "config.toml");
+			var gitignorePath = Path.Combine(projectPath, ".gitignore");
+			var srcPath = Path.Combine(projectPath, "src");
+			var testsPath = Path.Combine(projectPath, "tests");
+			var libsPath = Path.Combine(projectPath, ".libs");
+			var binPath = Path.Combine(projectPath, "bin");
+
+			if (!Directory.Exists(srcPath))
 			{
-				Log.Error($"No source files in project path: '{projectPath}'. Ensure that there is at least one file ending in '.{TerumiFileEnding}'");
+				Log.Error($"Source path doesn't exist: '{srcPath}'");
 				return false;
 			}
 
-			var configPath = Path.GetFullPath(Path.Combine(basePath, projectName + $".{TerumiConfigEnding}"));
 			var config = Configuration.Default;
 
-			if (File.Exists(configPath))
+			if (File.Exists(configurationPath))
 			{
-				Log.Debug($"Loaded config for '{projectName}'@'{configPath}'");
-
-				config = Configuration.ReadFile(configPath);
+				Log.Info($"Reading config for '{projectName}'@'{configurationPath}'");
+				config = Configuration.ReadFile(configurationPath);
+				Log.Info($"Read config");
 			}
 
-			sourceProject = new Project(basePath, projectName, config, configPath, projectPath);
+			project = new Project
+			(
+				projectPath: projectPath,
+				projectName: projectName,
+				srcPath: srcPath,
+
+				binPath: binPath,
+				libsPath: libsPath,
+
+				configurationPath: configurationPath,
+				configuration: config
+			);
+
 			return true;
 		}
 
 		public Project
 		(
-			string basePath,
+			string projectPath,
 			string projectName,
-			Configuration configuration,
-			string? configPath = null,
-			string? projectPath = null
+			string srcPath,
+
+			string binPath,
+			string libsPath,
+
+			string configurationPath,
+			Configuration configuration
 		)
 		{
-			BasePath = basePath;
+			ProjectPath = projectPath;
 			ProjectName = projectName;
-			ProjectPath = projectPath ?? Path.GetFullPath(Path.Combine(BasePath, ProjectName));
-			ConfigurationPath = configPath ?? Path.GetFullPath(Path.Combine(BasePath, $"{ProjectName}.{TerumiConfigEnding}"));
+			SrcPath = srcPath;
+
+			BinPath = binPath;
+			LibsPath = libsPath;
+
+			ConfigurationPath = configurationPath;
 			Configuration = configuration;
 		}
 
-		public string BasePath { get; }
-		public string ProjectName { get; }
 		public string ProjectPath { get; }
+		public string ProjectName { get; }
+		public string SrcPath { get; }
+
+		public string BinPath { get; }
+		public string LibsPath { get; }
+
 		public string ConfigurationPath { get; }
 		public Configuration Configuration { get; }
+
+		public DependencyResolver CreateResolver() => new DependencyResolver(LibsPath);
 
 		public IEnumerable<Project> ResolveDependencies(DependencyResolver resolver)
 		{
 			foreach (var dependency in Configuration.Libraries)
 			{
-				foreach (var project in resolver.Resolve(dependency))
-				{
-					yield return project;
-				}
+				yield return resolver.Resolve(dependency);
 			}
 		}
 
 		public IEnumerable<ProjectFile> GetSources()
 		{
-			foreach (var file in GetSourceFiles(ProjectPath))
+			foreach (var file in GetSourceFiles())
 			{
 				var source = File.ReadAllText(file);
 
@@ -92,9 +113,9 @@ namespace Terumi.Workspace
 				var packageLevel =
 
 					// take out the base path to the project
-					file.Substring(BasePath.Length)
+					file.Substring(ProjectPath.Length)
 
-					// now we should have something like 'terumi_sdk/json/reader.trm'
+					// now we should have something like 'terumi/json/reader.trm'
 					.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
 
 					// ensure no empty ones
@@ -109,11 +130,11 @@ namespace Terumi.Workspace
 			}
 		}
 
-		private static IEnumerable<string> GetSourceFiles(string projectPath)
+		private IEnumerable<string> GetSourceFiles()
 		{
-			foreach (var file in RecursivelySearch(projectPath))
+			foreach (var file in RecursivelySearch(SrcPath))
 			{
-				if (Path.GetExtension(file) == $".{TerumiFileEnding}")
+				if (Path.GetExtension(file) == $".trm")
 				{
 					yield return file;
 				}
@@ -122,14 +143,6 @@ namespace Terumi.Workspace
 
 		private static IEnumerable<string> RecursivelySearch(string folder)
 		{
-			// TODO: use constants
-			// special directories
-			if (Path.GetFileName(folder) == ".libs"
-				|| Path.GetFileName(folder) == "bin")
-			{
-				yield break;
-			}
-
 			foreach (var file in Directory.GetFiles(folder))
 			{
 				yield return file;

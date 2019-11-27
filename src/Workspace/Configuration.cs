@@ -24,8 +24,8 @@ namespace Terumi.Workspace
 
 	public class LibraryReference
 	{
-		[TomlMember(Key = "projects")]
-		public string[] Projects { get; set; }
+		[TomlMember(Key = "project_path")]
+		public string ProjectPath { get; set; }
 
 		[TomlMember(Key = "git_url")]
 		public string GitUrl { get; set; }

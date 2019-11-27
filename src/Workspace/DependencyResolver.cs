@@ -9,7 +9,16 @@ namespace Terumi.Workspace
 	{
 		private readonly string _libraryPath;
 
-		public DependencyResolver(string libraryPath) => _libraryPath = libraryPath;
+		public DependencyResolver(string libraryPath)
+		{
+			_libraryPath = libraryPath;
+
+			if (!Directory.Exists(libraryPath))
+			{
+				var dirInfo = Directory.CreateDirectory(libraryPath);
+				dirInfo.Attributes = FileAttributes.Hidden;
+			}
+		}
 
 		private static string Hash(string input)
 		{
@@ -28,13 +37,13 @@ namespace Terumi.Workspace
 			}
 		}
 
-		public IEnumerable<Project> Resolve(LibraryReference reference)
+		public Project Resolve(LibraryReference reference)
 		{
 			if (reference.Path != null)
 			{
 				if (Directory.Exists(reference.Path))
 				{
-					return Resolve(reference.Projects, reference.Path);
+					return Resolve(reference.Path);
 				}
 
 				Log.Warn($"Unable to resolve dependency living at '{reference.Path}'. Resorting to using git.");
@@ -50,19 +59,16 @@ namespace Terumi.Workspace
 				Git.Clone(reference.GitUrl, reference.Branch, reference.CommitId, libraryPath);
 			}
 
-			return Resolve(reference.Projects, libraryPath);
+			return Resolve(libraryPath);
 
-			static IEnumerable<Project> Resolve(string[] projectNames, string path)
+			static Project Resolve(string projectPath)
 			{
-				foreach (var projectName in projectNames)
+				if (!Project.TryLoad(projectPath, out var project))
 				{
-					if (!Project.TryLoad(path, projectName, out var project))
-					{
-						throw new DependencyResolveException($"Unable to resolve dependency '{projectName}'@'{path}'");
-					}
-
-					yield return project;
+					throw new DependencyResolveException($"Unable to resolve dependency '{projectPath}'");
 				}
+
+				return project;
 			}
 		}
 	}

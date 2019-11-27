@@ -62,8 +62,8 @@ namespace Terumi.CodeSources
 
 	public class ToolSnapshot
 	{
-		[TomlMember(Key = "project")]
-		public string Project { get; set; }
+		[TomlMember(Key = "path")]
+		public string Path { get; set; }
 
 		[TomlMember(Key = "version")]
 		public string Version { get; set; }

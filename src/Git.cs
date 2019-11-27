@@ -6,6 +6,11 @@ namespace Terumi
 {
 	public static class Git
 	{
+		public static void Init(string path)
+		{
+			Repository.Init(path);
+		}
+
 		public static string Clone(string gitUrl, string? branch, string? commitHash, string path)
 		{
 			var branchName = string.IsNullOrWhiteSpace(branch) ? "master" : branch;

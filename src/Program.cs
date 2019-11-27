@@ -24,16 +24,16 @@ namespace Terumi
 
 	internal static class Program
 	{
-		public static bool Compile(string projectName, ICompilerTarget target)
+		public static bool Compile(ICompilerTarget target)
 		{
-			var resolver = new DependencyResolver(Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), projectName, ".libs")));
-
-			Log.Stage("SETUP", $"Loading project {projectName}");
-			if (!Project.TryLoad(Directory.GetCurrentDirectory(), projectName, out var project))
+			Log.Stage("SETUP", $"Loading project @'{Directory.GetCurrentDirectory()}'");
+			if (!Project.TryLoad(Directory.GetCurrentDirectory(), out var project))
 			{
 				Log.Error("Unable to load project");
 				return false;
 			}
+
+			var resolver = project.CreateResolver();
 
 			Log.Stage("PARSE", "Parsing project source code");
 
@@ -52,7 +52,7 @@ namespace Terumi
 
 			Log.Stage("WRITING", "Writing code to output.");
 
-			var bin = $"{projectName}/bin";
+			var bin = $"{Directory.GetCurrentDirectory()}/bin";
 			var outFile = $"{bin}/{target.ShellFileName}";
 
 			if (!Directory.Exists(bin)) Directory.CreateDirectory(bin);
@@ -85,12 +85,6 @@ namespace Terumi
 
 			var compileCommand = new Command("compile", "Compiles a terumi project")
 			{
-				new Option(new string[] { "--name", "-n" }, "Name of the project")
-				{
-					Required = true,
-					Argument = new Argument<string>()
-				},
-
 				new Option(new string[] { "--target", "-t" }, "Target language to compile into")
 				{
 					Required = true,
@@ -101,12 +95,6 @@ namespace Terumi
 			var installCommand = new Command("install", "Installs a terumi package from a package source")
 			{
 				new Option(new string[] { "--package-name", "-p" }, "Name of the package")
-				{
-					Required = true,
-					Argument = new Argument<string>()
-				},
-
-				new Option(new string[] { "--project-name", "--name", "-n" }, "Name of the project to install the package into")
 				{
 					Required = true,
 					Argument = new Argument<string>()
@@ -129,8 +117,8 @@ namespace Terumi
 			};
 
 			newCommand.Handler = CommandHandler.Create<string>(NewProject);
-			compileCommand.Handler = CommandHandler.Create<string, Target>(CompileProject);
-			installCommand.Handler = CommandHandler.Create<string, string, string>(InstallProject);
+			compileCommand.Handler = CommandHandler.Create<Target>(CompileProject);
+			installCommand.Handler = CommandHandler.Create<string, string>(InstallProject);
 
 #if false && DEBUG
 			return rootCommand.InvokeAsync(new string[] { "compile", "-n", "shopping_list", "-t", "bash" });
@@ -141,20 +129,83 @@ namespace Terumi
 
 		private static void NewProject(string name)
 		{
-			Log.Stage("Creating project", name);
+			Log.Stage("NEW", $"Creating project {name}");
 
-			File.WriteAllText($"{name}.toml", @"# Include dependencies here!");
-			Directory.CreateDirectory(name);
+			/*
+			 * Project Hierarchy:
+			 * 
+			 * The target project folder will be a git repo
+			 * /{name}/.git/...
+			 * 
+			 * The bin folder is for build artifacts
+			 * Debug mode artifacts
+			 * /{name}/bin/debug/out.ps1
+			 * /{name}/bin/debug/out.sh
+			 * 
+			 * Release mode artifacts
+			 * /{name}/bin/release/out.ps1
+			 * /{name}/bin/release/out.sh
+			 * 
+			 * The .libs folder is for dependency pulling
+			 * /{name}/.libs/...
+			 * 
+			 * The src folder is for source code
+			 * The project name is there for inferred namespaces,
+			 * so main.trm has the namespace `name` by default.
+			 * /{name}/src/{name}/main.trm
+			 * 
+			 * Tests, if there should be any
+			 * /{name}/tests/main.trm
+			 * 
+			 * Configuration file
+			 * /{name}/config.toml
+			 * 
+			 * Gitignore
+			 * /{name}/.gitignore
+			 */
 
-			File.WriteAllText($"{name}/main.trm", @"main()
+			var targetDirectory = Path.GetFullPath(name);
+
+			Git.Init(targetDirectory);
+
+			var configurationFile = Path.Combine(targetDirectory, "config.toml");
+			var gitignoreFile = Path.Combine(targetDirectory, ".gitignore");
+
+			var srcDirectory = Path.Combine(targetDirectory, "src");
+			var inferredNamespaces = name.Split('.').Prepend(srcDirectory).Aggregate(Path.Combine);
+			var mainFile = Path.Combine(inferredNamespaces, "main.trm");
+
+			var testsDirectory = Path.Combine(targetDirectory, "tests");
+			var testsMainFile = Path.Combine(testsDirectory, "main.trm");
+
+			Directory.CreateDirectory(targetDirectory);
+			Directory.CreateDirectory(srcDirectory);
+			Directory.CreateDirectory(inferredNamespaces);
+			Directory.CreateDirectory(testsDirectory);
+
+			File.WriteAllText(configurationFile, @"# Use 'terumi install -p <name>' to install dependencies! Try install the terumi standard library, 'terumi'!
+");
+
+			File.WriteAllText(gitignoreFile, @"# ignore build artifacts
+bin
+
+# ignore cached pulled dependencies
+.libs
+");
+
+			File.WriteAllText(mainFile, @"main()
 {
 	@println(""Hello, World!"")
-}");
+}
+");
+
+			File.WriteAllText(testsMainFile, @"// TODO: get tests working
+");
 
 			Log.StageEnd();
 		}
 
-		private static void CompileProject(string name, Target target)
+		private static void CompileProject(Target target)
 		{
 			ICompilerTarget compilerTarget;
 
@@ -165,16 +216,16 @@ namespace Terumi
 				default: throw new InvalidOperationException();
 			}
 
-			Log.Info($"Could compile project: {Compile(name, compilerTarget)}");
+			Log.Info($"Could compile project: {Compile(compilerTarget)}");
 		}
 
-		private static async Task InstallProject(string packageName, string projectName, string? version)
+		private static async Task InstallProject(string packageName, string? version)
 		{
 			Log.Stage("LOAD", "Loading project");
 
-			if (!Project.TryLoad(Directory.GetCurrentDirectory(), projectName, out var project))
+			if (!Project.TryLoad(Directory.GetCurrentDirectory(), out var project))
 			{
-				Log.Error($"Unable to load project {projectName}");
+				Log.Error($"Unable to load project @'{Directory.GetCurrentDirectory()}'");
 				return;
 			}
 

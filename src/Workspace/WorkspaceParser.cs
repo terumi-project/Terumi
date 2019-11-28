@@ -99,8 +99,16 @@ namespace Terumi.Workspace
 
 					// now let's generate a pretty image for the error position
 					Span<char> image = new char[line.Length];
-					image[tokenStart..tokenEnd].Fill('~');
-					image[tokenStart] = '^';
+
+					if (tokenStart < line.Length)
+					{
+						if (tokenEnd < line.Length)
+						{
+							image[tokenStart..tokenEnd].Fill('~');
+						}
+
+						image[tokenStart] = '^';
+					}
 
 					// ok now let's modify both line and image according to tabs
 					// we want to replace a tab with 4 spaces
@@ -136,7 +144,7 @@ namespace Terumi.Workspace
 						}
 					}
 
-					Log.Error($@"Error parsing '{source.Path}'@'{project.ProjectName}':
+					Log.Error($@"Error parsing '{source.Path}'@'{project.ProjectName}' (thrown at TerumiParser.cs, line {ex.ParserLineNumber}:
 L{metadataLine}:C{metadataColumn} {ex.Message}
 {new string(modLine)}
 {new string(modImage)}");

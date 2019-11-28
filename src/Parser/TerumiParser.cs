@@ -132,13 +132,14 @@ namespace Terumi.Parser
 			{
 				if (_type == TokenType.Class)
 				{
-					NextSignificant();
-					// TODO: parse class
+					classes.Add(ReadClass());
 				}
 				else
 				{
 					methods.Add(ReadMethod());
 				}
+
+				if (AtEnd()) break;
 
 				ConsumeAllWhitespace();
 			}
@@ -146,7 +147,7 @@ namespace Terumi.Parser
 			return null;
 		}
 
-		/* top of the file */
+#region top of the file
 		public Contextual<Contextual<PackageLevel>> ReadPackage(PackageLevel defaultLevel)
 		{
 			var ctx = Init();
@@ -156,7 +157,7 @@ namespace Terumi.Parser
 			{
 				NextSignificant();
 				var level = PackageLevel();
-				NextUntilNewline();
+				UntilNewline("package level");
 				return Make(ctx, level);
 			}
 
@@ -172,7 +173,7 @@ namespace Terumi.Parser
 			{
 				NextSignificant();
 				var level = PackageLevel();
-				NextUntilNewline();
+				UntilNewline("package level");
 				return Make(ctx, level);
 			}
 
@@ -224,16 +225,134 @@ namespace Terumi.Parser
 
 			return Make(ctx, new PackageLevel(levels));
 		}
+#endregion
 
-		/* classes */
+#region classes
+		public Class ReadClass()
+		{
+			// -->class AyyLmao {
+			var ctx = Init();
 
-		/* methods */
+			if (_type != TokenType.Class)
+			{
+				Error("Expected 'class' keyword");
+			}
+
+			// -->AyyLmao {
+			NextSignificant();
+
+			if (_type != TokenType.IdentifierToken)
+			{
+				Error("Expected identifier for class name");
+			}
+
+			var name = _current.Value<string>();
+
+			// -->{
+			NextSignificant();
+
+			if (_type != TokenType.OpenBrace)
+			{
+				Error("Expected open brace to signify opening of class");
+			}
+
+			// --><>} (class body)
+			NextSignificant(); // read {
+
+			var methods = new List<Method>();
+			var fields = new List<Field>();
+
+			while (_type != TokenType.CloseBrace)
+			{
+				if (TryField(out var field))
+				{
+					fields.Add(field);
+				}
+				else
+				{
+					methods.Add(ReadMethod());
+				}
+
+				ConsumeAllWhitespace();
+			}
+
+			// -->
+			NextSignificant(); // read }
+
+			return new Class(Make(ctx), name, null, null);
+		}
+
+		public bool TryField(out Field field)
+		{
+			var ctx = Init();
+
+			// readonly keyword found, MUST be a field
+			// -->readonly string a
+			if (_type == TokenType.Readonly)
+			{
+				// -->string a
+				NextSignificant();
+				// must be field
+
+				// -->
+				var header = ReadTypeAndNameOptional();
+
+				if (header.Value.Type == null)
+				{
+					Error("Expected type for field");
+				}
+
+				UntilNewline("readonly field");
+				field = new Field(Make(ctx), header.Value.Type, header.Value.Name);
+
+				return true;
+			}
+			else
+			{
+				// -->string a
+
+				// -->
+				var header = ReadTypeAndNameOptional();
+				ConsumeWhitespace();
+
+				// if there's no type, it's obviously a method
+				if (header.Value.Type == null)
+				{
+					// if there isn't an open parenthesis, it's not a method
+					if (_type != TokenType.OpenParen)
+					{
+						Error("Expected type for field");
+					}
+
+					field = default;
+					Fail<Field>(ctx);
+					return false;
+				}
+
+				// it's a method, there's an open paren
+				if (_type == TokenType.OpenParen)
+				{
+					field = default;
+					Fail<Field>(ctx);
+					return false;
+				}
+
+				// it's a field!
+				UntilNewline("field");
+				field = new Field(Make(ctx), header.Value.Type, header.Value.Name);
+				return true;
+			}
+		}
+#endregion
+
+#region methods
 		public Method ReadMethod()
 		{
 			var ctx = Init();
 
 			var methodHeader = ReadTypeAndNameOptional();
 
+			ConsumeAllWhitespace();
 			if (_type != TokenType.OpenParen)
 			{
 				Error("Expected open parenthesis to signify method parameter group");
@@ -286,7 +405,7 @@ namespace Terumi.Parser
 			{
 				// try to read one statement
 				var stmt = ReadStatement();
-				NextUntilNewline();
+				UntilNewline("statement");
 
 				var stmts = new List<Statement> { stmt };
 
@@ -304,25 +423,33 @@ namespace Terumi.Parser
 					stmts.Add(ReadStatement());
 				}
 
-				NextSignificant();
-				NextUntilNewline();
+				// read }
+				// go to newline
+				NextUntilNewline("end of code body");
 
 				var contextualStmts = Make(ctx, stmts);
 				return new CodeBody(contextualStmts, stmts);
 			}
 		}
+#endregion
 
+#region statements
 		public Statement ReadStatement()
 		{
 			if (_type == TokenType.StringToken)
 			{
-				return new Statement.Return(default, new Expression.Constant(default, _current.Value<StringData>()));
+				return new Statement.Return(default, new Expression.Constant(default, _current.Value<Lexer.StringData>()));
 			}
 
 			Error("Cannot parse statements at this time");
 			return null;
 		}
+#endregion
 
+#region expressions
+#endregion
+
+#region helpers
 		private Contextual<(string? Type, string Name)> ReadTypeAndNameOptional()
 		{
 			var ctx = Init();
@@ -337,12 +464,11 @@ namespace Terumi.Parser
 
 			if (_type != TokenType.IdentifierToken)
 			{
-				NextSignificant();
 				return Make(ctx, (default(string?), a));
 			}
 
 			var b = _current.Value<string>();
-			NextSignificant();
+			Next();
 			return Make(ctx, (a, b));
 		}
 
@@ -356,7 +482,7 @@ namespace Terumi.Parser
 		[MethodImpl(MaxOpt)]
 		private Contextual<T> Fail<T>(ContextualInit ctx)
 		{
-			_i = ctx.Start;
+			Set(ctx.Start);
 			return Contextual<T>.Fail();
 		}
 
@@ -371,17 +497,34 @@ namespace Terumi.Parser
 		}
 
 		[MethodImpl(MaxOpt)]
-		private void NextUntilNewline()
+		private void NextUntilNewline(string @for)
+		{
+			Next();
+			if (AtEnd()) return;
+
+			UntilNewline(@for);
+		}
+
+		[MethodImpl(MaxOpt)]
+		private void UntilNewline(string @for)
+		{
+			ConsumeWhitespace();
+			if (AtEnd()) return;
+
+			if (_type != TokenType.Newline)
+			{
+				Error("Expected newline, didn't get one for " + @for);
+			}
+			Next();
+		}
+
+		[MethodImpl(MaxOpt)]
+		private void ConsumeWhitespace()
 		{
 			while (IsWhitespace(_type))
 			{
 				Next();
 				if (AtEnd()) return;
-			}
-
-			if (_type != TokenType.Newline)
-			{
-				Error("Expected newline, didn't get one");
 			}
 		}
 
@@ -406,36 +549,48 @@ namespace Terumi.Parser
 			|| type == TokenType.Newline;
 
 		[MethodImpl(MaxOpt)]
-		private void Next() => Set(++_i);
+		private void Next() => Set(_i + 1);
 
 		[MethodImpl(MaxOpt)]
-		private void Prev() => Set(--_i);
+		private void Set(int i)
+		{
+			_i = i;
+
+			if (AtEnd(i))
+			{
+				_token = null;
+			}
+			else
+			{
+				_token = _tokens.Span[i];
+			}
+		}
 
 		[MethodImpl(MaxOpt)]
-		private void Set(int i) => _token = AtEnd(i) ? null : _tokens.Span[i];
-
-		[MethodImpl(MaxOpt)]
-		private bool AtEnd(int i = -1) => (i == -1 ? _i : i) == _tokens.Length - 1;
+		private bool AtEnd(int i = -1) => (i == -1 ? _i : i) >= _tokens.Length;
 
 		[DoesNotReturn]
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		private void Error(string message, int index = -1)
+		private void Error(string message, int index = -1, [CallerLineNumber] int lineNumber = 0)
 		{
 			index = index == -1 ? _i : index;
 
-			throw new ParserException(_tokens, index, message);
+			throw new ParserException(_tokens, index, message, lineNumber);
 		}
+#endregion
 	}
 
 	public class ParserException : Exception
 	{
-		public ParserException(ReadOnlyMemory<Token> context, int index, string message) : base(message)
+		public ParserException(ReadOnlyMemory<Token> context, int index, string message, int parserLineNumber) : base(message)
 		{
 			Context = context;
 			Index = index;
+			ParserLineNumber = parserLineNumber;
 		}
 
 		public ReadOnlyMemory<Token> Context { get; }
 		public int Index { get; }
+		public int ParserLineNumber { get; }
 	}
 }

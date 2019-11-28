@@ -6,6 +6,7 @@ using Terumi.Parser;
 
 namespace Terumi.Binder
 {
+	/*
 	// used for var decls & whatever else
 	public class Scope
 	{
@@ -353,4 +354,5 @@ namespace Terumi.Binder
 			return new StringData(stringData.Value, interpolations);
 		}
 	}
+	*/
 }

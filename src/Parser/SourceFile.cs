@@ -7,8 +7,6 @@ namespace Terumi.Parser
 {
 	public class SourceFile
 	{
-		public static SourceFile Empty { get; }
-
 		public ConsumedTokens Consumed { get; }
 		public PackageLevel PackageLevel { get; }
 		public List<PackageLevel> Usings { get; }

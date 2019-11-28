@@ -84,18 +84,28 @@ namespace Terumi.Parser
 		protected Statement(ConsumedTokens consumed) => Consumed = consumed;
 		public ConsumedTokens Consumed { get; }
 
-		public class Assignment : Statement
+		public class Declaration : Statement
 		{
-			public Assignment(ConsumedTokens consumed, string? type, string name, Expression value) : base(consumed)
+			public Declaration(ConsumedTokens consumed, string? type, string name, Expression? value) : base(consumed)
 			{
 				Type = type;
 				Name = name;
 				Value = value;
 			}
 
-			public string Type { get; }
+			public string? Type { get; }
 			public string Name { get; }
 			public Expression Value { get; }
+		}
+
+		public class Assignment : Statement
+		{
+			public Assignment(ConsumedTokens consumed, Expression.Assignment assignment) : base(consumed)
+			{
+				Expression = assignment;
+			}
+
+			public Expression.Assignment Expression { get; }
 		}
 
 		public class MethodCall : Statement
@@ -197,6 +207,18 @@ namespace Terumi.Parser
 	{
 		protected Expression(ConsumedTokens consumed) => Consumed = consumed;
 		public ConsumedTokens Consumed { get; }
+
+		public class Assignment : Expression
+		{
+			public Assignment(ConsumedTokens consumed, Expression reference, Expression right) : base(consumed)
+			{
+				Left = reference;
+				Right = right;
+			}
+
+			public Expression Left { get; }
+			public Expression Right { get; }
+		}
 
 		public class Constant : Expression
 		{

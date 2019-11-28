@@ -151,6 +151,7 @@ namespace Terumi.Binder
 		// now read into the code of the method body - we have full type information at this point
 		public void DiscoverMethodBodies()
 		{
+			/*
 			foreach (var (@class, file) in _wipClasses)
 			{
 				foreach (var method in @class.Methods)
@@ -173,8 +174,10 @@ namespace Terumi.Binder
 				var code = binder.Finalize();
 				userMethod.Body = code;
 			}
+			*/
 		}
 
+		
 		internal IType FindImmediateType(string? name, SourceFile source)
 		{
 			// at this point 'name' is guarenteed to not be null

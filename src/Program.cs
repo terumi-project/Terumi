@@ -40,6 +40,7 @@ namespace Terumi
 
 			var terumiProject = project.ParseProject(resolver, target);
 
+			/*
 			var translator = new Translator(target);
 
 			foreach (var item in terumiProject.IndirectDependencies
@@ -70,6 +71,7 @@ namespace Terumi
 			target.Write(indentedWriter, translator._diary.Methods);
 
 			Log.StageEnd();
+			*/
 			return true;
 		}
 

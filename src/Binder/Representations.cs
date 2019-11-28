@@ -20,9 +20,9 @@ namespace Terumi.Binder
 
 		public Parser.Statement FromParser { get; }
 
-		public class Assignment : Statement
+		public class Declaration : Statement
 		{
-			public Assignment(Parser.Statement.Assignment fromParser, IType type, string name, Expression value) : base(fromParser)
+			public Declaration(Parser.Statement.Declaration fromParser, IType type, string name, Expression value) : base(fromParser)
 			{
 				FromParser = fromParser;
 				Type = type;
@@ -30,10 +30,22 @@ namespace Terumi.Binder
 				Value = value;
 			}
 
-			new public Parser.Statement.Assignment FromParser { get; }
+			new public Parser.Statement.Declaration FromParser { get; }
 			public IType Type { get; }
 			public string Name { get; }
 			public Expression Value { get; }
+		}
+
+		public class Assignment : Statement
+		{
+			public Assignment(Parser.Statement.Assignment fromParser, Expression.Assignment assignment) : base(fromParser)
+			{
+				FromParser = fromParser;
+				AssignmentExpression = assignment;
+			}
+
+			new public Parser.Statement.Assignment FromParser { get; }
+			public Expression.Assignment AssignmentExpression { get; }
 		}
 
 		public class MethodCall : Statement
@@ -155,6 +167,21 @@ namespace Terumi.Binder
 		public Parser.Expression FromParser { get; }
 		public abstract IType Type { get; }
 
+		public class Assignment : Expression
+		{
+			public Assignment(Parser.Expression.Assignment fromParser, Expression left, Expression right) : base(fromParser)
+			{
+				FromParser = fromParser;
+				Left = left;
+				Right = right;
+			}
+
+			public Parser.Expression.Assignment FromParser { get; }
+			public override IType Type => Left.Type; // the right will be casted to the left
+			public Expression Left { get; }
+			public Expression Right { get; }
+		}
+
 		public class Constant : Expression
 		{
 			public Constant(Parser.Expression.Constant fromParser, object value) : base(fromParser)
@@ -193,13 +220,13 @@ namespace Terumi.Binder
 
 			public class Variable : Reference
 			{
-				public Variable(Parser.Expression.Reference fromParser, Statement.Assignment declaration) : base(fromParser)
+				public Variable(Parser.Expression.Reference fromParser, Statement.Declaration declaration) : base(fromParser)
 				{
 					Declaration = declaration;
 				}
 
 				public override IType Type => Declaration.Type;
-				public Statement.Assignment Declaration { get; }
+				public Statement.Declaration Declaration { get; }
 			}
 
 			public class Field : Reference

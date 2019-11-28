@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -7,902 +9,404 @@ using Terumi.Lexer;
 
 namespace Terumi.Parser
 {
-	public delegate bool TryConsume<T>(ref T result);
-
 	public struct ConsumedTokens
 	{
-		public static ConsumedTokens Default { get; } = new ConsumedTokens(EmptyList<Token>.Instance);
+		public static ConsumedTokens Default { get; } = new ConsumedTokens(default);
 
-		public ConsumedTokens(List<Token> tokens)
+		public ConsumedTokens(ReadOnlyMemory<Token> tokens)
 		{
 			Tokens = tokens;
 		}
 
-		public List<Token> Tokens { get; }
+		public ReadOnlyMemory<Token> Tokens { get; }
+	}
+
+	public enum ContextualState
+	{
+		Read,
+		JustValue,
+		FailedRead
+	}
+
+	public struct Contextual<T>
+	{
+		public Contextual(T value)
+		{
+			Tokens = new ReadOnlyMemory<Token>();
+			Value = value;
+			Success = ContextualState.JustValue;
+		}
+
+		public Contextual(ReadOnlyMemory<Token> tokens, T value)
+		{
+			Tokens = tokens;
+			Value = value;
+			Success = ContextualState.Read;
+		}
+
+		public ReadOnlyMemory<Token> Tokens { get; }
+		public T Value { get; }
+		public ContextualState Success { get; private set; }
+
+		public static Contextual<T> Fail() => new Contextual<T> { Success = ContextualState.FailedRead };
+		public static implicit operator Contextual<T>(T value) => new Contextual<T>(value);
+		public static implicit operator ConsumedTokens(Contextual<T> ctx) => new ConsumedTokens(ctx.Tokens);
 	}
 
 	public class TerumiParser
 	{
-		private const MethodImplOptions MaxOpt = MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization;
-		private readonly List<Token> _tokens;
-		private int _i;
+#region not parsing related
+		public const MethodImplOptions MaxOpt = MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization;
 
-		public TerumiParser(List<Token> tokens)
+		private readonly ReadOnlyMemory<Token> _tokens;
+
+		private int _i;
+		private Token _token;
+
+		private Token _current
+		{
+			get
+			{
+				if (_token == null)
+				{
+					Debug.Assert(_i == _tokens.Length, "Token should be null at end of stream");
+					Error("Didn't expect EOF so soon", _i - 1);
+				}
+
+				return _token;
+			}
+		}
+
+		private TokenType _type => _current.Type;
+
+		public TerumiParser(ReadOnlyMemory<Token> tokens)
 		{
 			_tokens = tokens;
-			ConsumeWhitespace(false);
+			Set(_i);
 		}
+
+		private struct ContextualInit
+		{
+			private readonly ReadOnlyMemory<Token> _tokens;
+			private readonly int _start;
+
+			public ContextualInit(ReadOnlyMemory<Token> tokens, int start)
+			{
+				_tokens = tokens;
+				_start = start;
+			}
+
+			public int Start => _start;
+
+			public Contextual<T> Make<T>(T value, int current)
+				=> new Contextual<T>(_tokens.Slice(_start, current - _start), value);
+		}
+#endregion
 
 		public SourceFile ConsumeSourceFile(PackageLevel defaultLevel)
 		{
-			var start = Current();
-			if (AtEnd()) return new SourceFile(TakeTokens(start, Current()), defaultLevel);
+			// package x.y.z at the top
+			var package = ReadPackage(defaultLevel);
+			var packages = new List<Contextual<Contextual<PackageLevel>>>();
 
-			var packageLevel = defaultLevel;
+			var use = ReadUse();
 
-			if (Peek().Type == TokenType.Package)
+			while (use.Success != ContextualState.FailedRead)
 			{
-				Next();
-
-				ConsumeWhitespace();
-				packageLevel = ConsumePackageLevel();
-
-				ConsumeWhitespace();
+				packages.Add(use);
+				use = ReadUse();
 			}
 
-			var packages = new List<PackageLevel>();
-
-			while (Peek().Type == TokenType.Use)
-			{
-				Next();
-				ConsumeWhitespace();
-
-				packages.Add(ConsumePackageLevel());
-				ConsumeWhitespace();
-			}
-
-			// TODO: functions, types & whatnot
-
-			var classes = new List<Class>();
-			var methods = new List<Method>();
-
-			{
-				Method method = null;
-				Class @class = null;
-
-				while (true)
-				{
-					// TODO: types
-					if (TryClass(ref @class))
-					{
-						classes.Add(@class);
-					}
-					else if (TryMethod(ref method))
-					{
-						methods.Add(method);
-					}
-					else
-					{
-						break;
-					}
-				}
-			}
-
-			return new SourceFile(TakeTokens(start, Current()), packageLevel, packages, methods, classes);
-		}
-
-		public PackageLevel ConsumePackageLevel()
-		{
-			if (AtEnd()) Unsupported($"Cannot consume a package level at the end of the token list");
-
-			if (Peek().Type != TokenType.IdentifierToken)
-			{
-				Unsupported($"Expected identifier type");
-			}
-
-			var levels = new List<string> { (string)Peek().Data };
-
-			Next();
-			while (Peek().Type == TokenType.Dot)
-			{
-				Next();
-
-				if (Peek().Type != TokenType.IdentifierToken)
-				{
-					Unsupported($"Expected another identifier in namespace, got {Peek().Type}");
-				}
-
-				levels.Add((string)Peek().Data);
-
-				Next();
-			}
-
-			return new PackageLevel(levels);
-		}
-
-		public bool TryClass(ref Class @class)
-		{
-			var classStart = Current();
-			if (AtEnd()) return Quit();
-			if (Peek().Type != TokenType.Class) return Quit();
-
-			Next(); ConsumeWhitespace();
-			if (Peek().Type != TokenType.IdentifierToken) Unsupported("Must have name for class");
-			var name = Peek().Data as string;
-
-			Next(); ConsumeWhitespace(false);
-			if (Peek().Type != TokenType.OpenBrace) Unsupported("Must have open brace for class");
-			Next(); ConsumeWhitespace(false);
-
-			var methods = new List<Method>();
-			var fields = new List<Field>();
-			Method method = null;
-			Field field = null;
-
-			while (Peek().Type != TokenType.CloseBrace)
-			{
-				if (TryMethod(ref method))
-				{
-					methods.Add(method);
-				}
-				else if (TryField(ref field))
-				{
-					fields.Add(field);
-				}
-				else
-				{
-					Unsupported("Expected method or field");
-				}
-			}
-
-			// consume close brace
-			Next(); ConsumeWhitespace(false);
-
-			@class = new Class(TakeTokens(classStart, Current()), name, methods, fields);
-			return true;
-
-			bool Quit()
-			{
-				_i = classStart;
-				return false;
-			}
-		}
-
-		public bool TryField(ref Field field)
-		{
-			var start = Current();
-			if (AtEnd()) Quit();
-
-			if (Peek().Type != TokenType.IdentifierToken) Quit();
-			var type = Peek().Data as string;
-			Next(); ConsumeWhitespace();
-
-			if (Peek().Type != TokenType.IdentifierToken) Quit();
-			var name = Peek().Data as string;
-			Next(); ConsumeWhitespace(); // fields must have a newline after 'em
-
-			field = new Field(TakeTokens(start, Current()), type, name);
-			return true;
-
-			bool Quit()
-			{
-				_i = start;
-				return false;
-			}
-		}
-
-		public bool TryMethod(ref Method method)
-		{
-			var methodStart = Current();
-			if (AtEnd()) return Quit();
-			if (Peek().Type != TokenType.IdentifierToken) return Quit();
-
-			string? type = null;
-			var name = Peek().Data as string;
-
-			Next();
-			// TODO: make sure there's an identifier if there's not a second one
-			ConsumeWhitespace(false);
-
-			if (Peek().Type == TokenType.IdentifierToken)
-			{
-				type = name;
-				name = Peek().Data as string;
-
-				Next();
-				ConsumeWhitespace(false);
-			}
-
-			// may be a field if there's no open paren
-			if (Peek().Type != TokenType.OpenParen) return Quit();
-
-			Next();
-			ConsumeWhitespace(false);
-
-			bool expectMore = Peek().Type != TokenType.CloseParen;
-
-			List<MethodParameter> parameters;
-
-			if (!expectMore)
-			{
-				parameters = EmptyList<MethodParameter>.Instance;
-			}
-			else
-			{
-				parameters = new List<MethodParameter>(4);
-			}
-
-			while (expectMore)
-			{
-				var start = Current();
-
-				if (Peek().Type != TokenType.IdentifierToken)
-				{
-					Unsupported($"Expected parameter type or closed parenthesis");
-				}
-
-				var paramType = Peek().Data as string;
-
-				Next();
-				// TODO: force this to consume whitespace
-				ConsumeWhitespace(false);
-
-				if (Peek().Type != TokenType.IdentifierToken)
-				{
-					Unsupported($"Expected parameter name after parameter type");
-				}
-
-				var paramName = Peek().Data as string;
-
-				parameters.Add(new MethodParameter(TakeTokens(start, Current()), paramType, paramName));
-
-				Next();
-				ConsumeWhitespace(false);
-
-				expectMore = Peek().Type == TokenType.Comma;
-				if (!expectMore && Peek().Type != TokenType.CloseParen)
-				{
-					Unsupported($"Expected end of parameter list (')') because of a lack of comma, but didn't get one");
-				}
-
-				if (expectMore)
-				{
-					Next();
-					ConsumeWhitespace(false);
-				}
-			}
-
-			// consuem close paren
-			Next();
-			ConsumeWhitespace(false);
-
-			ConsumeWhitespace(false);
-			var body = ConsumeCodeBody();
-
-			method = new Method(TakeTokens(methodStart, Current()), type, name, parameters, body);
-			return true;
-
-			bool Quit()
-			{
-				_i = methodStart;
-				return false;
-			}
-		}
-
-		private CodeBody ConsumeCodeBody()
-		{
-			var start = Current();
-			if (Peek().Type != TokenType.OpenBrace)
-			{
-				Statement statement = null;
-
-				if (!ConsumeStatement(ref statement))
-				{
-					// empty method
-					return CodeBody.Empty;
-				}
-
-				return new CodeBody(TakeTokens(start, Current()), new List<Statement> { statement });
-			}
-
-			Next();
-			ConsumeWhitespace(); // we expect newlines to act as an end of statement
-
-			var statements = new List<Statement>();
-
-			while (Peek().Type != TokenType.CloseBrace)
-			{
-				Statement statement = null;
-
-				if (!ConsumeStatement(ref statement))
-				{
-					Unsupported($"Couldn't consume statement in code body");
-				}
-
-				statements.Add(statement);
-
-				// statement consumed whitespace for us
-			}
-
-			// consme close brace
-			Next();
-			ConsumeWhitespace(false);
-
-			return new CodeBody(TakeTokens(start, Current()), statements);
-		}
-
-		#region STATEMENTS
-		private bool ConsumeStatement(ref Statement statement)
-		{
-			return ConsumeGeneric<Statement, Statement.Return>(ConsumeReturn, ref statement)
-				|| ConsumeGeneric<Statement, Statement.Command>(ConsumeCommand, ref statement)
-				|| ConsumeGeneric<Statement, Statement.Assignment>(ConsumeAssignment, ref statement)
-				|| ConsumeGeneric<Statement, Statement.Increment>(ConsumeIncrement, ref statement)
-				|| ConsumeGeneric<Statement, Statement.MethodCall>(ConsumeMethodCall, ref statement)
-				|| ConsumeGeneric<Statement, Statement.If>(ConsumeIf, ref statement)
-				|| ConsumeGeneric<Statement, Statement.While>(ConsumeWhile, ref statement)
-				|| ConsumeGeneric<Statement, Statement.For>(ConsumeFor, ref statement)
-				|| ConsumeGeneric<Statement, Statement.Access>(ConsumeAccess, ref statement);
-		}
-
-		private bool ConsumeAccess(ref Statement.Access access)
-		{
-			var start = Current();
-			var expr = ConsumeAccessExpression();
-			if (expr == null || !(expr is Expression.Access accessExpr)) return false;
-
-			access = new Statement.Access(TakeTokens(start, Current()), accessExpr);
-			return true;
-		}
-
-		private bool ConsumeReturn(ref Statement.Return @return)
-		{
-			if (Peek().Type != TokenType.Return) return false;
-			var start = Current();
-			Next(); ConsumeWhitespace();
-			var expr = ConsumeExpression();
-			@return = new Statement.Return(TakeTokens(start, Current()), expr);
-			ConsumeWhitespace(false);
-			return true;
-		}
-
-		private bool ConsumeCommand(ref Statement.Command command)
-		{
-			var start = Current();
-			if (Peek().Type != TokenType.CommandToken) return false;
-			var data = Peek().Data as Lexer.StringData;
-			Next();
-			command = new Statement.Command(TakeTokens(start, Current()), Convert(data));
-			ConsumeWhitespace(false);
-			return true;
-		}
-
-		private bool ConsumeIncrement(ref Statement.Increment increment)
-		{
-			var start = Current();
-			var expr = ConsumeIncrementExpression();
-			if (!(expr is Expression.Increment incExpr)) return Quit();
-			increment = new Statement.Increment(TakeTokens(start, Current()), incExpr);
-			ConsumeWhitespace(false);
-			return true;
-
-			bool Quit() { _i = start; return false; }
-		}
-
-		private bool ConsumeAssignment(ref Statement.Assignment assignment)
-		{
-			var start = Current();
-			if (Peek().Type != TokenType.IdentifierToken)
-			{
-				_i = start;
-				return false;
-				// Unsupported($"Expected identifier token when consuming variable declaration statement");
-			}
-
-			string? type = null;
-			var name = Peek().Data as string;
-
-			Next();
-			var didConsume = ConsumeWhitespace(false);
-
-			if (Peek().Type == TokenType.IdentifierToken)
-			{
-				if (!didConsume)
-				{
-					_i = start;
-					return false;
-					// Unsupported($"Should've consumed whitespace before another identifier");
-				}
-
-				type = name;
-				name = Peek().Data as string;
-
-				Next();
-				ConsumeWhitespace(false);
-			}
-
-			if (Peek().Type != TokenType.Assignment)
-			{
-				_i = start;
-				return false;
-			}
-			Next();
-			ConsumeWhitespace(false);
-
-			var value = ConsumeExpression(); // TODO
-
-			assignment = new Statement.Assignment(TakeTokens(start, Current()), type, name, value);
-
-			ConsumeWhitespace(false);
-			return true;
-		}
-
-		private bool ConsumeMethodCall(ref Statement.MethodCall methodCall)
-		{
-			var start = Current();
-
-			Expression.MethodCall exprMethodCall = null;
-			if (!TryConsumeMethodCallExpression(ref exprMethodCall)) { _i = start; return false; }
-
-			methodCall = new Statement.MethodCall(TakeTokens(start, Current()), exprMethodCall);
-			return true;
-		}
-
-		private bool ConsumeIf(ref Statement.If @if)
-		{
-			if (Peek().Type != TokenType.If) return false;
-			var start = Current();
-			Next(); ConsumeWhitespace();
-			var expr = ConsumeExpression();
-			var @true = ConsumeCodeBody();
-			var @else = CodeBody.Empty;
-
-			if (Peek().Type == TokenType.Else)
-			{
-				Next(); ConsumeWhitespace(false);
-				@else = ConsumeCodeBody();
-			}
-
-			@if = new Statement.If(TakeTokens(start, Current()), expr, @true, @else);
-			ConsumeWhitespace(false);
-			return true;
-		}
-
-		private bool ConsumeWhile(ref Statement.While @while)
-		{
-			var start = Current();
-			bool isDoWhile = false;
-			if (Peek().Type == TokenType.Do)
-			{
-				isDoWhile = true;
-				Next(); ConsumeWhitespace(false);
-				var body = ConsumeCodeBody();
-				ConsumeWhitespace(false);
-				if (Peek().Type != TokenType.While) Unsupported("Expected do while to have while at the end of body");
-				Next(); ConsumeWhitespace(false);
-				var comparison = ConsumeExpression();
-
-				@while = new Statement.While(TakeTokens(start, Current()), comparison, body, isDoWhile);
-
-				ConsumeWhitespace(false);
-				return true;
-			}
-			else if (Peek().Type == TokenType.While)
-			{
-				Next(); ConsumeWhitespace(false);
-				var comparison = ConsumeExpression();
-				ConsumeWhitespace(false);
-				var body = ConsumeCodeBody();
-
-				@while = new Statement.While(TakeTokens(start, Current()), comparison, body);
-				ConsumeWhitespace(false);
-				return true;
-			}
-
-			return false;
-		}
-
-		private bool ConsumeFor(ref Statement.For @for)
-		{
-			if (Peek().Type != TokenType.For) return false;
-			var start = Current();
-			Next(); ConsumeWhitespace(false);
-			if (Peek().Type != TokenType.OpenParen) Unsupported("Expected open parenthesis in for");
-			Next(); ConsumeWhitespace(false);
-			var decl = ConsumeCodeBody();
-			if (Peek().Type != TokenType.Semicolon) Unsupported("Expected semicolon at end of for declaration");
-			Next(); ConsumeWhitespace(false);
-			var comparison = ConsumeComparisonExpression();
-			if (Peek().Type != TokenType.Semicolon) Unsupported("Expected semicolon at end of for declaration");
-			Next(); ConsumeWhitespace(false);
-			var inc = ConsumeCodeBody();
-			if (Peek().Type != TokenType.CloseParen) Unsupported("Expected close parenthesis");
-			Next(); ConsumeWhitespace(false);
-			var body = ConsumeCodeBody();
-
-			@for = new Statement.For(TakeTokens(start, Current()), decl, comparison, inc, body);
-			return true;
-		}
-		#endregion
-
-		#region EXPRESSIONS
-		public Expression ConsumeExpression()
-		{
-			return ConsumeEqualityExpression();
-		}
-
-		public Expression ConsumeEqualityExpression()
-		{
-			var start = Current();
-			var total = ConsumeComparisonExpression();
-			if (total == null) return null;
-
-			if (AtEnd()) return total;
-			while (Peek().Type == TokenType.EqualTo
-				|| Peek().Type == TokenType.NotEqualTo)
-			{
-				var type = Peek().Type;
-				Next();
-				ConsumeWhitespace(false);
-
-				var right = ConsumeComparisonExpression();
-				if (right == null)
-				{
-					Unsupported($"Expected right hand of addition statement ({type})");
-				}
-
-				total = new Expression.Binary(TakeTokens(start, Current()), total, type, right);
-				ConsumeWhitespace(false);
-			}
-
-			ConsumeWhitespace(false);
-			return total;
-		}
-
-		public Expression ConsumeComparisonExpression()
-		{
-			var start = Current();
-			var total = ConsumeAdditionExpression();
-			if (total == null) return null;
-
-			if (AtEnd()) return total;
-			while (Peek().Type == TokenType.GreaterThan
-				|| Peek().Type == TokenType.GreaterThanOrEqualTo
-				|| Peek().Type == TokenType.LessThan
-				|| Peek().Type == TokenType.LessThanOrEqualTo)
-			{
-				var type = Peek().Type;
-				Next();
-				ConsumeWhitespace(false);
-
-				var right = ConsumeAdditionExpression();
-				if (right == null)
-				{
-					Unsupported($"Expected right hand of addition statement ({type})");
-				}
-
-				total = new Expression.Binary(TakeTokens(start, Current()), total, type, right);
-				ConsumeWhitespace(false);
-			}
-
-			ConsumeWhitespace(false);
-			return total;
-		}
-
-		public Expression ConsumeAdditionExpression()
-		{
-			var start = Current();
-			var total = ConsumeMultiplicationExpression();
-			if (total == null) return null;
-
-			if (AtEnd()) return total;
-			while (Peek().Type == TokenType.Add || Peek().Type == TokenType.Subtract)
-			{
-				var type = Peek().Type;
-				Next();
-				ConsumeWhitespace(false);
-
-				var right = ConsumeMultiplicationExpression();
-				if (right == null)
-				{
-					Unsupported($"Expected right hand of addition statement ({type})");
-				}
-
-				total = new Expression.Binary(TakeTokens(start, Current()), total, type, right);
-				ConsumeWhitespace(false);
-			}
-
-			ConsumeWhitespace(false);
-			return total;
-		}
-
-		public Expression ConsumeMultiplicationExpression()
-		{
-			var start = Current();
-			var total = ConsumeIncrementExpression();
-			if (total == null) return null;
-
-			if (AtEnd()) return total;
-			while (Peek().Type == TokenType.Multiply || Peek().Type == TokenType.Divide)
-			{
-				var type = Peek().Type;
-				Next();
-				ConsumeWhitespace(false);
-
-				var right = ConsumeIncrementExpression();
-				if (right == null)
-				{
-					Unsupported($"Expected right hand of multiplication statement ({type})");
-				}
-
-				total = new Expression.Binary(TakeTokens(start, Current()), total, type, right);
-				ConsumeWhitespace(false);
-			}
-
-			ConsumeWhitespace(false);
-			return total;
-		}
-
-		public Expression ConsumeIncrementExpression()
-		{
-			var start = Current();
-			bool pre = false;
-			TokenType type = TokenType.Whitespace;
-			if (Peek().Type == TokenType.Increment || Peek().Type == TokenType.Decrement) { type = Peek().Type; Next(); }
-			pre = type != TokenType.Whitespace;
-			var primary = ConsumeAccessExpression();
-			if (primary == null) return null;
-			if (type == TokenType.Whitespace)
-			{
-				if (AtEnd()) return primary;
-				if (Peek().Type == TokenType.Increment || Peek().Type == TokenType.Decrement) { type = Peek().Type; Next(); }
-			}
-			if (type != TokenType.Whitespace)
-			{
-				var side = pre ? Expression.Increment.IncrementSide.Pre : Expression.Increment.IncrementSide.Post;
-				var expr = new Expression.Increment(TakeTokens(start, Current()), side, type, primary);
-				ConsumeWhitespace(false);
-				return expr;
-			}
-			ConsumeWhitespace(false);
-			return primary;
-		}
-
-		public Expression ConsumeAccessExpression()
-		{
-			var start = Current();
-			var total = ConsumePrimaryExpression();
-
-			if (AtEnd()) return total;
-			while (Peek().Type == TokenType.Dot)
-			{
-				Next(); ConsumeWhitespace(false);
-				var action = ConsumePrimaryExpression();
-				total = new Expression.Access(TakeTokens(start, Current()), total, action);
-				if (AtEnd()) return total;
-			}
-
-			return total;
-		}
-
-		public Expression ConsumePrimaryExpression()
-		{
-			var start = Current();
-			var primary = ConsumePrimaryExpression_Actual();
-			if (primary == null) return null;
-			ConsumeWhitespace(false);
-			return primary;
-
-			// access expressions are for big brains only
-
-			/*
-			ConsumeWhitespace(false);
-			if (Peek().Type == TokenType.Dot)
-			{
-				var expr = ConsumeExpression();
-				if (expr == null) Unsupported($"Expected expression after dot on expression");
-
-				if (expr is Expression.Access access)
-				{
-					// unpack the access expression
-				}
-			}
-			*/
-		}
-
-		public Expression ConsumePrimaryExpression_Actual()
-		{
-			var start = Current();
-
-			switch (Peek().Type)
-			{
-				case TokenType.StringToken: { var data = Peek().Data; Next(); return new Expression.Constant(TakeTokens(start, Current()), Convert(data as Lexer.StringData)); }
-				case TokenType.NumberToken: { var data = Peek().Data; Next(); return new Expression.Constant(TakeTokens(start, Current()), data); }
-				case TokenType.True: { Next(); return new Expression.Constant(TakeTokens(start, Current()), true); }
-				case TokenType.False: { Next(); return new Expression.Constant(TakeTokens(start, Current()), false); }
-
-				case TokenType.New:
-				{
-					Next(); ConsumeWhitespace(false);
-
-					Expression.MethodCall ctor = null;
-					if (!TryConsumeMethodCallExpression(ref ctor))
-					{
-						Unsupported($"Expected valid method call after new, didn't get one");
-					}
-
-					return new Expression.New(TakeTokens(start, Current()), ctor.Name, ctor.Parameters);
-				}
-			}
-
-			if (Peek().Type == TokenType.OpenParen)
-			{
-				Next();
-				ConsumeWhitespace(false);
-				var expr = ConsumeExpression();
-
-				if (Peek().Type != TokenType.CloseParen)
-				{
-					Unsupported($"Expected closing parenthesis on expression");
-				}
-
-				// consume )
-				Next();
-				return expr;
-			}
-
-			Expression.MethodCall call = null;
-
-			if (TryConsumeMethodCallExpression(ref call))
-			{
-				return call;
-			}
-
-			// try identifier as a reference as a LAST RESORT 
-			if (Peek().Type == TokenType.IdentifierToken)
-			{
-				var data = Peek().Data;
-				Next();
-				return new Expression.Reference(TakeTokens(start, Current()), data as string);
-			}
-
-			// Unsupported($"Unsupported expression");
 			return null;
 		}
 
-		private bool TryConsumeMethodCallExpression(ref Expression.MethodCall methodCall)
+		/* top of the file */
+		public Contextual<Contextual<PackageLevel>> ReadPackage(PackageLevel defaultLevel)
 		{
-			var start = Current();
-			var isCompilerCall = false;
+			var ctx = Init();
 
-			if (Peek().Type == TokenType.At) { Next(); isCompilerCall = true; }
-
-			if (Peek().Type != TokenType.IdentifierToken) { _i = start; return false; }
-
-			var name = Peek().Data as string;
-			Next();
-			ConsumeWhitespace(false);
-
-			if (AtEnd()) { _i = start; return false; }
-			if (Peek().Type != TokenType.OpenParen) { _i = start; return false; }
-
-			Next();
-			ConsumeWhitespace(false);
-
-			var exprs = new List<Expression>();
-
-			while (Peek().Type != TokenType.CloseParen)
+			ConsumeAllWhitespace();
+			if (_type == TokenType.Package)
 			{
-				exprs.Add(ConsumeExpression());
-
-				if (Peek().Type != TokenType.Comma)
-				{
-					// Next();
-					ConsumeWhitespace(false);
-
-					if (Peek().Type == TokenType.CloseParen) break;
-					Unsupported($"Didn't get comma but didn't get closing parenthesis");
-				}
-				else
-				{
-					// consume comma
-					Next();
-					ConsumeWhitespace(false);
-				}
+				NextSignificant();
+				var level = PackageLevel();
+				NextUntilNewline();
+				return Make(ctx, level);
 			}
 
-			// consume close paren
-			Next();
-			ConsumeWhitespace(false);
-
-			methodCall = new Expression.MethodCall(TakeTokens(start, Current()), isCompilerCall, name, exprs);
-			return true;
+			return Make(ctx, defaultLevel);
 		}
-		#endregion
 
-		/* custom stringdata converter */
-
-		public StringData Convert(Lexer.StringData lexerStringData)
+		public Contextual<Contextual<PackageLevel>> ReadUse()
 		{
-			var interpolations = new List<StringData.Interpolation>();
+			var ctx = Init();
 
-			foreach (var interpolation in lexerStringData.Interpolations)
+			ConsumeAllWhitespace();
+			if (_type == TokenType.Use)
 			{
-				var parser = new TerumiParser(interpolation.Tokens);
-				var expr = parser.ConsumeExpression();
-				if (expr == null) Unsupported($"Unable to parse expression in string interpolation {lexerStringData}");
-				interpolations.Add(new StringData.Interpolation(expr, interpolation.Position));
+				NextSignificant();
+				var level = PackageLevel();
+				NextUntilNewline();
+				return Make(ctx, level);
 			}
 
-			return new StringData(lexerStringData.StringValue.ToString(), interpolations);
+			return Fail<Contextual<PackageLevel>>(ctx);
 		}
 
-		/* core */
-
-		private bool ConsumeWhitespace(bool mustConsumeWhitespace = true, bool mustConsumeNewline = false)
+		public Contextual<PackageLevel> PackageLevel()
 		{
-			bool didConsume = false;
-			bool didConsumeNewline = false;
+			var ctx = Init();
 
-			while (!AtEnd()
-				&& (Peek().Type == TokenType.Whitespace
-				|| Peek().Type == TokenType.Comment
-				|| Peek().Type == TokenType.Newline))
+			// <> a.b.c <>
+
+			// -->a.b.c <>
+			ConsumeAllWhitespace();
+
+			if (_type != TokenType.IdentifierToken)
 			{
-				didConsumeNewline = didConsumeNewline || Peek().Type == TokenType.Newline;
-				didConsume = true;
+				Error("Expected an identifier at a package level");
+			}
+
+			var levels = new List<string>();
+
+			levels.Add(_current.Value<string>());
+
+			// -->.b.c <>
+			Next();
+
+			while (_type != TokenType.Dot)
+			{
+				// -->b.c
 				Next();
+
+				if (_type != TokenType.IdentifierToken)
+				{
+					Error("Expected an identifier at a package level");
+				}
+
+				levels.Add(_current.Value<string>());
+
+				// -->.c
+				Next();
+
+				// next loop:
+				// -->c <>
+				// --><>
 			}
 
-			if (mustConsumeWhitespace && !didConsume)
-			{
-				Unsupported($"Didn't consume necessary whitespace");
-			}
+			// --><>
 
-			if (mustConsumeNewline && !didConsumeNewline)
-			{
-				Unsupported($"Didn't consume necessary newline");
-			}
-
-			return didConsume;
+			return Make(ctx, new PackageLevel(levels));
 		}
 
-		private Token Peek(int amt = 0)
+		/* classes */
+
+		/* methods */
+		public Method ReadMethod()
 		{
-			if (_tokens.Count <= amt + _i)
-#if DEBUG
-			Unsupported("No more tokens to peek from");
-#else
+			var ctx = Init();
+
+			var methodHeader = ReadTypeAndNameOptional();
+
+			if (_type != TokenType.OpenParen)
 			{
-				Log.Warn("Couldn't read anymore tokens - returning 'Unknown' TokenType");
-				return new Token(TokenType.Unknown, default, default, null);
+				Error("Expected open parenthesis to signify method parameter group");
 			}
-#endif
-			return _tokens[amt + _i];
+
+			var parameters = ReadMethodParameterGroup();
+			var body = ReadCodeBody();
+
+			return new Method(Make(ctx), methodHeader.Value.Type, methodHeader.Value.Name, parameters.Value, body);
 		}
 
-		private void Next() => _i++;
-
-		public bool AtEnd() => _i >= _tokens.Count - 1;
-
-		private int Current() => _i;
-
-		// TODO: more efficient take routine
-		private ConsumedTokens TakeTokens(int start, int end)
-			=> new ConsumedTokens(_tokens.Skip(start).Take(end).ToList());
-
-		private bool ConsumeGeneric<T, T2>(TryConsume<T2> tryConsume, ref T result)
-			where T2 : T
+		public Contextual<List<MethodParameter>> ReadMethodParameterGroup()
 		{
-			T2 instance = default;
-			if (!tryConsume(ref instance)) return false;
-			result = (T)instance;
-			return true;
+			var ctx = Init();
+
+			if (_type != TokenType.IdentifierToken)
+			{
+				return Make(ctx, EmptyList<MethodParameter>.Instance);
+			}
+
+			var parameters = new List<MethodParameter>();
+
+		LOOP:
+			var read = ReadTypeAndNameOptional();
+
+			if (read.Value.Item1 == null)
+			{
+				Error("Expected type and name for method parameter");
+			}
+
+			parameters.Add(new MethodParameter(read, (string)read.Value.Type, read.Value.Name));
+
+			if (_type == TokenType.Comma)
+			{
+				NextSignificant();
+				goto LOOP;
+			}
+
+			return Make(ctx, parameters);
 		}
 
-		private void Unsupported(string reason)
+		public CodeBody ReadCodeBody()
 		{
-			throw new InvalidOperationException($"{reason} {(!AtEnd() ? Peek().PositionStart.ToString() : "")}");
+			var ctx = Init();
+
+			if (_type != TokenType.OpenBrace)
+			{
+				// try to read one statement
+				var stmt = ReadStatement();
+				NextUntilNewline();
+
+				var stmts = new List<Statement> { stmt };
+
+				var contextualStmts = Make(ctx, stmts);
+				return new CodeBody(contextualStmts, stmts);
+			}
+			else
+			{
+				NextSignificant();
+
+				var stmts = new List<Statement>();
+
+				while (_type != TokenType.CloseBrace)
+				{
+					stmts.Add(ReadStatement());
+				}
+
+				NextSignificant();
+				NextUntilNewline();
+
+				var contextualStmts = Make(ctx, stmts);
+				return new CodeBody(contextualStmts, stmts);
+			}
 		}
+
+		public Statement ReadStatement()
+		{
+			if (_type == TokenType.StringToken)
+			{
+				return new Statement.Return(default, new Expression.Constant(default, _current.Value<StringData>()));
+			}
+
+			Error("Cannot parse statements at this time");
+			return null;
+		}
+
+		private Contextual<(string? Type, string Name)> ReadTypeAndNameOptional()
+		{
+			var ctx = Init();
+
+			if (_type != TokenType.IdentifierToken)
+			{
+				Error("Expected identifier");
+			}
+
+			var a = _current.Value<string>();
+			NextSignificant();
+
+			if (_type != TokenType.IdentifierToken)
+			{
+				NextSignificant();
+				return Make(ctx, (default(string?), a));
+			}
+
+			var b = _current.Value<string>();
+			NextSignificant();
+			return Make(ctx, (a, b));
+		}
+
+		// consumption related
+		[MethodImpl(MaxOpt)]
+		private ContextualInit Init() => new ContextualInit(_tokens, _i);
+
+		[MethodImpl(MaxOpt)]
+		private Contextual<T> Make<T>(ContextualInit ctx, T value) => ctx.Make(value, _i);
+
+		[MethodImpl(MaxOpt)]
+		private Contextual<T> Fail<T>(ContextualInit ctx)
+		{
+			_i = ctx.Start;
+			return Contextual<T>.Fail();
+		}
+
+		[MethodImpl(MaxOpt)]
+		private ConsumedTokens Make(ContextualInit ctx) => ctx.Make(default(object), _i);
+
+		// raw token stream helpers
+		[MethodImpl(MaxOpt)]
+		private void NextSignificant()
+		{
+			Next(); ConsumeAllWhitespace();
+		}
+
+		[MethodImpl(MaxOpt)]
+		private void NextUntilNewline()
+		{
+			while (IsWhitespace(_type))
+			{
+				Next();
+				if (AtEnd()) return;
+			}
+
+			if (_type != TokenType.Newline)
+			{
+				Error("Expected newline, didn't get one");
+			}
+		}
+
+		[MethodImpl(MaxOpt)]
+		private void ConsumeAllWhitespace()
+		{
+			while (IsAllWhitespace(_type))
+			{
+				Next();
+				if (AtEnd()) return;
+			}
+		}
+
+		[MethodImpl(MaxOpt)]
+		private static bool IsWhitespace(TokenType type)
+			=> type == TokenType.Comment
+			|| type == TokenType.Whitespace;
+
+		[MethodImpl(MaxOpt)]
+		private static bool IsAllWhitespace(TokenType type)
+			=> IsWhitespace(type)
+			|| type == TokenType.Newline;
+
+		[MethodImpl(MaxOpt)]
+		private void Next() => Set(++_i);
+
+		[MethodImpl(MaxOpt)]
+		private void Prev() => Set(--_i);
+
+		[MethodImpl(MaxOpt)]
+		private void Set(int i) => _token = AtEnd(i) ? null : _tokens.Span[i];
+
+		[MethodImpl(MaxOpt)]
+		private bool AtEnd(int i = -1) => (i == -1 ? _i : i) == _tokens.Length - 1;
+
+		[DoesNotReturn]
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private void Error(string message, int index = -1)
+		{
+			index = index == -1 ? _i : index;
+
+			throw new ParserException(_tokens, index, message);
+		}
+	}
+
+	public class ParserException : Exception
+	{
+		public ParserException(ReadOnlyMemory<Token> context, int index, string message) : base(message)
+		{
+			Context = context;
+			Index = index;
+		}
+
+		public ReadOnlyMemory<Token> Context { get; }
+		public int Index { get; }
 	}
 }

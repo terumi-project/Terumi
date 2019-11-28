@@ -34,9 +34,77 @@ namespace Terumi.Workspace
 
 			foreach (var source in project.GetSources())
 			{
-				var parser = new TerumiParser(ParseTokens(source.Source, source.Path));
-				var sourceFile = parser.ConsumeSourceFile(source.PackageLevel);
-				binderProject.ProjectFiles.Add(sourceFile);
+				var tokens = ParseTokens(source.Source, source.Path);
+				var rom = new ReadOnlyMemory<Token>(tokens.ToArray());
+				var parser = new TerumiParser(rom);
+
+				try
+				{
+					var sourceFile = parser.ConsumeSourceFile(source.PackageLevel);
+
+					binderProject.ProjectFiles.Add(sourceFile);
+				}
+				catch (ParserException ex)
+				{
+					Log.Error($"Error parsing {source.Path} in {project.ProjectName}:");
+
+					// generate a visibly meaningful error, eg.
+					// main(number a string b)
+					//              ^
+
+					var i = ex.Index;
+					var ctxTokens = ex.Context.Span;
+					ReadOnlySpan<char> src = source.Source;
+
+					// we want to start by grabbing the whole line
+					var search = ctxTokens[i].PositionStart.BinaryOffset;
+
+					var lineStart = search - 1; // if search is on a '\n' we want the previous line
+					var lineEnd = search;
+
+					while (lineStart >= 0
+						&& src[lineStart] != '\n')
+					{
+						lineStart--;
+					}
+
+					// hit a '\n', we want to not include that
+					lineStart++;
+
+					
+					// we account for lineEnd hitting the EOF
+					// and we account for lineEnd-- with this hacky crud
+					while (lineEnd <= src.Length
+						&& (lineEnd < src.Length ? src[lineEnd] != '\n' : true))
+					{
+						lineEnd++;
+					}
+
+					// hit a '\n', we want to not include that
+					lineEnd--;
+
+					// now we know the entire line
+					var tokenStart = search;
+					var tokenEnd = ctxTokens[i].PositionEnd.BinaryOffset;
+
+					// now we know the line, and the token position
+					// we can generate a pretty error now
+					// first, let's grab just the line and make all the offsets relative to it
+					var line = src.Slice(lineStart, lineEnd - lineStart);
+
+					tokenStart -= lineStart;
+					tokenEnd -= lineStart;
+					lineEnd -= lineStart;
+					lineStart = 0;
+
+					// now let's generate a pretty image for the error position
+					Span<char> image = new char[line.Length];
+					image[tokenStart..tokenEnd].Fill('~');
+					image[tokenStart] = '^';
+
+					Log.Error(new string(line));
+					Log.Error(new string(image));
+				}
 			}
 
 			return binderProject.Bind(target);

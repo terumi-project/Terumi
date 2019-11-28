@@ -7,6 +7,7 @@ using Terumi.Targets;
 
 namespace Terumi.VarCode
 {
+	/*
 	public class Diary
 	{
 		// we use a global dictionary for ALL field names so that we can have castability between two different types, eg.
@@ -131,7 +132,7 @@ namespace Terumi.VarCode
 					}
 					break;
 
-					case Binder.Statement.Assignment o:
+					case Binder.Statement.Declaration o:
 					{
 						var valueId = Bind(o.Value);
 
@@ -157,6 +158,44 @@ namespace Terumi.VarCode
 						}
 
 						_diary.Instructions.Add(new Instruction.Assign(id, valueId));
+					}
+					break;
+
+					case Binder.Statement.Assignment o:
+					{
+						var val = Bind(o.Value);
+
+						if (!(o.Assignment is Binder.Expression.Reference) && !(o.Assignment is Binder.Expression.Access))
+						{
+							throw new Exception("wat");
+						}
+
+						var l = o.Assignment;
+
+						while (l is Binder.Expression.Access akk)
+						{
+							akk.
+						}
+
+						switch (l)
+						{
+							case Binder.Expression.Reference.Parameter p:
+							{
+								throw new Exception("can't set parameters yet");
+							}
+
+							case Binder.Expression.Reference.Variable p:
+							{
+								var vId = _diary.Assignments[p.Declaration.Name];
+								_diary.Instructions.Add(new Instruction.Assign(vId, val));
+							}
+							break;
+
+							case Binder.Expression.Reference.Field p:
+							{
+							}
+							break;
+						}
 					}
 					break;
 
@@ -568,4 +607,5 @@ namespace Terumi.VarCode
 			}
 		}
 	}
+	*/
 }

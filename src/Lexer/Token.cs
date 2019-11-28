@@ -42,6 +42,22 @@ namespace Terumi.Lexer
 		public LexerMetadata PositionEnd { get; }
 		public object? Data { get; }
 
+		public T Value<T>()
+		{
+#if DEBUG
+			switch (Type)
+			{
+				case TokenType.IdentifierToken: Debug.Assert(typeof(T) == typeof(string)); break;
+				case TokenType.CommandToken: Debug.Assert(typeof(T) == typeof(StringData)); break;
+				case TokenType.StringToken: Debug.Assert(typeof(T) == typeof(StringData)); break;
+				case TokenType.NumberToken: Debug.Assert(typeof(T) == typeof(Number)); break;
+				case TokenType.Comment: Debug.Assert(typeof(T) == typeof(string)); break;
+				default: Debug.Assert(false, "Attempted to get value of token without a value"); break;
+			}
+#endif
+			return (T)Data;
+		}
+
 		public override string ToString() => $"Token '{Type}' beginning {PositionStart} ending {PositionEnd} with data: {PositionEnd}";
 	}
 }

@@ -46,18 +46,19 @@ namespace Terumi.Workspace
 				}
 				catch (ParserException ex)
 				{
-					Log.Error($"Error parsing {source.Path} in {project.ProjectName}:");
+					var ctxI = ex.Index;
+					var ctxTokens = ex.Context.Span;
+					ReadOnlySpan<char> src = source.Source;
+
+					var metadataLine = ctxTokens[ctxI].PositionStart.Line;
+					var metadataColumn = ctxTokens[ctxI].PositionStart.Column;
 
 					// generate a visibly meaningful error, eg.
 					// main(number a string b)
 					//              ^
 
-					var i = ex.Index;
-					var ctxTokens = ex.Context.Span;
-					ReadOnlySpan<char> src = source.Source;
-
 					// we want to start by grabbing the whole line
-					var search = ctxTokens[i].PositionStart.BinaryOffset;
+					var search = ctxTokens[ctxI].PositionStart.BinaryOffset;
 
 					var lineStart = search - 1; // if search is on a '\n' we want the previous line
 					var lineEnd = search;
@@ -71,7 +72,6 @@ namespace Terumi.Workspace
 					// hit a '\n', we want to not include that
 					lineStart++;
 
-					
 					// we account for lineEnd hitting the EOF
 					// and we account for lineEnd-- with this hacky crud
 					while (lineEnd <= src.Length
@@ -85,7 +85,7 @@ namespace Terumi.Workspace
 
 					// now we know the entire line
 					var tokenStart = search;
-					var tokenEnd = ctxTokens[i].PositionEnd.BinaryOffset;
+					var tokenEnd = ctxTokens[ctxI].PositionEnd.BinaryOffset;
 
 					// now we know the line, and the token position
 					// we can generate a pretty error now
@@ -102,8 +102,44 @@ namespace Terumi.Workspace
 					image[tokenStart..tokenEnd].Fill('~');
 					image[tokenStart] = '^';
 
-					Log.Error(new string(line));
-					Log.Error(new string(image));
+					// ok now let's modify both line and image according to tabs
+					// we want to replace a tab with 4 spaces
+					var tabs = 0;
+					for (int i = 0; i < line.Length; i++)
+					{
+						if (line[i] == '\t')
+						{
+							tabs++;
+						}
+					}
+
+					Span<char> modLine = new char[line.Length + tabs * 3];
+					Span<char> modImage = new char[image.Length + tabs * 3];
+
+					int destI = 0;
+					for (int i = 0; i < line.Length; i++)
+					{
+						if (line[i] == '\t')
+						{
+							for (int p = 0; p < 4; p++)
+							{
+								modLine[destI] = ' ';
+								modImage[destI] = ' ';
+								destI++;
+							}
+						}
+						else
+						{
+							modLine[destI] = line[i];
+							modImage[destI] = image[i];
+							destI++;
+						}
+					}
+
+					Log.Error($@"Error parsing '{source.Path}'@'{project.ProjectName}':
+L{metadataLine}:C{metadataColumn} {ex.Message}
+{new string(modLine)}
+{new string(modImage)}");
 				}
 			}
 
@@ -118,8 +154,6 @@ namespace Terumi.Workspace
 
 			if (lexer.WasError)
 			{
-				Log.Error("Lexer error: '" + lexer.ErrorMessage + "' at " + lexer.ErrorLocation);
-
 				// find the line where the error occured
 				// TODO: function
 				int start = 0;
@@ -163,7 +197,6 @@ namespace Terumi.Workspace
 				}
 
 				// display the line
-				Log.Error(new string(lineData));
 
 				// display ^
 				Span<char> marker = lineData.Length <= 1024 ? stackalloc char[lineData.Length] : new char[lineData.Length];
@@ -179,7 +212,9 @@ namespace Terumi.Workspace
 					}
 				}
 
-				Log.Error(new string(marker));
+				Log.Error(@$"Lexer error: '{lexer.ErrorMessage}'@{lexer.ErrorLocation}'
+{new string(lineData)}
+{new string(marker)}");
 			}
 
 			return tokens;

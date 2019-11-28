@@ -117,6 +117,32 @@ namespace Terumi.Parser
 				use = ReadUse();
 			}
 
+			ConsumeAllWhitespace();
+
+			if (AtEnd())
+			{
+				// no methods/classes... weird
+				return null;
+			}
+
+			var methods = new List<Method>();
+			var classes = new List<Class>();
+
+			while (!AtEnd())
+			{
+				if (_type == TokenType.Class)
+				{
+					NextSignificant();
+					// TODO: parse class
+				}
+				else
+				{
+					methods.Add(ReadMethod());
+				}
+
+				ConsumeAllWhitespace();
+			}
+
 			return null;
 		}
 
@@ -174,7 +200,7 @@ namespace Terumi.Parser
 			// -->.b.c <>
 			Next();
 
-			while (_type != TokenType.Dot)
+			while (_type == TokenType.Dot)
 			{
 				// -->b.c
 				Next();
@@ -213,7 +239,10 @@ namespace Terumi.Parser
 				Error("Expected open parenthesis to signify method parameter group");
 			}
 
+			NextSignificant(); // read (
 			var parameters = ReadMethodParameterGroup();
+			NextSignificant(); // read )
+
 			var body = ReadCodeBody();
 
 			return new Method(Make(ctx), methodHeader.Value.Type, methodHeader.Value.Name, parameters.Value, body);

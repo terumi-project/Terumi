@@ -40,7 +40,7 @@ namespace Terumi
 			DisplayMessage(ConsoleColor.Red, "ERR", message);
 
 #if DEBUG
-			DisplayMessage(ConsoleColor.Red, "ERR_INFO", $"in '{memberName}'@'{filePath}' line {lineNumber}");
+			// DisplayMessage(ConsoleColor.Red, "ERR_INFO", $"in '{memberName}'@'{filePath}' line {lineNumber}");
 #endif
 		}
 

@@ -123,7 +123,8 @@ namespace Terumi
 			compileCommand.Handler = CommandHandler.Create<Target>(CompileProject);
 			installCommand.Handler = CommandHandler.Create<string, string>(InstallProject);
 
-#if false && DEBUG
+#if true && DEBUG
+			Directory.SetCurrentDirectory("cart");
 			return rootCommand.InvokeAsync(new string[] { "compile", "-t", "bash" });
 #else
 			return rootCommand.InvokeAsync(args);

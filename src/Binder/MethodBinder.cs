@@ -109,14 +109,14 @@ namespace Terumi.Binder
 		private List<Statement> Handle(Scope scope, Parser.CodeBody body)
 		{
 			var binder = new CodeBodyBinder(this, scope);
-			return binder.Bind(body);
+			return binder.Handle(body);
 		}
 	}
 
 	public class CodeBodyBinder
 	{
 		private readonly MethodBinder _parent;
-		private readonly Scope _scope;
+		private Scope _scope;
 
 		public CodeBodyBinder(MethodBinder parent, Scope scope)
 		{
@@ -124,7 +124,7 @@ namespace Terumi.Binder
 			_scope = scope;
 		}
 
-		public List<Statement> Bind(Parser.CodeBody body)
+		public List<Statement> Handle(Parser.CodeBody body)
 		{
 			var stmts = new List<Statement>();
 
@@ -159,42 +159,130 @@ namespace Terumi.Binder
 
 		private Statement.Access Handle(Parser.Statement.Access o)
 		{
+			return new Statement.Access(o, Handle(o.AccessExpression));
 		}
 
 		private Statement.Assignment Handle(Parser.Statement.Assignment o)
 		{
+			return new Statement.Assignment(o, Handle(o.Expression));
 		}
 
 		private Statement.Command Handle(Parser.Statement.Command o)
 		{
+			return new Statement.Command(o, Update(o.String));
 		}
 
 		private Statement.Declaration Handle(Parser.Statement.Declaration o)
 		{
+			var value = Handle(o.Value);
+
+			if (o.Type == null)
+			{
+				return Declare(value.Type);
+			}
+
+			var supposeToBe = _parent._parent.FindImmediateType(o.Type, _parent._file);
+
+			if (!_parent._parent.CanUseTypeAsType(supposeToBe, value.Type))
+			{
+				throw new CodeBinderException(o, $"Unable to use type '{supposeToBe}' as '{value.Type}'");
+			}
+
+			return Declare(supposeToBe);
+
+			Statement.Declaration Declare(IType type)
+			{
+				var decl = new Statement.Declaration(o, type, o.Name, value);
+
+				if (!_scope.TryDeclare(o.Name, decl))
+				{
+					throw new CodeBinderException(o, "Unable to declare variable");
+				}
+
+				return decl;
+			}
 		}
 
 		private Statement.For Handle(Parser.Statement.For o)
 		{
+			var prevScope = _scope;
+			_scope = new Scope(null, null, prevScope);
+
+			var init = Handle(o.Declaration);
+			var cmp = Handle(o.Comparison);
+			var body = Handle(o.Statements);
+			var inc = Handle(o.End);
+
+			_scope = prevScope;
+
+			return new Statement.For(o, new CodeBody(init), cmp, new CodeBody(inc), new CodeBody(body));
 		}
 
 		private Statement.If Handle(Parser.Statement.If o)
 		{
+			var cmp = Handle(o.Comparison);
+
+			List<Statement> primary;
+			List<Statement> secondary;
+
+			{
+				var prevScope = _scope;
+				_scope = new Scope(null, null, prevScope);
+
+				primary = Handle(o.IfClause);
+
+				_scope = prevScope;
+			}
+
+			{
+				var prevScope = _scope;
+				_scope = new Scope(null, null, prevScope);
+
+				secondary = Handle(o.IfClause);
+
+				_scope = prevScope;
+			}
+
+			return new Statement.If(o, cmp, new CodeBody(primary), new CodeBody(secondary));
 		}
 
 		private Statement.Increment Handle(Parser.Statement.Increment o)
 		{
+			return new Statement.Increment(o, Handle(o.IncrementExpression));
 		}
 
 		private Statement.MethodCall Handle(Parser.Statement.MethodCall o)
 		{
+			return new Statement.MethodCall(o, Handle(o.MethodCallExpression));
 		}
 
 		private Statement.Return Handle(Parser.Statement.Return o)
 		{
+			var value = o.Expression == null ? null : Handle(o.Expression);
+			return new Statement.Return(o, value);
 		}
 
 		private Statement.While Handle(Parser.Statement.While o)
 		{
+			var prevScope = _scope;
+			_scope = new Scope(null, null, prevScope);
+
+			List<Statement> body;
+			Expression cmp;
+
+			if (o.IsDoWhile)
+			{
+				body = Handle(o.Statements);
+				cmp = Handle(o.Comparison);
+			}
+			else
+			{
+				cmp = Handle(o.Comparison);
+				body = Handle(o.Statements);
+			}
+
+			_scope = prevScope;
+			return new Statement.While(o, o.IsDoWhile, cmp, new CodeBody(body));
 		}
 
 		// expressions
@@ -255,6 +343,37 @@ namespace Terumi.Binder
 		private Expression.Unary Handle(Parser.Expression.Unary o)
 		{
 		}
+
+		/* helpers */
+		private StringData Update(Parser.StringData stringData)
+		{
+			var intpls = new List<StringData.Interpolation>();
+
+			foreach (var interpolation in stringData.Interpolations)
+			{
+				var newExpr = Handle(interpolation.Expression);
+
+				intpls.Add(new StringData.Interpolation(newExpr, interpolation.Insert));
+			}
+
+			return new StringData(stringData.Value, intpls);
+		}
+	}
+
+	public class CodeBinderException : Exception
+	{
+		public CodeBinderException(Parser.Statement stmt, string message) : base(message)
+		{
+			Stmt = stmt;
+		}
+
+		public CodeBinderException(Parser.Expression expr, string message) : base(message)
+		{
+			Expr = expr;
+		}
+
+		public Parser.Statement Stmt { get; }
+		public Parser.Expression Expr { get; }
 	}
 
 	/*

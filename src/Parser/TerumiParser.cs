@@ -421,11 +421,11 @@ namespace Terumi.Parser
 				while (_type != TokenType.CloseBrace)
 				{
 					stmts.Add(ReadStatement());
+					ConsumeAllWhitespace();
 				}
 
 				// read }
-				// go to newline
-				NextUntilNewline("end of code body");
+				Next();
 
 				var contextualStmts = Make(ctx, stmts);
 				return new CodeBody(contextualStmts, stmts);
@@ -439,11 +439,63 @@ namespace Terumi.Parser
 			var ctx = Init();
 			ConsumeAllWhitespace();
 
+#region conditionals
+			var @if = ReadIf();
+
+			if (@if != null)
+			{
+				return ConsumeNewline(@if);
+			}
+
+			var @for = ReadFor();
+
+			if (@for != null)
+			{
+				return ConsumeNewline(@for);
+			}
+
+			var @while = ReadWhile();
+
+			if (@while != null)
+			{
+				return ConsumeNewline(@while);
+			}
+#endregion
+
 			var @return = ReadReturn();
 
 			if (@return != null)
 			{
 				return ConsumeNewline(@return);
+			}
+
+			// expression based statements
+			var decl = ReadDeclaration();
+
+			if (decl != null)
+			{
+				return ConsumeNewline(@return);
+			}
+
+			var a = ReadAssignmentStmt();
+
+			if (a != null)
+			{
+				return ConsumeNewline(a);
+			}
+
+			var ac = ReadAccessStmt();
+
+			if (ac != null)
+			{
+				return ConsumeNewline(ac);
+			}
+
+			var mc = ReadMethodCallStmt();
+
+			if (mc != null)
+			{
+				return ConsumeNewline(mc);
 			}
 
 			Error("Couldn't parse statement");
@@ -457,6 +509,132 @@ namespace Terumi.Parser
 			}
 		}
 
+		public Statement.If? ReadIf()
+		{
+			var ctx = Init();
+
+			if (_type != TokenType.If)
+			{
+				Fail(ctx);
+				return null;
+			}
+
+			NextSignificant();
+			var comparison = ReadExpression();
+
+			ConsumeAllWhitespace();
+			var body = ReadCodeBody();
+
+			ConsumeAllWhitespace();
+			if (_type == TokenType.Else)
+			{
+				NextSignificant();
+
+				var elseClause = ReadCodeBody();
+
+				BackToFirstWhitespace();
+				return new Statement.If(Make(ctx), comparison, body, elseClause);
+			}
+
+			BackToFirstWhitespace();
+			return new Statement.If(Make(ctx), comparison, body, CodeBody.Empty);
+		}
+
+		public Statement.While? ReadWhile()
+		{
+			var ctx = Init();
+			ConsumeAllWhitespace();
+
+			if (_type == TokenType.Do)
+			{
+				NextSignificant();
+				var statements = ReadCodeBody();
+				ConsumeAllWhitespace();
+
+				if (_type != TokenType.While)
+				{
+					Error("Expected 'while' at end of do while body");
+				}
+
+				NextSignificant();
+
+				var comparison = ReadExpression();
+
+				return new Statement.While(Make(ctx), comparison, statements, true);
+			}
+
+			if (_type == TokenType.While)
+			{
+				NextSignificant();
+				var comparison = ReadExpression();
+				ConsumeAllWhitespace();
+				var statements = ReadCodeBody();
+
+				return new Statement.While(Make(ctx), comparison, statements, false);
+			}
+
+			Fail(ctx);
+			return null;
+		}
+
+		public Statement.For? ReadFor()
+		{
+			var ctx = Init();
+			ConsumeAllWhitespace();
+
+			if (_type != TokenType.For)
+			{
+				Fail(ctx);
+				return null;
+			}
+
+			NextSignificant();
+
+			if (_type != TokenType.OpenParen)
+			{
+				Error("Expected open parenthesis");
+			}
+
+			NextSignificant();
+
+			var init = ReadCodeBody();
+
+			ConsumeAllWhitespace();
+
+			if (_type != TokenType.Semicolon)
+			{
+				Error("Expected semicolon");
+			}
+
+			NextSignificant();
+
+			var comparison = ReadExpression();
+
+			ConsumeAllWhitespace();
+
+			if (_type != TokenType.Semicolon)
+			{
+				Error("Expected semicolon");
+			}
+
+			NextSignificant();
+
+			var additional = ReadCodeBody();
+
+			ConsumeAllWhitespace();
+
+			if (_type != TokenType.CloseParen)
+			{
+				Error("Expected closing parenthesis");
+			}
+
+			NextSignificant();
+
+			var body = ReadCodeBody();
+
+			return new Statement.For(Make(ctx), init, comparison, additional, body);
+		}
+
 		public Statement.Return? ReadReturn()
 		{
 			var ctx = Init();
@@ -465,7 +643,6 @@ namespace Terumi.Parser
 			{
 				Next();
 				var value = TryReadExpression();
-				BackToFirstWhitespace();
 
 				return new Statement.Return(Make(ctx), value);
 			}
@@ -473,9 +650,86 @@ namespace Terumi.Parser
 			Fail(ctx);
 			return null;
 		}
-#endregion
 
-#region expressions
+		public Statement.Declaration? ReadDeclaration()
+		{
+			var ctx = Init();
+			var declarationHeader = ReadTypeAndNameOptional(false);
+
+			if (declarationHeader.Success == ContextualState.FailedRead)
+			{
+				Fail(ctx);
+				return null;
+			}
+
+			ConsumeAllWhitespace();
+
+			if (_type != TokenType.Assignment)
+			{
+				Fail(ctx);
+				return null;
+			}
+
+			NextSignificant();
+
+			Expression? expr;
+			if (_type == TokenType.Semicolon)
+			{
+				expr = null;
+				// no value
+			}
+			else
+			{
+				expr = ReadExpression();
+			}
+
+			return new Statement.Declaration(Make(ctx), declarationHeader.Value.Type, declarationHeader.Value.Name, expr);
+		}
+
+		public Statement.Assignment? ReadAssignmentStmt()
+		{
+			var ctx = Init();
+			var expr = TryReadExpression();
+
+			if (!(expr is Expression.Assignment assignment))
+			{
+				Fail(ctx);
+				return null;
+			}
+
+			return new Statement.Assignment(Make(ctx), assignment);
+		}
+
+		public Statement.MethodCall? ReadMethodCallStmt()
+		{
+			var ctx = Init();
+			var expr = TryReadExpression();
+
+			if (!(expr is Expression.MethodCall methodCall))
+			{
+				Fail(ctx);
+				return null;
+			}
+
+			return new Statement.MethodCall(Make(ctx), methodCall);
+		}
+
+		public Statement.Access? ReadAccessStmt()
+		{
+			var ctx = Init();
+			var expr = TryReadExpression();
+
+			if (!(expr is Expression.Access access))
+			{
+				Fail(ctx);
+				return null;
+			}
+
+			return new Statement.Access(Make(ctx), access);
+		}
+		#endregion
+
+		#region expressions
 		public Expression ReadExpression()
 		{
 			var ctx = Init();
@@ -485,13 +739,28 @@ namespace Terumi.Parser
 			if (expr == null)
 			{
 				Fail(ctx);
+				ConsumeAllWhitespace();
 				Error("Expected expression, couldn't parse one");
 			}
 
 			return expr;
 		}
 
-		public Expression? TryReadExpression() => Assignment();
+		public Expression? TryReadExpression()
+		{
+			var ctx = Init();
+			var expr = Assignment();
+
+			if (expr == null)
+			{
+				Fail(ctx);
+				return null;
+			}
+
+			BackToFirstWhitespace();
+			Make(ctx);
+			return expr;
+		}
 
 		// precedence based operators
 
@@ -806,6 +1075,13 @@ namespace Terumi.Parser
 				return parenthesized;
 			}
 
+			var @new = ReadNew();
+
+			if (@new != null)
+			{
+				return @new;
+			}
+
 			var constant = ReadConstant();
 
 			if (constant != null)
@@ -959,6 +1235,48 @@ namespace Terumi.Parser
 			return new Expression.MethodCall(Make(ctx), isCompilerCall, methodName, parameters.Value);
 		}
 
+		public Expression.New? ReadNew()
+		{
+			var ctx = Init();
+			ConsumeAllWhitespace();
+
+			if (_type != TokenType.New)
+			{
+				Fail(ctx);
+				return null;
+			}
+
+			NextSignificant();
+
+			if (_type != TokenType.IdentifierToken)
+			{
+				Error("Expected identifier for new object, didn't get one");
+			}
+
+			// TODO: read method call expression
+			var type = _current.Value<string>();
+
+			NextSignificant();
+
+			if (_type != TokenType.OpenParen)
+			{
+				Error("Expected open parenthesis for new object constructor, didn't get one");
+			}
+
+			Next();
+
+			var exprs = ReadMethodCallParameters().Value;
+
+			if (_type != TokenType.CloseParen)
+			{
+				Error("Expected a close parenthesis on a method call");
+			}
+
+			Next();
+
+			return new Expression.New(Make(ctx), type, exprs);
+		}
+
 		private Contextual<List<Expression>> ReadMethodCallParameters()
 		{
 			var ctx = Init();
@@ -1006,13 +1324,20 @@ namespace Terumi.Parser
 #endregion
 
 #region helpers
-		private Contextual<(string? Type, string Name)> ReadTypeAndNameOptional()
+		private Contextual<(string? Type, string Name)> ReadTypeAndNameOptional(bool error = true)
 		{
 			var ctx = Init();
 
 			if (_type != TokenType.IdentifierToken)
 			{
-				Error("Expected identifier");
+				if (error)
+				{
+					Error("Expected identifier");
+				}
+				else
+				{
+					return Fail<(string?, string)>(ctx);
+				}
 			}
 
 			var a = _current.Value<string>();
@@ -1087,6 +1412,7 @@ namespace Terumi.Parser
 			{
 				Error("Expected newline, didn't get one for " + @for);
 			}
+
 			Next();
 		}
 

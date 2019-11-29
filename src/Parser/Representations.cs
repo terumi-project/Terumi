@@ -281,6 +281,18 @@ namespace Terumi.Parser
 			public Expression Right { get; }
 		}
 
+		public class Unary : Expression
+		{
+			public Unary(ConsumedTokens consumed, TokenType @operator, Expression operand) : base(consumed)
+			{
+				Operator = @operator;
+				Operand = operand;
+			}
+
+			public TokenType Operator { get; }
+			public Expression Operand { get; }
+		}
+
 		public class Parenthesized : Expression
 		{
 			public Parenthesized(ConsumedTokens consumed, Expression inner) : base(consumed)

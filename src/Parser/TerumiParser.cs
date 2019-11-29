@@ -436,17 +436,573 @@ namespace Terumi.Parser
 #region statements
 		public Statement ReadStatement()
 		{
-			if (_type == TokenType.StringToken)
+			var ctx = Init();
+			ConsumeAllWhitespace();
+
+			var @return = ReadReturn();
+
+			if (@return != null)
 			{
-				return new Statement.Return(default, new Expression.Constant(default, _current.Value<Lexer.StringData>()));
+				return ConsumeNewline(@return);
 			}
 
-			Error("Cannot parse statements at this time");
+			Error("Couldn't parse statement");
+			return null;
+
+			Statement ConsumeNewline(Statement result)
+			{
+				UntilNewline("statement");
+				Make(ctx);
+				return result;
+			}
+		}
+
+		public Statement.Return? ReadReturn()
+		{
+			var ctx = Init();
+
+			if (_type == TokenType.Return)
+			{
+				Next();
+				var value = TryReadExpression();
+				BackToFirstWhitespace();
+
+				return new Statement.Return(Make(ctx), value);
+			}
+
+			Fail(ctx);
 			return null;
 		}
 #endregion
 
 #region expressions
+		public Expression ReadExpression()
+		{
+			var ctx = Init();
+
+			var expr = TryReadExpression();
+
+			if (expr == null)
+			{
+				Fail(ctx);
+				Error("Expected expression, couldn't parse one");
+			}
+
+			return expr;
+		}
+
+		public Expression? TryReadExpression() => Assignment();
+
+		// precedence based operators
+
+		/*
+		 * LOWEST:
+		 * ^
+		 * | assignment =
+		 * | or ||
+		 * | and &&
+		 * | equality ==, not equals !=
+		 * | relational < > <= >=
+		 * | additive + -
+		 * | multiplicative * /
+		 * | exponential **
+		 * | unary ! - ++ --
+		 * | member acces .
+		 * | value (expr) "constants, like strings" reference_by_name method_calls_too()
+		 * v
+		 * HIGHEST:
+		 */
+
+		public Expression? Assignment()
+		{
+			var ctx = Init();
+			var total = Assignment_Next();
+			if (total == null) return null;
+
+			ConsumeAllWhitespace();
+			while (_type == TokenType.Assignment)
+			{
+				NextSignificant();
+
+				var more = Assignment_Next();
+
+				if (more == null)
+				{
+					Error("Expected expression after assignment, didn't get one");
+				}
+
+				total = new Expression.Assignment(Make(ctx), total, more);
+				ConsumeAllWhitespace();
+			}
+
+			return total;
+		}
+
+		private Expression? Assignment_Next() => Or();
+
+		public Expression? Or()
+		{
+			var ctx = Init();
+			var total = Or_Next();
+			if (total == null) return null;
+
+			ConsumeAllWhitespace();
+			while (_type == TokenType.Or)
+			{
+				NextSignificant();
+
+				var more = Or_Next();
+
+				if (more == null)
+				{
+					Error("Expected expression after or, didn't get one");
+				}
+
+				total = new Expression.Binary(Make(ctx), total, TokenType.Or, more);
+				ConsumeAllWhitespace();
+			}
+
+			return total;
+		}
+
+		private Expression? Or_Next() => And();
+
+		public Expression? And()
+		{
+			var ctx = Init();
+			var total = And_Next();
+			if (total == null) return null;
+
+			ConsumeAllWhitespace();
+			while (_type == TokenType.And)
+			{
+				NextSignificant();
+
+				var more = And_Next();
+
+				if (more == null)
+				{
+					Error("Expected expression after or, didn't get one");
+				}
+
+				total = new Expression.Binary(Make(ctx), total, TokenType.And, more);
+				ConsumeAllWhitespace();
+			}
+
+			return total;
+		}
+
+		private Expression? And_Next() => Equality();
+
+		public Expression? Equality()
+		{
+			var ctx = Init();
+			var total = Equality_Next();
+			if (total == null) return null;
+
+			ConsumeAllWhitespace();
+			while (_type == TokenType.EqualTo || _type == TokenType.NotEqualTo)
+			{
+				var type = _type;
+				NextSignificant();
+
+				var more = Equality_Next();
+
+				if (more == null)
+				{
+					Error("Expected expression after equality, didn't get one");
+				}
+
+				total = new Expression.Binary(Make(ctx), total, type, more);
+				ConsumeAllWhitespace();
+			}
+
+			return total;
+		}
+
+		private Expression? Equality_Next() => Relational();
+
+		public Expression? Relational()
+		{
+			var ctx = Init();
+			var total = Relational_Next();
+			if (total == null) return null;
+
+			ConsumeAllWhitespace();
+			while (_type == TokenType.LessThan || _type == TokenType.GreaterThan
+				|| _type == TokenType.LessThanOrEqualTo || _type == TokenType.GreaterThanOrEqualTo)
+			{
+				var type = _type;
+				NextSignificant();
+
+				var more = Relational_Next();
+
+				if (more == null)
+				{
+					Error("Expected expression after relational, didn't get one");
+				}
+
+				total = new Expression.Binary(Make(ctx), total, type, more);
+				ConsumeAllWhitespace();
+			}
+
+			return total;
+		}
+
+		private Expression? Relational_Next() => Additive();
+
+		public Expression? Additive()
+		{
+			var ctx = Init();
+			var total = Additive_Next();
+			if (total == null) return null;
+
+			ConsumeAllWhitespace();
+			while (_type == TokenType.Add || _type == TokenType.Subtract)
+			{
+				var type = _type;
+				NextSignificant();
+
+				var more = Additive_Next();
+
+				if (more == null)
+				{
+					Error("Expected expression after additive, didn't get one");
+				}
+
+				total = new Expression.Binary(Make(ctx), total, type, more);
+				ConsumeAllWhitespace();
+			}
+
+			return total;
+		}
+
+		private Expression? Additive_Next() => Multiplicative();
+
+		public Expression? Multiplicative()
+		{
+			var ctx = Init();
+			var total = Multiplicative_Next();
+			if (total == null) return null;
+
+			ConsumeAllWhitespace();
+			while (_type == TokenType.Multiply || _type == TokenType.Divide)
+			{
+				var type = _type;
+				NextSignificant();
+
+				var more = Multiplicative_Next();
+
+				if (more == null)
+				{
+					Error("Expected expression after multiplicative, didn't get one");
+				}
+
+				total = new Expression.Binary(Make(ctx), total, type, more);
+				ConsumeAllWhitespace();
+			}
+
+			return total;
+		}
+
+		public Expression? Multiplicative_Next() => Exponential();
+
+		public Expression? Exponential()
+		{
+			var ctx = Init();
+			var total = Exponential_Next();
+			if (total == null) return null;
+
+			// exponential is right assosiative, eg.
+
+			// 2 ** 2 ** 2
+			// is 2 ** (2 ** 2)
+			// = 2 ** 4
+			// = 16
+			// aka
+
+			//   2
+			//  2^
+			// 2^
+
+			//  4
+			// 2^
+
+			// 16
+
+			ConsumeAllWhitespace();
+			while (_type == TokenType.Exponent)
+			{
+				var type = _type;
+				NextSignificant();
+
+				// to be right associative, we just call the previous one
+				var more = Exponential_Next();
+
+				if (more == null)
+				{
+					Error("Expected expression after exponential, didn't get one");
+				}
+
+				total = new Expression.Binary(Make(ctx), total, type, more);
+				ConsumeAllWhitespace();
+			}
+
+			return total;
+		}
+
+		private Expression? Exponential_Next() => Unary();
+
+		public Expression? Unary()
+		{
+			// unary expression is negation or not
+			var ctx = Init();
+			var unaryType = _type;
+			var isUnary = _type == TokenType.Not || _type == TokenType.Subtract;
+
+			if (isUnary) Next();
+
+			var total = Unary_Next();
+			if (total == null) return null;
+			if (!isUnary) return total;
+
+			return new Expression.Unary(Make(ctx), unaryType, total);
+		}
+
+		private Expression? Unary_Next() => MemberAccess();
+
+		public Expression? MemberAccess()
+		{
+			var ctx = Init();
+			var total = MemberAccess_Next();
+			if (total == null) return null;
+
+			ConsumeAllWhitespace();
+			while (_type == TokenType.Dot)
+			{
+				NextSignificant();
+				var more = MemberAccess_Next();
+
+				if (more == null)
+				{
+					Error("Expected expression after member acces, didn't get one");
+				}
+
+				total = new Expression.Access(Make(ctx), total, more);
+				ConsumeAllWhitespace();
+			}
+
+			return total;
+		}
+
+		private Expression? MemberAccess_Next() => ValueExpression();
+
+		private Expression? ValueExpression()
+		{
+			var parenthesized = ReadParenthesized();
+
+			if (parenthesized != null)
+			{
+				return parenthesized;
+			}
+
+			var constant = ReadConstant();
+
+			if (constant != null)
+			{
+				return constant;
+			}
+
+			var methodCall = ReadMethodCall();
+
+			if (methodCall != null)
+			{
+				return methodCall;
+			}
+
+			var reference = ReadReference();
+
+			if (reference != null)
+			{
+				return reference;
+			}
+
+			return null;
+		}
+
+		// expressions that don't require precedence
+		public Expression.Parenthesized? ReadParenthesized()
+		{
+			var ctx = Init();
+			ConsumeAllWhitespace();
+
+			if (_type == TokenType.OpenParen)
+			{
+				NextSignificant();
+
+				var expr = ReadExpression();
+				ConsumeAllWhitespace();
+
+				if (_type != TokenType.CloseParen)
+				{
+					Error("Expected closing parenthesis");
+				}
+
+				// consume )
+				Next();
+
+				return new Expression.Parenthesized(Make(ctx), expr);
+			}
+
+			Fail(ctx);
+			return null;
+		}
+
+		public Expression.Constant? ReadConstant()
+		{
+			var ctx = Init();
+			ConsumeAllWhitespace();
+
+			switch (_type)
+			{
+				case TokenType.StringToken:
+				{
+					// TODO: handle interpolation stuff
+				}
+				break;
+
+				case TokenType.NumberToken:
+				{
+					var value = _current.Value<Number>();
+					Next();
+					return new Expression.Constant(Make(ctx), value);
+				}
+				break;
+
+				case TokenType.True:
+				{
+					Next();
+					return new Expression.Constant(Make(ctx), true);
+				}
+
+				case TokenType.False:
+				{
+					Next();
+					return new Expression.Constant(Make(ctx), false);
+				}
+			}
+
+			Fail(ctx);
+			return null;
+		}
+
+		public Expression.Reference? ReadReference()
+		{
+			var ctx = Init();
+			ConsumeAllWhitespace();
+
+			if (_type != TokenType.IdentifierToken)
+			{
+				Fail(ctx);
+				return null;
+			}
+
+			var name = _current.Value<string>();
+			Next();
+
+			return new Expression.Reference(Make(ctx), name);
+		}
+
+		public Expression.MethodCall? ReadMethodCall()
+		{
+			var ctx = Init();
+			ConsumeAllWhitespace();
+
+			var isCompilerCall = false;
+
+			if (_type == TokenType.At)
+			{
+				isCompilerCall = true;
+				Next();
+			}
+
+			if (_type != TokenType.IdentifierToken)
+			{
+				Fail(ctx);
+				return null;
+			}
+
+			var methodName = _current.Value<string>();
+			NextSignificant();
+
+			if (_type != TokenType.OpenParen)
+			{
+				Fail(ctx);
+				return null;
+			}
+
+			// after this point we're basically guarenteed to have a method call group
+
+			// read (
+			NextSignificant();
+
+			var parameters = ReadMethodCallParameters();
+			ConsumeAllWhitespace();
+
+			if (_type != TokenType.CloseParen)
+			{
+				Error("Expected closing parenthesis to signify end of method call");
+			}
+
+			Next(); // read )
+
+			return new Expression.MethodCall(Make(ctx), isCompilerCall, methodName, parameters.Value);
+		}
+
+		private Contextual<List<Expression>> ReadMethodCallParameters()
+		{
+			var ctx = Init();
+
+			if (_type == TokenType.CloseParen)
+			{
+				return Make(ctx, EmptyList<Expression>.Instance);
+			}
+
+			var exprs = new List<Expression>();
+
+			while (_type != TokenType.CloseParen)
+			{
+				var expr = ReadExpression();
+
+				if (expr == null)
+				{
+					Error("Expected valid expression");
+				}
+
+				exprs.Add(expr);
+				ConsumeAllWhitespace();
+
+				if (_type != TokenType.Comma)
+				{
+					if (_type == TokenType.CloseParen)
+					{
+						break;
+					}
+					else
+					{
+						Error("Didn't get a comma, expected a closing parenthesis but didn't get one either.");
+					}
+				}
+
+				// consume ,
+				Next();
+			}
+
+			// don't consume )
+			// Next();
+
+			return Make(ctx, exprs);
+		}
 #endregion
 
 #region helpers
@@ -487,9 +1043,25 @@ namespace Terumi.Parser
 		}
 
 		[MethodImpl(MaxOpt)]
+		private void Fail(ContextualInit ctx) => Fail<object>(ctx);
+
+		[MethodImpl(MaxOpt)]
 		private ConsumedTokens Make(ContextualInit ctx) => ctx.Make(default(object), _i);
 
 		// raw token stream helpers
+		[MethodImpl(MaxOpt)]
+		private void BackToFirstWhitespace()
+		{
+			Set(_i - 1);
+
+			while (IsAllWhitespace(_type))
+			{
+				Set(_i - 1);
+			}
+
+			Next();
+		}
+
 		[MethodImpl(MaxOpt)]
 		private void NextSignificant()
 		{

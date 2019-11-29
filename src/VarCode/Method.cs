@@ -45,14 +45,14 @@ namespace Terumi.VarCode
 
 			public class Number : Load
 			{
-				public Number(int store, Lexer.Number value)
+				public Number(int store, Number value)
 				{
 					Store = store;
 					Value = value;
 				}
 
 				public int Store { get; }
-				public Lexer.Number Value { get; }
+				public Number Value { get; }
 			}
 
 			public class Boolean : Load

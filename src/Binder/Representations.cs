@@ -193,7 +193,7 @@ namespace Terumi.Binder
 			new public Parser.Expression.Constant FromParser { get; }
 
 			// TODO: verify that it can only be one of these three
-			public override IType Type => (Value is StringData ? BuiltinType.String : (Value is Lexer.Number ? BuiltinType.Number : BuiltinType.Boolean));
+			public override IType Type => (Value is StringData ? BuiltinType.String : (Value is Number ? BuiltinType.Number : BuiltinType.Boolean));
 
 			public object Value { get; }
 		}

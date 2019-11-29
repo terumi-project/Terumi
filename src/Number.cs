@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 
 // https://www.craftinginterpreters.com/scanning.html
-namespace Terumi.Lexer
+namespace Terumi
 {
 	// used to wrap around BigInteger
 	// to prevent `using System.Numerics;`

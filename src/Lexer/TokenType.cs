@@ -18,6 +18,7 @@ namespace Terumi.Lexer
 		OpenParen, CloseParen, // ( )
 		OpenBracket, CloseBracket, // [ ]
 		OpenBrace, CloseBrace, // { }
+		And, Or, // && ||
 		EqualTo, Assignment, // == =
 		NotEqualTo, Not, // != !
 		GreaterThan, GreaterThanOrEqualTo, // > >=

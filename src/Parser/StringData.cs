@@ -18,13 +18,13 @@ namespace Terumi.Parser
 			public int Insert { get; }
 		}
 
-		public StringData(string value, List<Interpolation> interpolations)
+		public StringData(StringBuilder value, List<Interpolation> interpolations)
 		{
 			Value = value;
 			Interpolations = interpolations;
 		}
 
-		public string Value { get; }
+		public StringBuilder Value { get; }
 		public List<Interpolation> Interpolations { get; }
 	}
 }

@@ -405,7 +405,7 @@ namespace Terumi.Parser
 			{
 				// try to read one statement
 				var stmt = ReadStatement();
-				UntilNewline("statement");
+				// single line statements don't need to end in a newline
 
 				var stmts = new List<Statement> { stmt };
 
@@ -421,6 +421,7 @@ namespace Terumi.Parser
 				while (_type != TokenType.CloseBrace)
 				{
 					stmts.Add(ReadStatement());
+					NextUntilNewline("Expected a newline at end of statement");
 					ConsumeAllWhitespace();
 				}
 
@@ -444,21 +445,21 @@ namespace Terumi.Parser
 
 			if (@if != null)
 			{
-				return ConsumeNewline(@if);
+				return Finish(@if);
 			}
 
 			var @for = ReadFor();
 
 			if (@for != null)
 			{
-				return ConsumeNewline(@for);
+				return Finish(@for);
 			}
 
 			var @while = ReadWhile();
 
 			if (@while != null)
 			{
-				return ConsumeNewline(@while);
+				return Finish(@while);
 			}
 #endregion
 
@@ -466,7 +467,7 @@ namespace Terumi.Parser
 
 			if (@return != null)
 			{
-				return ConsumeNewline(@return);
+				return Finish(@return);
 			}
 
 			// expression based statements
@@ -474,36 +475,43 @@ namespace Terumi.Parser
 
 			if (decl != null)
 			{
-				return ConsumeNewline(@return);
+				return Finish(@return);
 			}
 
 			var a = ReadAssignmentStmt();
 
 			if (a != null)
 			{
-				return ConsumeNewline(a);
+				return Finish(a);
 			}
 
 			var ac = ReadAccessStmt();
 
 			if (ac != null)
 			{
-				return ConsumeNewline(ac);
+				return Finish(ac);
 			}
 
 			var mc = ReadMethodCallStmt();
 
 			if (mc != null)
 			{
-				return ConsumeNewline(mc);
+				return Finish(mc);
+			}
+
+			var inc = ReadIncrementStmt();
+
+			if (inc != null)
+			{
+				return Finish(inc);
 			}
 
 			Error("Couldn't parse statement");
 			return null;
 
-			Statement ConsumeNewline(Statement result)
+			Statement Finish(Statement result)
 			{
-				UntilNewline("statement");
+				// UntilNewline("statement");
 				Make(ctx);
 				return result;
 			}
@@ -727,9 +735,23 @@ namespace Terumi.Parser
 
 			return new Statement.Access(Make(ctx), access);
 		}
+
+		public Statement.Increment? ReadIncrementStmt()
+		{
+			var ctx = Init();
+			var expr = TryReadExpression();
+
+			if (!(expr is Expression.Increment increment))
+			{
+				Fail(ctx);
+				return null;
+			}
+
+			return new Statement.Increment(Make(ctx), increment);
+		}
 		#endregion
 
-		#region expressions
+#region expressions
 		public Expression ReadExpression()
 		{
 			var ctx = Init();
@@ -762,7 +784,7 @@ namespace Terumi.Parser
 			return expr;
 		}
 
-		// precedence based operators
+#region precedence based expressions
 
 		/*
 		 * LOWEST:
@@ -789,6 +811,13 @@ namespace Terumi.Parser
 			if (total == null) return null;
 
 			ConsumeAllWhitespace();
+
+			if (AtEnd())
+			{
+				Fail(ctx);
+				return total;
+			}
+
 			while (_type == TokenType.Assignment)
 			{
 				NextSignificant();
@@ -816,6 +845,13 @@ namespace Terumi.Parser
 			if (total == null) return null;
 
 			ConsumeAllWhitespace();
+
+			if (AtEnd())
+			{
+				Fail(ctx);
+				return total;
+			}
+
 			while (_type == TokenType.Or)
 			{
 				NextSignificant();
@@ -843,6 +879,13 @@ namespace Terumi.Parser
 			if (total == null) return null;
 
 			ConsumeAllWhitespace();
+
+			if (AtEnd())
+			{
+				Fail(ctx);
+				return total;
+			}
+
 			while (_type == TokenType.And)
 			{
 				NextSignificant();
@@ -870,6 +913,13 @@ namespace Terumi.Parser
 			if (total == null) return null;
 
 			ConsumeAllWhitespace();
+
+			if (AtEnd())
+			{
+				Fail(ctx);
+				return total;
+			}
+
 			while (_type == TokenType.EqualTo || _type == TokenType.NotEqualTo)
 			{
 				var type = _type;
@@ -898,6 +948,13 @@ namespace Terumi.Parser
 			if (total == null) return null;
 
 			ConsumeAllWhitespace();
+
+			if (AtEnd())
+			{
+				Fail(ctx);
+				return total;
+			}
+
 			while (_type == TokenType.LessThan || _type == TokenType.GreaterThan
 				|| _type == TokenType.LessThanOrEqualTo || _type == TokenType.GreaterThanOrEqualTo)
 			{
@@ -927,6 +984,13 @@ namespace Terumi.Parser
 			if (total == null) return null;
 
 			ConsumeAllWhitespace();
+
+			if (AtEnd())
+			{
+				Fail(ctx);
+				return total;
+			}
+
 			while (_type == TokenType.Add || _type == TokenType.Subtract)
 			{
 				var type = _type;
@@ -955,6 +1019,13 @@ namespace Terumi.Parser
 			if (total == null) return null;
 
 			ConsumeAllWhitespace();
+
+			if (AtEnd())
+			{
+				Fail(ctx);
+				return total;
+			}
+
 			while (_type == TokenType.Multiply || _type == TokenType.Divide)
 			{
 				var type = _type;
@@ -1000,6 +1071,13 @@ namespace Terumi.Parser
 			// 16
 
 			ConsumeAllWhitespace();
+
+			if (AtEnd())
+			{
+				Fail(ctx);
+				return total;
+			}
+
 			while (_type == TokenType.Exponent)
 			{
 				var type = _type;
@@ -1027,15 +1105,47 @@ namespace Terumi.Parser
 			// unary expression is negation or not
 			var ctx = Init();
 			var unaryType = _type;
-			var isUnary = _type == TokenType.Not || _type == TokenType.Subtract;
+			var isInc = _type == TokenType.Increment
+				|| _type == TokenType.Decrement;
+
+			var isUnary = _type == TokenType.Not
+				|| _type == TokenType.Subtract
+				|| isInc;
 
 			if (isUnary) Next();
 
 			var total = Unary_Next();
 			if (total == null) return null;
-			if (!isUnary) return total;
 
-			return new Expression.Unary(Make(ctx), unaryType, total);
+			if (!isUnary)
+			{
+				if (AtEnd())
+				{
+					return total;
+				}
+
+				isInc = _type == TokenType.Increment
+					|| _type == TokenType.Decrement;
+
+				if (!isInc)
+				{
+					return total;
+				}
+
+				var t = _type;
+				Next();
+
+				return new Expression.Increment(Make(ctx), Expression.Increment.IncrementSide.Post, _type, total);
+			}
+
+			if (isInc)
+			{
+				return new Expression.Increment(Make(ctx), Expression.Increment.IncrementSide.Pre, unaryType, total);
+			}
+			else
+			{
+				return new Expression.Unary(Make(ctx), unaryType, total);
+			}
 		}
 
 		private Expression? Unary_Next() => MemberAccess();
@@ -1047,6 +1157,13 @@ namespace Terumi.Parser
 			if (total == null) return null;
 
 			ConsumeAllWhitespace();
+
+			if (AtEnd())
+			{
+				Fail(ctx);
+				return total;
+			}
+
 			while (_type == TokenType.Dot)
 			{
 				NextSignificant();
@@ -1105,8 +1222,9 @@ namespace Terumi.Parser
 
 			return null;
 		}
+#endregion
 
-		// expressions that don't require precedence
+#region non precedence based expressions
 		public Expression.Parenthesized? ReadParenthesized()
 		{
 			var ctx = Init();
@@ -1144,8 +1262,18 @@ namespace Terumi.Parser
 				case TokenType.StringToken:
 				{
 					// TODO: handle interpolation stuff
+					var strData = _current.Value<Lexer.StringData>();
+					var interpolations = new List<StringData.Interpolation>();
+
+					foreach (var interpolation in strData.Interpolations)
+					{
+						var parser = new TerumiParser(interpolation.Tokens.ToArray());
+						interpolations.Add(new StringData.Interpolation(parser.ReadExpression(), interpolation.Position));
+					}
+
+					Next();
+					return new Expression.Constant(Make(ctx), new StringData(strData.StringValue, interpolations));
 				}
-				break;
 
 				case TokenType.NumberToken:
 				{
@@ -1153,7 +1281,6 @@ namespace Terumi.Parser
 					Next();
 					return new Expression.Constant(Make(ctx), value);
 				}
-				break;
 
 				case TokenType.True:
 				{
@@ -1210,6 +1337,12 @@ namespace Terumi.Parser
 
 			var methodName = _current.Value<string>();
 			NextSignificant();
+
+			if (AtEnd())
+			{
+				Fail(ctx);
+				return null;
+			}
 
 			if (_type != TokenType.OpenParen)
 			{
@@ -1276,6 +1409,7 @@ namespace Terumi.Parser
 
 			return new Expression.New(Make(ctx), type, exprs);
 		}
+#endregion
 
 		private Contextual<List<Expression>> ReadMethodCallParameters()
 		{
@@ -1377,10 +1511,14 @@ namespace Terumi.Parser
 		[MethodImpl(MaxOpt)]
 		private void BackToFirstWhitespace()
 		{
+			if (_i == 0) return;
+
 			Set(_i - 1);
 
 			while (IsAllWhitespace(_type))
 			{
+				if (_i == 0) return;
+
 				Set(_i - 1);
 			}
 
@@ -1429,6 +1567,8 @@ namespace Terumi.Parser
 		[MethodImpl(MaxOpt)]
 		private void ConsumeAllWhitespace()
 		{
+			if (AtEnd()) return;
+
 			while (IsAllWhitespace(_type))
 			{
 				Next();

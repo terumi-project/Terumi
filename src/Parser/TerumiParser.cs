@@ -749,6 +749,20 @@ namespace Terumi.Parser
 
 			return new Statement.Increment(Make(ctx), increment);
 		}
+
+		public Statement.Command? ReadCommandStmt()
+		{
+			var ctx = Init();
+
+			if (_type != TokenType.CommandToken)
+			{
+				return null;
+			}
+			var strData = _current.Value<Lexer.StringData>();
+			Next();
+
+			return new Statement.Command(Make(ctx), UpdateStringData(strData));
+		}
 		#endregion
 
 #region expressions
@@ -1262,17 +1276,11 @@ namespace Terumi.Parser
 				case TokenType.StringToken:
 				{
 					// TODO: handle interpolation stuff
-					var strData = _current.Value<Lexer.StringData>();
-					var interpolations = new List<StringData.Interpolation>();
+					var strData = UpdateStringData(_current.Value<Lexer.StringData>());
 
-					foreach (var interpolation in strData.Interpolations)
-					{
-						var parser = new TerumiParser(interpolation.Tokens.ToArray());
-						interpolations.Add(new StringData.Interpolation(parser.ReadExpression(), interpolation.Position));
-					}
-
+					// skip string
 					Next();
-					return new Expression.Constant(Make(ctx), new StringData(strData.StringValue, interpolations));
+					return new Expression.Constant(Make(ctx), strData);
 				}
 
 				case TokenType.NumberToken:
@@ -1410,6 +1418,19 @@ namespace Terumi.Parser
 			return new Expression.New(Make(ctx), type, exprs);
 		}
 #endregion
+
+		private StringData UpdateStringData(Lexer.StringData strData)
+		{
+			var interpolations = new List<StringData.Interpolation>();
+
+			foreach (var interpolation in strData.Interpolations)
+			{
+				var parser = new TerumiParser(interpolation.Tokens.ToArray());
+				interpolations.Add(new StringData.Interpolation(parser.ReadExpression(), interpolation.Position));
+			}
+
+			return new StringData(strData.StringValue, interpolations);
+		}
 
 		private Contextual<List<Expression>> ReadMethodCallParameters()
 		{

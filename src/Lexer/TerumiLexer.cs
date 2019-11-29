@@ -349,7 +349,9 @@ namespace Terumi.Lexer
 			Debug.Assert(_source.Peek(1) == '/', "Second character should be /");
 			_source.Advance(2);
 
-			return InnerString(c => c == '\r' || c == '\n');
+			var success = InnerString(c => c == '\r' || c == '\n');
+			TokenType = TokenType.CommandToken;
+			return success;
 		}
 
 		private bool InnerString(Predicate<char> isEnd)

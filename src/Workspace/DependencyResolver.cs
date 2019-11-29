@@ -37,16 +37,21 @@ namespace Terumi.Workspace
 			}
 		}
 
-		public Project Resolve(LibraryReference reference)
+		public Project Resolve(string configurationPath, LibraryReference reference)
 		{
 			if (reference.Path != null)
 			{
-				if (Directory.Exists(reference.Path))
+				// try to resolve the path to that project using the configuration file as the point of reference
+				var pointOfReference = Path.GetFullPath(Path.GetDirectoryName(configurationPath));
+				var refAndPath = Path.Combine(pointOfReference, reference.Path);
+				var referenceFullPath = Path.GetFullPath(refAndPath);
+
+				if (Directory.Exists(referenceFullPath))
 				{
-					return Resolve(reference.Path);
+					return Resolve(referenceFullPath);
 				}
 
-				Log.Warn($"Unable to resolve dependency living at '{reference.Path}'. Resorting to using git.");
+				Log.Warn($"Unable to resolve dependency living at '{reference.Path}' (interpreted path: {referenceFullPath}). Resorting to using git");
 			}
 
 			// TODO: null check git stuff

@@ -96,7 +96,7 @@ namespace Terumi.Workspace
 		{
 			foreach (var dependency in Configuration.Libraries)
 			{
-				yield return resolver.Resolve(dependency);
+				yield return resolver.Resolve(ConfigurationPath, dependency);
 			}
 		}
 

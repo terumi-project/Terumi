@@ -21,21 +21,6 @@ namespace Terumi.Binder
 		public List<BoundFile> IndirectDependencies;
 	}
 
-	public static class TerumiBinderHelpers
-	{
-		public static TerumiBinderBindings Bind(this TerumiBinderProject project, ICompilerTarget target)
-		{
-			var binder = new TerumiBinder(project, target);
-
-			binder.DiscoverTypes();
-			binder.DiscoverFields();
-			binder.DiscoverMethodHeaders();
-			binder.DiscoverMethodBodies();
-
-			return binder.Finalize();
-		}
-	}
-
 	public class TerumiBinder
 	{
 		internal readonly TerumiBinderProject _project;
@@ -49,49 +34,12 @@ namespace Terumi.Binder
 			_target = target;
 		}
 
-		public TerumiBinderBindings Finalize()
-		{
-			var sourceToClasses = new Dictionary<SourceFile, List<Class>>();
-			var sourceToMethods = new Dictionary<SourceFile, List<Method>>();
-
-			foreach (var (@class, file) in _wipClasses)
-			{
-				if (sourceToClasses.TryGetValue(file, out var classes)) classes.Add(@class);
-				else sourceToClasses[file] = new List<Class> { @class };
-			}
-
-			foreach (var (method, file) in _wipMethods)
-			{
-				if (sourceToMethods.TryGetValue(file, out var methods)) methods.Add(method);
-				else sourceToMethods[file] = new List<Method> { method };
-			}
-
-			var allFiles = sourceToClasses
-				.Select(x => x.Key)
-				.Concat(sourceToMethods.Select(x => x.Key))
-				.Distinct();
-
-			var binds = new List<BoundFile>();
-
-			foreach (var file in allFiles)
-			{
-				if (!sourceToClasses.TryGetValue(file, out var classes)) classes = EmptyList<Class>.Instance;
-				if (!sourceToMethods.TryGetValue(file, out var methods)) methods = EmptyList<Method>.Instance;
-
-				var bound = new BoundFile(file.FilePath, file.PackageLevel, file.Usings, methods, classes);
-				binds.Add(bound);
-			}
-
-			return new TerumiBinderBindings
-			{
-				BoundProjectFiles = binds,
-				DirectDependencies = _project.DirectDependencies,
-				IndirectDependencies = _project.IndirectDependencies
-			};
-		}
-
 		public bool TryBind(out List<BoundFile> bound)
 		{
+			DiscoverTypes();
+			DiscoverFields();
+			DiscoverMethodHeaders();
+
 			bound = default;
 			return false;
 		}
@@ -107,7 +55,7 @@ namespace Terumi.Binder
 				}
 			}
 
-			// TODO: verify that no two names are similar between direct dependencies and 
+			// TODO: prevent name conflicts
 		}
 
 		// discover field names and their types
@@ -157,7 +105,6 @@ namespace Terumi.Binder
 		// now read into the code of the method body - we have full type information at this point
 		public void DiscoverMethodBodies()
 		{
-			/*
 			foreach (var (@class, file) in _wipClasses)
 			{
 				foreach (var method in @class.Methods)
@@ -180,13 +127,73 @@ namespace Terumi.Binder
 				var code = binder.Finalize();
 				userMethod.Body = code;
 			}
-			*/
 		}
 
-		
+		internal bool CanUseTypeAsType(IType supposeToBe, IType tryingToUse)
+		{
+			// make sure they're not builtin types
+			// if they're built in types they're not replaceable
+			if (BuiltinType.IsBuiltinType(supposeToBe) || BuiltinType.IsBuiltinType(tryingToUse))
+			{
+				// if they're builtin types, we check if they're equal by reference only
+				return IType.ReferenceEquals(supposeToBe, tryingToUse);
+			}
+
+			if (supposeToBe.Fields.Count != tryingToUse.Fields.Count)
+			{
+				return false;
+			}
+
+			if (supposeToBe.Methods.Count != tryingToUse.Methods.Count)
+			{
+				return false;
+			}
+
+			for (var i = 0; i < supposeToBe.Fields.Count; i++)
+			{
+				var src = supposeToBe.Fields[i];
+				var target = tryingToUse.Fields[i];
+
+				if (src.Name == target.Name
+					&& CanUseTypeAsType(src.Type, target.Type))
+				{
+					continue;
+				}
+
+				return false;
+			}
+
+			for (var i = 0; i < supposeToBe.Methods.Count; i++)
+			{
+				var src = supposeToBe.Methods[i];
+				var target = tryingToUse.Methods[i];
+
+				if (src.Name == target.Name
+					&& CanUseTypeAsType(src.ReturnType, target.ReturnType)
+					&& src.Parameters.Count == target.Parameters.Count)
+				{
+					for (var p = 0; p < src.Parameters.Count; p++)
+					{
+						if (CanUseTypeAsType(src.Parameters[p].Type, target.Parameters[p].Type))
+						{
+							continue;
+						}
+
+						return false;
+					}
+
+					continue;
+				}
+
+				return false;
+			}
+
+			return true;
+		}
+
 		internal IType FindImmediateType(string? name, SourceFile source)
 		{
-			// at this point 'name' is guarenteed to not be null
+			// after this point 'name' is guarenteed to not be null
 			if (BuiltinType.TryUse(name, out var type)) return type;
 
 			// TODO: determine if similar elements exist, and if so, prohibit them from being named as such

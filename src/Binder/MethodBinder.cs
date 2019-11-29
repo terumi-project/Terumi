@@ -6,6 +6,257 @@ using Terumi.Parser;
 
 namespace Terumi.Binder
 {
+	public class Scope
+	{
+		private readonly Dictionary<string, Statement.Declaration> _vars = new Dictionary<string, Statement.Declaration>();
+		private readonly Dictionary<string, MethodParameter> _parameters = new Dictionary<string, MethodParameter>();
+		private readonly Dictionary<string, Field> _fields = new Dictionary<string, Field>();
+		private readonly Scope? _previous;
+
+		public Scope(Class? classCtx, Method? methodCtx, Scope? previous = null)
+		{
+			_previous = previous;
+
+			if (classCtx != null)
+			{
+				foreach (var thing in classCtx.Fields)
+				{
+					_fields[thing.Name] = thing;
+				}
+			}
+
+			if (methodCtx != null)
+			{
+				foreach (var thing in methodCtx.Parameters)
+				{
+					_parameters[thing.Name] = thing;
+				}
+			}
+		}
+
+		public bool TryGetReference(Parser.Expression.Reference parserReference, string name, out Expression.Reference reference)
+		{
+			if (_previous != null
+				&& _previous.TryGetReference(parserReference, name, out reference))
+			{
+				return true;
+			}
+
+			if (_fields.TryGetValue(name, out var field))
+			{
+				reference = new Expression.Reference.Field(parserReference, field);
+				return true;
+			}
+
+			if (_parameters.TryGetValue(name, out var parameter))
+			{
+				reference = new Expression.Reference.Parameter(parserReference, parameter);
+				return true;
+			}
+
+			if (_vars.TryGetValue(name, out var decl))
+			{
+				reference = new Expression.Reference.Variable(parserReference, decl);
+				return true;
+			}
+
+			reference = default;
+			return false;
+		}
+
+		public bool TryGetVariable(string name, out Statement.Declaration declaration)
+		{
+			if (_previous != null
+				&& _previous.TryGetVariable(name, out declaration))
+			{
+				return true;
+			}
+
+			return _vars.TryGetValue(name, out declaration);
+		}
+
+		public bool TryDeclare(string name, Statement.Declaration declaration)
+		{
+			if (TryGetVariable(name, out _))
+			{
+				return false;
+			}
+
+			_vars[name] = declaration;
+			return true;
+		}
+	}
+
+	public class MethodBinder
+	{
+		internal readonly TerumiBinder _parent;
+		internal readonly Class _context;
+		internal readonly Method _method;
+		internal readonly SourceFile _file;
+		internal readonly Scope _scope;
+
+		public MethodBinder(TerumiBinder parent, Class? context, Method method, SourceFile file)
+		{
+			_parent = parent;
+			_context = context;
+			_method = method;
+			_file = file;
+			_scope = new Scope(_context, _method);
+		}
+
+		public CodeBody Finalize() => new CodeBody(Handle(_scope, _method.FromParser.Code));
+
+		private List<Statement> Handle(Scope scope, Parser.CodeBody body)
+		{
+			var binder = new CodeBodyBinder(this, scope);
+			return binder.Bind(body);
+		}
+	}
+
+	public class CodeBodyBinder
+	{
+		private readonly MethodBinder _parent;
+		private readonly Scope _scope;
+
+		public CodeBodyBinder(MethodBinder parent, Scope scope)
+		{
+			_parent = parent;
+			_scope = scope;
+		}
+
+		public List<Statement> Bind(Parser.CodeBody body)
+		{
+			var stmts = new List<Statement>();
+
+			foreach (var stmt in body.Statements)
+			{
+				stmts.AddRange(Handle(stmt));
+			}
+
+			return stmts;
+		}
+
+		// TODO: prevent lots of list allocations, but as of now, meh
+		private List<Statement> Handle(Parser.Statement stmt)
+		{
+			switch (stmt)
+			{
+				case Parser.Statement.Access o: return HandleOne(Handle(o));
+				case Parser.Statement.Assignment o: return HandleOne(Handle(o));
+				case Parser.Statement.Command o: return HandleOne(Handle(o));
+				case Parser.Statement.Declaration o: return HandleOne(Handle(o));
+				case Parser.Statement.For o: return HandleOne(Handle(o));
+				case Parser.Statement.If o: return HandleOne(Handle(o));
+				case Parser.Statement.Increment o: return HandleOne(Handle(o));
+				case Parser.Statement.MethodCall o: return HandleOne(Handle(o));
+				case Parser.Statement.Return o: return HandleOne(Handle(o));
+				case Parser.Statement.While o: return HandleOne(Handle(o));
+				default: throw new NotSupportedException(stmt.GetType().FullName);
+			}
+
+			static List<Statement> HandleOne(Statement statement) => new List<Statement> { statement };
+		}
+
+		private Statement.Access Handle(Parser.Statement.Access o)
+		{
+		}
+
+		private Statement.Assignment Handle(Parser.Statement.Assignment o)
+		{
+		}
+
+		private Statement.Command Handle(Parser.Statement.Command o)
+		{
+		}
+
+		private Statement.Declaration Handle(Parser.Statement.Declaration o)
+		{
+		}
+
+		private Statement.For Handle(Parser.Statement.For o)
+		{
+		}
+
+		private Statement.If Handle(Parser.Statement.If o)
+		{
+		}
+
+		private Statement.Increment Handle(Parser.Statement.Increment o)
+		{
+		}
+
+		private Statement.MethodCall Handle(Parser.Statement.MethodCall o)
+		{
+		}
+
+		private Statement.Return Handle(Parser.Statement.Return o)
+		{
+		}
+
+		private Statement.While Handle(Parser.Statement.While o)
+		{
+		}
+
+		// expressions
+		private Expression Handle(Parser.Expression expression)
+		{
+			switch (expression)
+			{
+				case Parser.Expression.Access o: return Handle(o);
+				case Parser.Expression.Assignment o: return Handle(o);
+				case Parser.Expression.Binary o: return Handle(o);
+				case Parser.Expression.Constant o: return Handle(o);
+				case Parser.Expression.Increment o: return Handle(o);
+				case Parser.Expression.MethodCall o: return Handle(o);
+				case Parser.Expression.New o: return Handle(o);
+				case Parser.Expression.Parenthesized o: return Handle(o);
+				case Parser.Expression.Reference o: return Handle(o);
+				case Parser.Expression.Unary o: return Handle(o);
+				default: throw new NotSupportedException(expression.GetType().FullName);
+			}
+		}
+
+		private Expression.Access Handle(Parser.Expression.Access o)
+		{
+		}
+
+		private Expression.Assignment Handle(Parser.Expression.Assignment o)
+		{
+		}
+
+		private Expression.Binary Handle(Parser.Expression.Binary o)
+		{
+		}
+
+		private Expression.Constant Handle(Parser.Expression.Constant o)
+		{
+		}
+
+		private Expression.Increment Handle(Parser.Expression.Increment o)
+		{
+		}
+
+		private Expression.MethodCall Handle(Parser.Expression.MethodCall o)
+		{
+		}
+
+		private Expression.New Handle(Parser.Expression.New o)
+		{
+		}
+
+		private Expression.Parenthesized Handle(Parser.Expression.Parenthesized o)
+		{
+		}
+
+		private Expression.Reference Handle(Parser.Expression.Reference o)
+		{
+		}
+
+		private Expression.Unary Handle(Parser.Expression.Unary o)
+		{
+		}
+	}
+
 	/*
 	// used for var decls & whatever else
 	public class Scope

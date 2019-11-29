@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Terumi.Binder
 {
@@ -291,6 +292,44 @@ namespace Terumi.Binder
 			public Expression Left { get; }
 			public BinaryExpression Operator { get; }
 			public Expression Right { get; }
+		}
+
+		public class Unary : Expression
+		{
+			public Unary(Parser.Expression.Unary fromParser, UnaryExpression @operator, Expression operand) : base(fromParser)
+			{
+				FromParser = fromParser;
+				Operator = @operator;
+				Operand = operand;
+
+#if DEBUG
+				var assert = Type;
+#endif
+			}
+
+			new public Parser.Expression.Unary FromParser { get; }
+
+			public override IType Type
+			{
+				get
+				{
+#if DEBUG
+					if (Operator == UnaryExpression.Not)
+					{
+						Debug.Assert(Operand.Type == BuiltinType.Boolean);
+					}
+
+					if (Operator == UnaryExpression.Negate)
+					{
+						Debug.Assert(Operand.Type == BuiltinType.Number);
+					}
+#endif
+					return Operand.Type;
+				}
+			}
+
+			public UnaryExpression Operator { get; }
+			public Expression Operand { get; }
 		}
 
 		public class Parenthesized : Expression

@@ -8,7 +8,6 @@ namespace Terumi.Binder
 
 	public enum BinaryExpression
 	{
-		Not, // !
 		EqualTo, NotEqualTo, // == !=
 		LessThan, LessThanOrEqualTo, // < <=
 		GreaterThan, GreaterThanOrEqualTo, // > >=
@@ -22,6 +21,12 @@ namespace Terumi.Binder
 		DecrementPost,
 		IncrementPre,
 		IncrementPost,
+	}
+
+	public enum UnaryExpression
+	{
+		Not, // !
+		Negate, // -
 	}
 
 	public static class EnumHelper
@@ -113,18 +118,29 @@ namespace Terumi.Binder
 	{
 		public Field(IType parent, IType type, string name)
 		{
-			Parent = parent;
+			// Parent = parent;
 			Type = type;
 			Name = name;
 		}
 
-		public IType Parent { get; }
+		// commenting this out to prevent it from being used
+		// thanks to terumi's fancy type system
+
+		// public IType Parent { get; }
 		public IType Type { get; }
 		public string Name { get; }
 	}
 
 	public sealed class BuiltinType : IType
 	{
+		public static bool IsBuiltinType(IType type)
+		{
+			return type == BuiltinType.Void
+				|| type == BuiltinType.String
+				|| type == BuiltinType.Number
+				|| type == BuiltinType.Boolean;
+		}
+
 		/// <summary>
 		/// Tries to take a given name and pair it with one of the right BuiltinTypes
 		/// </summary>

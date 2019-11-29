@@ -78,7 +78,7 @@ namespace Terumi.Binder
 				if (!sourceToClasses.TryGetValue(file, out var classes)) classes = EmptyList<Class>.Instance;
 				if (!sourceToMethods.TryGetValue(file, out var methods)) methods = EmptyList<Method>.Instance;
 
-				var bound = new BoundFile(file.PackageLevel, file.Usings, methods, classes);
+				var bound = new BoundFile(file.FilePath, file.PackageLevel, file.Usings, methods, classes);
 				binds.Add(bound);
 			}
 
@@ -88,6 +88,12 @@ namespace Terumi.Binder
 				DirectDependencies = _project.DirectDependencies,
 				IndirectDependencies = _project.IndirectDependencies
 			};
+		}
+
+		public bool TryBind(out List<BoundFile> bound)
+		{
+			bound = default;
+			return false;
 		}
 
 		// only discover the existence of types, eg classes or contracts

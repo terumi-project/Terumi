@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using Terumi.Binder;
@@ -10,148 +11,229 @@ using Terumi.Targets;
 
 namespace Terumi.Workspace
 {
-	public static class WorkspaceParser
+	public class WorkspaceParser
 	{
-		public static TerumiBinderBindings ParseProject(this Project project, DependencyResolver resolver, ICompilerTarget target)
+		private readonly DependencyResolver _resolver;
+		private readonly ICompilerTarget _target;
+
+		private readonly Dictionary<Project, TerumiBinderBindings> _parsed = new Dictionary<Project, TerumiBinderBindings>();
+
+		public WorkspaceParser(DependencyResolver resolver, ICompilerTarget target)
 		{
-			// TODO: make this way better, atm it's garbage
-			// need to properly scope indirect and direct dependencies
+			_resolver = resolver;
+			_target = target;
+		}
 
-			var immediateDependencies = project.ResolveDependencies(resolver);
-
-			var binderProject = new TerumiBinderProject
+		public bool TryParse(Project project, out TerumiBinderBindings parsed)
+		{
+			if (_parsed.ContainsKey(project))
 			{
-				ProjectFiles = new List<SourceFile>(),
+				parsed = _parsed[project];
+				return true;
+			}
+
+			parsed = new TerumiBinderBindings
+			{
+				BoundProjectFiles = new List<BoundFile>(),
 				DirectDependencies = new List<BoundFile>(),
 				IndirectDependencies = new List<BoundFile>()
 			};
 
-			foreach (var dependency in immediateDependencies)
+			// resolve all dependencies
+			var resolvedOk = true;
+
+			foreach (var dependency in project.ResolveDependencies(_resolver))
 			{
-				var dependencyBinderProject = dependency.ParseProject(resolver, target);
-				binderProject.DirectDependencies.AddRange(dependencyBinderProject.BoundProjectFiles);
+				if (!TryParse(dependency, out var depProject))
+				{
+					Log.Warn($"Unable to resolve dependency '{dependency.Configuration.Name}' in '{project.Configuration.Name}', there may be cascading errors after this point.");
+					resolvedOk = false;
+					continue;
+				}
+
+				parsed.IndirectDependencies.AddRange(depProject.IndirectDependencies);
+				parsed.IndirectDependencies.AddRange(depProject.DirectDependencies);
+				parsed.DirectDependencies.AddRange(depProject.BoundProjectFiles);
 			}
+
+			if (!resolvedOk)
+			{
+				return false;
+			}
+
+			// cleanup parsed crud, incase we have duplicates
+			parsed.IndirectDependencies = parsed.IndirectDependencies
+				.Distinct(BoundFile.FilePathComparer)
+				.ToList();
+
+			// direct dependencies should be ok
+
+			// let's parse the project itself
+			var sourceFiles = new List<SourceFile>();
+
+			var couldParse = true;
 
 			foreach (var source in project.GetSources())
 			{
-				var tokens = ParseTokens(source.Source, source.Path);
-				var rom = new ReadOnlyMemory<Token>(tokens.ToArray());
-				var parser = new TerumiParser(rom);
-
-				try
+				if (!StaticWorkspaceParser.TryParseFile(source, out var sourceFile))
 				{
-					var sourceFile = parser.ConsumeSourceFile(source.PackageLevel);
-
-					binderProject.ProjectFiles.Add(sourceFile);
+					couldParse = false;
+					Log.Warn($"Unable to parse a file in the project '{source.Project.ProjectName}', there may be cascading errors after this point (file: '{source.Path}')");
+					continue;
 				}
-				catch (ParserException ex)
+
+				sourceFiles.Add(sourceFile);
+			}
+
+			if (!couldParse)
+			{
+				return false;
+			}
+
+			// let's now bind each file
+			var binder = new TerumiBinder(new TerumiBinderProject
+			{
+				ProjectFiles = sourceFiles,
+				DirectDependencies = parsed.DirectDependencies,
+				IndirectDependencies = parsed.IndirectDependencies
+			}, _target);
+
+			if (!binder.TryBind(out var bound))
+			{
+				Log.Warn($"Unable to bind project '{project.ProjectName}', there may be cascading errors after this point");
+				return false;
+			}
+
+			parsed.BoundProjectFiles = bound;
+
+			_parsed[project] = parsed;
+			return true;
+		}
+	}
+
+	// i don't feel like cleaning old stuff up so this stays lol
+	internal static class StaticWorkspaceParser
+	{
+		public static bool TryParseFile(this ProjectFile source, out SourceFile sourceFile)
+		{
+			var tokens = ParseTokens(source.Source, source.Path);
+			var rom = new ReadOnlyMemory<Token>(tokens.ToArray());
+			var parser = new TerumiParser(rom);
+
+			try
+			{
+				sourceFile = parser.ConsumeSourceFile(source.PackageLevel);
+
+				return true;
+			}
+			catch (ParserException ex)
+			{
+				var ctxI = ex.Index;
+				var ctxTokens = ex.Context.Span;
+				ReadOnlySpan<char> src = source.Source;
+
+				var metadataLine = ctxTokens[ctxI].PositionStart.Line;
+				var metadataColumn = ctxTokens[ctxI].PositionStart.Column;
+
+				// generate a visibly meaningful error, eg.
+				// main(number a string b)
+				//              ^
+
+				// we want to start by grabbing the whole line
+				var search = ctxTokens[ctxI].PositionStart.BinaryOffset;
+
+				var lineStart = search - 1; // if search is on a '\n' we want the previous line
+				var lineEnd = search;
+
+				while (lineStart >= 0
+					&& src[lineStart] != '\n')
 				{
-					var ctxI = ex.Index;
-					var ctxTokens = ex.Context.Span;
-					ReadOnlySpan<char> src = source.Source;
+					lineStart--;
+				}
 
-					var metadataLine = ctxTokens[ctxI].PositionStart.Line;
-					var metadataColumn = ctxTokens[ctxI].PositionStart.Column;
+				// hit a '\n', we want to not include that
+				lineStart++;
 
-					// generate a visibly meaningful error, eg.
-					// main(number a string b)
-					//              ^
+				// we account for lineEnd hitting the EOF
+				// and we account for lineEnd-- with this hacky crud
+				while (lineEnd <= src.Length
+					&& (lineEnd < src.Length ? src[lineEnd] != '\n' : true))
+				{
+					lineEnd++;
+				}
 
-					// we want to start by grabbing the whole line
-					var search = ctxTokens[ctxI].PositionStart.BinaryOffset;
+				// hit a '\n', we want to not include that
+				lineEnd--;
 
-					var lineStart = search - 1; // if search is on a '\n' we want the previous line
-					var lineEnd = search;
+				// now we know the entire line
+				var tokenStart = search;
+				var tokenEnd = ctxTokens[ctxI].PositionEnd.BinaryOffset;
 
-					while (lineStart >= 0
-						&& src[lineStart] != '\n')
+				// now we know the line, and the token position
+				// we can generate a pretty error now
+				// first, let's grab just the line and make all the offsets relative to it
+				var line = src.Slice(lineStart, lineEnd - lineStart);
+
+				tokenStart -= lineStart;
+				tokenEnd -= lineStart;
+				lineEnd -= lineStart;
+				lineStart = 0;
+
+				// now let's generate a pretty image for the error position
+				Span<char> image = new char[line.Length];
+
+				if (tokenStart < line.Length)
+				{
+					if (tokenEnd < line.Length)
 					{
-						lineStart--;
+						image[tokenStart..tokenEnd].Fill('~');
 					}
 
-					// hit a '\n', we want to not include that
-					lineStart++;
+					image[tokenStart] = '^';
+				}
 
-					// we account for lineEnd hitting the EOF
-					// and we account for lineEnd-- with this hacky crud
-					while (lineEnd <= src.Length
-						&& (lineEnd < src.Length ? src[lineEnd] != '\n' : true))
+				// ok now let's modify both line and image according to tabs
+				// we want to replace a tab with 4 spaces
+				var tabs = 0;
+				for (int i = 0; i < line.Length; i++)
+				{
+					if (line[i] == '\t')
 					{
-						lineEnd++;
+						tabs++;
 					}
+				}
 
-					// hit a '\n', we want to not include that
-					lineEnd--;
+				Span<char> modLine = new char[line.Length + tabs * 3];
+				Span<char> modImage = new char[image.Length + tabs * 3];
 
-					// now we know the entire line
-					var tokenStart = search;
-					var tokenEnd = ctxTokens[ctxI].PositionEnd.BinaryOffset;
-
-					// now we know the line, and the token position
-					// we can generate a pretty error now
-					// first, let's grab just the line and make all the offsets relative to it
-					var line = src.Slice(lineStart, lineEnd - lineStart);
-
-					tokenStart -= lineStart;
-					tokenEnd -= lineStart;
-					lineEnd -= lineStart;
-					lineStart = 0;
-
-					// now let's generate a pretty image for the error position
-					Span<char> image = new char[line.Length];
-
-					if (tokenStart < line.Length)
+				int destI = 0;
+				for (int i = 0; i < line.Length; i++)
+				{
+					if (line[i] == '\t')
 					{
-						if (tokenEnd < line.Length)
+						for (int p = 0; p < 4; p++)
 						{
-							image[tokenStart..tokenEnd].Fill('~');
-						}
-
-						image[tokenStart] = '^';
-					}
-
-					// ok now let's modify both line and image according to tabs
-					// we want to replace a tab with 4 spaces
-					var tabs = 0;
-					for (int i = 0; i < line.Length; i++)
-					{
-						if (line[i] == '\t')
-						{
-							tabs++;
-						}
-					}
-
-					Span<char> modLine = new char[line.Length + tabs * 3];
-					Span<char> modImage = new char[image.Length + tabs * 3];
-
-					int destI = 0;
-					for (int i = 0; i < line.Length; i++)
-					{
-						if (line[i] == '\t')
-						{
-							for (int p = 0; p < 4; p++)
-							{
-								modLine[destI] = ' ';
-								modImage[destI] = ' ';
-								destI++;
-							}
-						}
-						else
-						{
-							modLine[destI] = line[i];
-							modImage[destI] = image[i];
+							modLine[destI] = ' ';
+							modImage[destI] = ' ';
 							destI++;
 						}
 					}
+					else
+					{
+						modLine[destI] = line[i];
+						modImage[destI] = image[i];
+						destI++;
+					}
+				}
 
-					Log.Error($@"Error parsing '{source.Path}'@'{project.ProjectName}' (thrown at TerumiParser.cs, line {ex.ParserLineNumber}:
+				Log.Error($@"Error parsing '{source.Path}'@'{source.Project.ProjectName}' (thrown at TerumiParser.cs, line {ex.ParserLineNumber}:
 L{metadataLine}:C{metadataColumn} {ex.Message}
 {new string(modLine)}
 {new string(modImage)}");
-				}
 			}
 
-			return binderProject.Bind(target);
+			sourceFile = default;
+			return false;
 		}
 
 		public static List<Token> ParseTokens(string source, string fileName)

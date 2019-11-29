@@ -1,16 +1,26 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Terumi
 {
 	public static class MiscExtensions
 	{
-		public static string[] ExcludeLast(this string[] array)
+		public static IEnumerable<string> ExcludeLast(this IEnumerable<string> array)
 		{
-			var newArray = new string[array.Length - 1];
+			using var enumerator = array.GetEnumerator();
 
-			Array.Copy(array, 0, newArray, 0, newArray.Length);
+			if (!enumerator.MoveNext())
+			{
+				yield break;
+			}
 
-			return newArray;
+			var last = enumerator.Current;
+
+			while (enumerator.MoveNext())
+			{
+				yield return last;
+				last = enumerator.Current;
+			}
 		}
 	}
 }

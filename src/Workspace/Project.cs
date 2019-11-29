@@ -118,12 +118,17 @@ namespace Terumi.Workspace
 					// ensure no empty ones
 					// e.g. if we substring /a/b/c/proj to /c/proj we will end up having "" "c" "proj"
 					.Where(x => !string.IsNullOrEmpty(x))
-					.ToArray()
 
 					// get rid of 'reader.trm'
-					.ExcludeLast();
+					.ExcludeLast()
 
-				yield return new ProjectFile(file, source, packageLevel);
+					// if we have dots in folder names, we want to include those as sub package levels
+					// we do this before excluding the last one so we don't pick up multiple dots in file names
+					.SelectMany(x => x.Split('.'))
+
+					.ToArray();
+
+				yield return new ProjectFile(this, file, source, packageLevel);
 			}
 		}
 

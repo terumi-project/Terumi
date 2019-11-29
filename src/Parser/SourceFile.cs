@@ -7,6 +7,8 @@ namespace Terumi.Parser
 {
 	public class SourceFile
 	{
+		public string FilePath { get; set; }
+
 		public ConsumedTokens Consumed { get; }
 		public PackageLevel PackageLevel { get; }
 		public List<PackageLevel> Usings { get; }
@@ -17,6 +19,7 @@ namespace Terumi.Parser
 
 		public SourceFile
 		(
+			string filePath,
 			ConsumedTokens consumed,
 			PackageLevel packageLevel,
 			List<PackageLevel>? usings = null,
@@ -24,6 +27,7 @@ namespace Terumi.Parser
 			List<Class>? classes = null
 		)
 		{
+			FilePath = filePath;
 			Consumed = consumed;
 			PackageLevel = packageLevel;
 			Usings = usings ?? EmptyList<PackageLevel>.Instance;

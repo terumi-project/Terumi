@@ -36,9 +36,16 @@ namespace Terumi
 
 			var resolver = project.CreateResolver();
 
-			Log.Stage("PARSE", "Parsing project source code");
+			// we use 'interpret' to refer to lexing, parsing, and binding
+			Log.Stage("INTERPRET", "Reading and interpreting project");
 
-			var terumiProject = project.ParseProject(resolver, target);
+			var workspaceParser = new WorkspaceParser(resolver, target);
+
+			if (!workspaceParser.TryParse(project, out var bindings))
+			{
+				Log.Error("Unable to interpret workspace");
+				return false;
+			}
 
 			/*
 			var translator = new Translator(target);

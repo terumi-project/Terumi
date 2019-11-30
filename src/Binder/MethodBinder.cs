@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Terumi.Parser;
@@ -306,42 +307,155 @@ namespace Terumi.Binder
 
 		private Expression.Access Handle(Parser.Expression.Access o)
 		{
+			var left = Handle(o.Left);
+
+			switch (o.Right)
+			{
+				// field reference
+				case Parser.Expression.Reference p:
+				{
+					var fieldName = p.ReferenceName;
+					var targetField = left.Type.Fields.First(x => x.Name == fieldName);
+
+					return new Expression.Access(o, left, new Expression.Reference.Field(p, targetField));
+				}
+
+				// method call on the object
+				case Parser.Expression.MethodCall p:
+				{
+					if (p.IsCompilerCall)
+					{
+						throw new CodeBinderException(p, "Cannot call compiler method calls on objects");
+					}
+
+					var exprs = new List<Expression>();
+
+					foreach (var expr in p.Arguments)
+					{
+						exprs.Add(Handle(expr));
+					}
+
+					// find the right method
+					var method = _parent._parent.TryFindMethod(left.Type.Methods, p.Name, exprs);
+
+					if (method == null)
+					{
+						throw new CodeBinderException(p, "Unable to find method call");
+					}
+
+					return new Expression.Access(o, left, new Expression.MethodCall(p, method, exprs));
+				}
+			}
+
+			throw new CodeBinderException(o, "Unsupported expression on access");
 		}
 
 		private Expression.Assignment Handle(Parser.Expression.Assignment o)
 		{
+			var left = Handle(o.Left);
+			var right = Handle(o.Right);
+
+			switch (left)
+			{
+				case Expression.Reference p:
+				{
+				}
+				break;
+
+				case Expression.Access p:
+				{
+				}
+				break;
+
+				default: throw new CodeBinderException(o, "Cannot handle assignnment");
+			}
+
+			return new Expression.Assignment(o, left, right);
 		}
 
 		private Expression.Binary Handle(Parser.Expression.Binary o)
 		{
+			var left = Handle(o.Left);
+			var right = Handle(o.Right);
+
+			return new Expression.Binary(o, left, o.Operator.ToBinaryExpression(), right);
 		}
 
 		private Expression.Constant Handle(Parser.Expression.Constant o)
 		{
+#if DEBUG
+			Debug.Assert(o.Value is Parser.StringData
+				|| o.Value is Number
+				|| o.Value is bool);
+#endif
+			if (o.Value is Parser.StringData strDat)
+			{
+				var up = Update(strDat);
+				return new Expression.Constant(o, up);
+			}
+
+			return new Expression.Constant(o, o.Value);
 		}
 
 		private Expression.Increment Handle(Parser.Expression.Increment o)
 		{
+			return new Expression.Increment(o, Handle(o.Expression), o.Side.ToIncrementType(o.Type));
 		}
 
 		private Expression.MethodCall Handle(Parser.Expression.MethodCall o)
 		{
+			var exprs = new List<Expression>();
+
+			foreach (var expr in o.Arguments)
+			{
+				exprs.Add(Handle(expr));
+			}
+
+			if (!_parent._parent.FindImmediateMethod(o, exprs, out var method))
+			{
+				throw new CodeBinderException(o, $"Couldn't find exception for method call {o.Name}");
+			}
+
+			return new Expression.MethodCall(o, method, exprs);
 		}
 
 		private Expression.New Handle(Parser.Expression.New o)
 		{
+			var type = _parent._parent.FindImmediateType(o.Type, _parent._file);
+
+			var exprs = new List<Expression>();
+
+			foreach (var expr in o.Expressions)
+			{
+				exprs.Add(Handle(expr));
+			}
+
+			var ctor = _parent._parent.TryFindConsructor(type, exprs);
+
+			return new Expression.New(o, type, ctor, exprs);
 		}
 
 		private Expression.Parenthesized Handle(Parser.Expression.Parenthesized o)
 		{
+			return new Expression.Parenthesized(o, Handle(o.Inner));
 		}
 
 		private Expression.Reference Handle(Parser.Expression.Reference o)
 		{
+			if (!_scope.TryGetReference(o, o.ReferenceName, out var varRef))
+			{
+				throw new CodeBinderException(o, $"Unable to find reference '{o.ReferenceName}'");
+			}
+
+			return varRef;
 		}
 
 		private Expression.Unary Handle(Parser.Expression.Unary o)
 		{
+			var unary = o.Operator.ToUnaryExpression();
+			var value = Handle(o.Operand);
+
+			return new Expression.Unary(o, unary, value);
 		}
 
 		/* helpers */

@@ -258,12 +258,12 @@ namespace Terumi.Parser
 			{
 				IsCompilerCall = isCompilerCall;
 				Name = name;
-				Parameters = parameters;
+				Arguments = parameters;
 			}
 
 			public bool IsCompilerCall { get; }
 			public string Name { get; }
-			public List<Expression> Parameters { get; }
+			public List<Expression> Arguments { get; }
 		}
 
 		// works as a comparison as well

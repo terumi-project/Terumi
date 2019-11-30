@@ -363,7 +363,7 @@ namespace Terumi.Binder
 
 		public class New : Expression
 		{
-			public New(Parser.Expression.New fromParser, IType target, IMethod constructor, List<Expression> parameters) : base(fromParser)
+			public New(Parser.Expression.New fromParser, IType target, IMethod? constructor, List<Expression> parameters) : base(fromParser)
 			{
 				Target = target;
 				Constructor = constructor;
@@ -372,7 +372,7 @@ namespace Terumi.Binder
 
 			public override IType Type => Target;
 			public IType Target { get; }
-			public IMethod Constructor { get; }
+			public IMethod? Constructor { get; }
 			public List<Expression> Parameters { get; }
 		}
 	}

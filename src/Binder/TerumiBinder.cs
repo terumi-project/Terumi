@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Terumi.Parser;
@@ -230,6 +231,47 @@ namespace Terumi.Binder
 
 		internal bool FindImmediateMethod(Parser.Expression.MethodCall methodCall, List<Expression> parameters, out IMethod targetMethod)
 			=> FindMethod(methodCall.IsCompilerCall, methodCall.Name, parameters, _wipMethods.Select(x => x.Item1).Concat(_project.DirectDependencies.SelectMany(x => x.Methods)), out targetMethod);
+
+		internal IMethod? TryFindConsructor(IType type, List<Expression> parameters)
+		{
+			Debug.Assert(type is Class);
+			var @class = (Class)type;
+
+			return TryFindMethod(@class.Methods, "ctor", parameters);
+		}
+
+		public IMethod? TryFindMethod(IEnumerable<IMethod> methods, string name, List<Expression> parameters)
+		{
+			foreach (var method in methods)
+			{
+				if (method.Name != name)
+				{
+					continue;
+				}
+
+				if (method.Parameters.Count != parameters.Count)
+				{
+					continue;
+				}
+
+				for (var i = 0; i > method.Parameters.Count; i++)
+				{
+					if (CanUseTypeAsType(method.Parameters[i].Type, parameters[i].Type))
+					{
+						continue;
+					}
+
+					goto nopeNotThisOneChief;
+				}
+
+				return method;
+
+			nopeNotThisOneChief:
+				continue;
+			}
+
+			return null;
+		}
 
 		internal bool FindMethod(bool isCompilerMethod, string name, List<Expression> arguments, IEnumerable<IMethod> methods, out IMethod targetMethod)
 		{

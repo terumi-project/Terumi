@@ -8,6 +8,7 @@ namespace Terumi.Binder
 
 	public enum BinaryExpression
 	{
+		And, Or, // && ||
 		EqualTo, NotEqualTo, // == !=
 		LessThan, LessThanOrEqualTo, // < <=
 		GreaterThan, GreaterThanOrEqualTo, // > >=
@@ -37,7 +38,8 @@ namespace Terumi.Binder
 			{
 				case Lexer.TokenType.EqualTo: return BinaryExpression.EqualTo;
 				case Lexer.TokenType.NotEqualTo: return BinaryExpression.NotEqualTo;
-				case Lexer.TokenType.Not: return BinaryExpression.Not;
+				case Lexer.TokenType.And: return BinaryExpression.And;
+				case Lexer.TokenType.Or: return BinaryExpression.Or;
 				case Lexer.TokenType.GreaterThan: return BinaryExpression.GreaterThan;
 				case Lexer.TokenType.GreaterThanOrEqualTo: return BinaryExpression.GreaterThanOrEqualTo;
 				case Lexer.TokenType.LessThan: return BinaryExpression.LessThan;
@@ -48,6 +50,16 @@ namespace Terumi.Binder
 				case Lexer.TokenType.Multiply: return BinaryExpression.Multiply;
 				case Lexer.TokenType.Divide: return BinaryExpression.Divide;
 				default: throw new InvalidOperationException($"Cannot convert token type {tokenType} to enum {nameof(BinaryExpression)}");
+			}
+		}
+
+		public static UnaryExpression ToUnaryExpression(this Lexer.TokenType tokenType)
+		{
+			switch (tokenType)
+			{
+				case Lexer.TokenType.Subtract: return UnaryExpression.Negate;
+				case Lexer.TokenType.Not: return UnaryExpression.Not;
+				default: throw new InvalidOperationException($"Cannot convert token type {tokenType} to enum {nameof(UnaryExpression)}");
 			}
 		}
 

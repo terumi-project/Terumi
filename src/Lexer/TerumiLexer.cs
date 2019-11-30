@@ -84,7 +84,7 @@ namespace Terumi.Lexer
 				case '-': return IsNext('-') ? Char(TokenType.Decrement)			: Char(TokenType.Subtract);
 				case '*': return IsNext('*') ? Char(TokenType.Exponent)				: Char(TokenType.Multiply);
 
-				case '@': return IsNext('/') ? Command() : Char(TokenType.At);
+				case '@': return IsNext('/', false) ? Command() : Char(TokenType.At);
 
 				case '"': return String();
 
@@ -151,11 +151,11 @@ namespace Terumi.Lexer
 			return true;
 		}
 
-		private bool IsNext(char c)
+		private bool IsNext(char c, bool advance = true)
 		{
 			var result = _source.Peek(1) == c;
 
-			if (result)
+			if (advance && result)
 			{
 				_source.Advance();
 			}
@@ -349,12 +349,14 @@ namespace Terumi.Lexer
 			Debug.Assert(_source.Peek(1) == '/', "Second character should be /");
 			_source.Advance(2);
 
-			var success = InnerString(c => c == '\r' || c == '\n');
+			// go right behind the \r and or \n so that the parser recognizes the statement as ending
+			var success = InnerString(c => c == '\r' || c == '\n', false);
+
 			TokenType = TokenType.CommandToken;
 			return success;
 		}
 
-		private bool InnerString(Predicate<char> isEnd)
+		private bool InnerString(Predicate<char> isEnd, bool advanceAtEnd = true)
 		{
 			var interpolations = new List<StringData.Interpolation>();
 			var strb = new StringBuilder();
@@ -453,7 +455,10 @@ namespace Terumi.Lexer
 			}
 
 			// consume last char
-			_source.Advance();
+			if (advanceAtEnd)
+			{
+				_source.Advance();
+			}
 
 			TokenType = TokenType.StringToken;
 			Start = startCopy;

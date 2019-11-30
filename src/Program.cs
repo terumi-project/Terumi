@@ -47,12 +47,11 @@ namespace Terumi
 				return false;
 			}
 
-			/*
 			var translator = new Translator(target);
 
-			foreach (var item in terumiProject.IndirectDependencies
-				.Concat(terumiProject.DirectDependencies)
-				.Concat(terumiProject.BoundProjectFiles))
+			foreach (var item in bindings.IndirectDependencies
+				.Concat(bindings.DirectDependencies)
+				.Concat(bindings.BoundProjectFiles))
 			{
 				translator.TranslateLight(item);
 			}
@@ -78,7 +77,7 @@ namespace Terumi
 			target.Write(indentedWriter, translator._diary.Methods);
 
 			Log.StageEnd();
-			*/
+			
 			return true;
 		}
 
@@ -132,6 +131,7 @@ namespace Terumi
 
 #if true && DEBUG
 			Directory.SetCurrentDirectory("cart");
+			Compile(new PowershellTarget());
 			return rootCommand.InvokeAsync(new string[] { "compile", "-t", "bash" });
 #else
 			return rootCommand.InvokeAsync(args);

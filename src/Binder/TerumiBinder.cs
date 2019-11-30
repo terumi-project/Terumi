@@ -40,9 +40,19 @@ namespace Terumi.Binder
 			DiscoverTypes();
 			DiscoverFields();
 			DiscoverMethodHeaders();
+			DiscoverMethodBodies();
 
-			bound = default;
-			return false;
+			bound = new List<BoundFile>();
+
+			foreach (var file in _project.ProjectFiles)
+			{
+				var classes = _wipClasses.Where(x => x.Item2 == file).Select(x => x.Item1).ToList();
+				var methods = _wipMethods.Where(x => x.Item2 == file).Select(x => x.Item1).ToList();
+
+				bound.Add(new BoundFile(file.FilePath, file.PackageLevel, file.Usings, methods, classes));
+			}
+
+			return true;
 		}
 
 		// only discover the existence of types, eg classes or contracts
@@ -140,6 +150,11 @@ namespace Terumi.Binder
 				return IType.ReferenceEquals(supposeToBe, tryingToUse);
 			}
 
+			if (IType.ReferenceEquals(supposeToBe, tryingToUse))
+			{
+				return true;
+			}
+
 			if (supposeToBe.Fields.Count != tryingToUse.Fields.Count)
 			{
 				return false;
@@ -229,8 +244,17 @@ namespace Terumi.Binder
 			throw new InvalidOperationException($"Cannot find immediate type {name}");
 		}
 
-		internal bool FindImmediateMethod(Parser.Expression.MethodCall methodCall, List<Expression> parameters, out IMethod targetMethod)
-			=> FindMethod(methodCall.IsCompilerCall, methodCall.Name, parameters, _wipMethods.Select(x => x.Item1).Concat(_project.DirectDependencies.SelectMany(x => x.Methods)), out targetMethod);
+		internal bool FindImmediateMethod(Class? ctx, Parser.Expression.MethodCall methodCall, List<Expression> parameters, out IMethod targetMethod)
+			=> FindMethod
+			(
+				methodCall.IsCompilerCall,
+				methodCall.Name,
+				parameters,
+				_wipMethods.Select(x => x.Item1)
+					.Concat(_project.DirectDependencies.SelectMany(x => x.Methods))
+					.Concat(ctx == null ? Array.Empty<Method>() : ctx.Methods.OfType<Method>()),
+				out targetMethod
+			);
 
 		internal IMethod? TryFindConsructor(IType type, List<Expression> parameters)
 		{

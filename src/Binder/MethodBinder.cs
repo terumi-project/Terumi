@@ -411,7 +411,7 @@ namespace Terumi.Binder
 				exprs.Add(Handle(expr));
 			}
 
-			if (!_parent._parent.FindImmediateMethod(o, exprs, out var method))
+			if (!_parent._parent.FindImmediateMethod(_parent._context, o, exprs, out var method))
 			{
 				throw new CodeBinderException(o, $"Couldn't find exception for method call {o.Name}");
 			}

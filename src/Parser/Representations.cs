@@ -316,6 +316,8 @@ namespace Terumi.Parser
 				Side = side;
 				Type = type;
 				Expression = expression;
+
+				Binder.EnumHelper.ToIncrementType(side, type);
 			}
 
 			public IncrementSide Side { get; }

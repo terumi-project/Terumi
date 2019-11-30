@@ -62,6 +62,7 @@ namespace Terumi.Parser
 
 		private int _i;
 		private Token _token;
+		private readonly string _filePath;
 
 		private Token _current
 		{
@@ -79,10 +80,11 @@ namespace Terumi.Parser
 
 		private TokenType _type => _current.Type;
 
-		public TerumiParser(ReadOnlyMemory<Token> tokens)
+		public TerumiParser(ReadOnlyMemory<Token> tokens, string filePath)
 		{
 			_tokens = tokens;
 			Set(_i);
+			_filePath = filePath;
 		}
 
 		private struct ContextualInit
@@ -105,6 +107,8 @@ namespace Terumi.Parser
 
 		public SourceFile ConsumeSourceFile(PackageLevel defaultLevel)
 		{
+			var ctx = Init();
+
 			// package x.y.z at the top
 			var package = ReadPackage(defaultLevel);
 			var packages = new List<Contextual<Contextual<PackageLevel>>>();
@@ -122,7 +126,7 @@ namespace Terumi.Parser
 			if (AtEnd())
 			{
 				// no methods/classes... weird
-				return null;
+				return new SourceFile(_filePath, Make(ctx), package.Value.Value);
 			}
 
 			var methods = new List<Method>();
@@ -144,7 +148,7 @@ namespace Terumi.Parser
 				ConsumeAllWhitespace();
 			}
 
-			return null;
+			return new SourceFile(_filePath, Make(ctx), package.Value.Value, packages.Select(x => x.Value.Value).ToList(), methods, classes);
 		}
 
 #region top of the file
@@ -279,7 +283,7 @@ namespace Terumi.Parser
 			// -->
 			NextSignificant(); // read }
 
-			return new Class(Make(ctx), name, null, null);
+			return new Class(Make(ctx), name, methods, fields);
 		}
 
 		public bool TryField(out Field field)
@@ -471,18 +475,18 @@ namespace Terumi.Parser
 			}
 
 			// expression based statements
-			var decl = ReadDeclaration();
-
-			if (decl != null)
-			{
-				return Finish(@return);
-			}
-
 			var a = ReadAssignmentStmt();
 
 			if (a != null)
 			{
 				return Finish(a);
+			}
+
+			var decl = ReadDeclaration();
+
+			if (decl != null)
+			{
+				return Finish(decl);
 			}
 
 			var ac = ReadAccessStmt();
@@ -504,6 +508,13 @@ namespace Terumi.Parser
 			if (inc != null)
 			{
 				return Finish(inc);
+			}
+
+			var cmd = ReadCommandStmt();
+
+			if (cmd != null)
+			{
+				return Finish(cmd);
 			}
 
 			Error("Couldn't parse statement");
@@ -1149,7 +1160,7 @@ namespace Terumi.Parser
 				var t = _type;
 				Next();
 
-				return new Expression.Increment(Make(ctx), Expression.Increment.IncrementSide.Post, _type, total);
+				return new Expression.Increment(Make(ctx), Expression.Increment.IncrementSide.Post, t, total);
 			}
 
 			if (isInc)
@@ -1425,7 +1436,7 @@ namespace Terumi.Parser
 
 			foreach (var interpolation in strData.Interpolations)
 			{
-				var parser = new TerumiParser(interpolation.Tokens.ToArray());
+				var parser = new TerumiParser(interpolation.Tokens.ToArray(), _filePath);
 				interpolations.Add(new StringData.Interpolation(parser.ReadExpression(), interpolation.Position));
 			}
 

@@ -7,7 +7,6 @@ using Terumi.Targets;
 
 namespace Terumi.VarCode
 {
-	/*
 	public class Diary
 	{
 		// we use a global dictionary for ALL field names so that we can have castability between two different types, eg.
@@ -163,39 +162,7 @@ namespace Terumi.VarCode
 
 					case Binder.Statement.Assignment o:
 					{
-						var val = Bind(o.Value);
-
-						if (!(o.Assignment is Binder.Expression.Reference) && !(o.Assignment is Binder.Expression.Access))
-						{
-							throw new Exception("wat");
-						}
-
-						var l = o.Assignment;
-
-						while (l is Binder.Expression.Access akk)
-						{
-							akk.
-						}
-
-						switch (l)
-						{
-							case Binder.Expression.Reference.Parameter p:
-							{
-								throw new Exception("can't set parameters yet");
-							}
-
-							case Binder.Expression.Reference.Variable p:
-							{
-								var vId = _diary.Assignments[p.Declaration.Name];
-								_diary.Instructions.Add(new Instruction.Assign(vId, val));
-							}
-							break;
-
-							case Binder.Expression.Reference.Field p:
-							{
-							}
-							break;
-						}
+						Bind(o.AssignmentExpression);
 					}
 					break;
 
@@ -319,6 +286,15 @@ namespace Terumi.VarCode
 			{
 				switch (expression)
 				{
+					case Binder.Expression.Assignment o:
+					{
+						var left = Bind(o.Left);
+						var right = Bind(o.Right);
+						_diary.Instructions.Add(new Instruction.Assign(left, right));
+						return left;
+					}
+					break;
+
 					case Binder.Expression.Access o:
 					{
 						var left = Bind(o.Left);
@@ -384,7 +360,7 @@ namespace Terumi.VarCode
 
 						switch (o.Value)
 						{
-							case Lexer.Number number:
+							case Number number:
 							{
 								_diary.Instructions.Add(new Instruction.Load.Number(id, number));
 							}
@@ -407,7 +383,7 @@ namespace Terumi.VarCode
 						var bound = Bind(o.Expression);
 
 						var one = _diary.Unique();
-						_diary.Instructions.Add(new Instruction.Load.Number(one, new Lexer.Number(1)));
+						_diary.Instructions.Add(new Instruction.Load.Number(one, new Terumi.Number(1)));
 
 						switch (o.IncrementType)
 						{
@@ -544,7 +520,7 @@ namespace Terumi.VarCode
 				var id = _diary.Unique();
 				if (stringData.Interpolations.Count == 0)
 				{
-					_diary.Instructions.Add(new Instruction.Load.String(id, stringData.Value));
+					_diary.Instructions.Add(new Instruction.Load.String(id, stringData.Value.ToString()));
 				}
 				else
 				{
@@ -558,7 +534,7 @@ namespace Terumi.VarCode
 					// <>...
 
 					// let's first load in the first string
-					ReadOnlySpan<char> data = stringData.Value;
+					ReadOnlySpan<char> data = stringData.Value.ToString();
 
 					var str = data.Slice(0, stringData.Interpolations[0].Insert);
 					_diary.Instructions.Add(new Instruction.Load.String(id, new string(str)));
@@ -607,5 +583,4 @@ namespace Terumi.VarCode
 			}
 		}
 	}
-	*/
 }

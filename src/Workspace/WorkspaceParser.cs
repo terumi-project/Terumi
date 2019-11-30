@@ -118,7 +118,7 @@ namespace Terumi.Workspace
 		{
 			var tokens = ParseTokens(source.Source, source.Path);
 			var rom = new ReadOnlyMemory<Token>(tokens.ToArray());
-			var parser = new TerumiParser(rom);
+			var parser = new TerumiParser(rom, source.Path);
 
 			try
 			{

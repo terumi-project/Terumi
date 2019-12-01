@@ -20,23 +20,6 @@ namespace Terumi.Workspace
 			}
 		}
 
-		private static string Hash(string input)
-		{
-			using (var managed = new SHA256Managed())
-			{
-				var computedBytes = managed.ComputeHash(Encoding.UTF8.GetBytes(input));
-
-				var strb = new StringBuilder(computedBytes.Length * 2);
-
-				foreach (var computedByte in computedBytes)
-				{
-					strb.AppendFormat("{0:x2}", computedByte);
-				}
-
-				return strb.ToString();
-			}
-		}
-
 		public Project Resolve(string configurationPath, LibraryReference reference)
 		{
 			if (reference.Path != null)
@@ -56,7 +39,7 @@ namespace Terumi.Workspace
 
 			// TODO: null check git stuff
 
-			var referenceName = Hash($"{reference.GitUrl}.{reference.Branch}.{reference.CommitId}");
+			var referenceName = $"{reference.GitUrl}.{reference.Branch}.{reference.CommitId}".Hash();
 			var libraryPath = Path.Combine(_libraryPath, referenceName);
 
 			if (!Directory.Exists(libraryPath))

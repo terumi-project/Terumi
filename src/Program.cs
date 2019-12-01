@@ -58,6 +58,11 @@ namespace Terumi
 
 			translator.TranslateHard();
 
+			Log.StageEnd();
+
+			var deobj = new Deobjectification.Deobjectificator(bindings);
+			deobj.Translate();
+
 			Log.Stage("WRITING", "Writing code to output.");
 
 			var bin = $"{Directory.GetCurrentDirectory()}/bin";

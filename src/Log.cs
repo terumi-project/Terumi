@@ -58,6 +58,8 @@ namespace Terumi
 
 		public static void StageEnd()
 		{
+			if (_stageName == "NONE") return;
+
 			_stopwatch.Stop();
 
 			DisplayMessage(ConsoleColor.DarkCyan, "STOP", "");

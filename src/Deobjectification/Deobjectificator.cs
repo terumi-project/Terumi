@@ -30,7 +30,7 @@ namespace Terumi.Deobjectification
 			var globalObject = new GlobalObjectInfo();
 
 			// first, we want to generate a bunch of method skeletons
-			var methods = new List<DMethod>();
+			var methods = new List<(DMethod, BMethod, Class?)>();
 			var needsBreaking = new List<(Class, BMethod, DMethod)>();
 
 			Log.Stage("DEOBJ", "Skeleton translation");
@@ -53,16 +53,19 @@ namespace Terumi.Deobjectification
 						var parameters = new List<ObjectType> { ObjectType.GlobalObject };
 
 						var dMethod = new DMethod(unique, $"<{@class.Name}>_ctor_", ObjectType.Void, parameters, @class.Name);
-						methods.Add(dMethod);
 
-						needsBreaking.Add((@class, new Binder.Method(null, BuiltinType.Void, "ctor")
+						var bMethod = new Binder.Method(null, BuiltinType.Void, "ctor")
 						{
 							Body = new CodeBody(new List<Statement>
 							{
 								// TODO: generate code to set all fields to default values
 								// for now, don't
 							})
-						}, dMethod));
+						};
+
+						methods.Add((dMethod, bMethod, @class));
+
+						needsBreaking.Add((@class, bMethod, dMethod));
 					}
 
 					// generate a skeleton per class method
@@ -78,7 +81,7 @@ namespace Terumi.Deobjectification
 						}
 
 						var dMethod = new DMethod(unique, $"<{@class.Name}>_{method.Name}_", ToType(method.ReturnType), parameters, @class.Name);
-						methods.Add(dMethod);
+						methods.Add((dMethod, method, @class));
 
 						needsBreaking.Add((@class, method, dMethod));
 					}
@@ -95,7 +98,7 @@ namespace Terumi.Deobjectification
 						parameters.Add(ToType(parameter.Type));
 					}
 
-					methods.Add(new DMethod(unique, $"<>_{method.Name}_", ToType(method.ReturnType), parameters));
+					methods.Add((new DMethod(unique, $"<>_{method.Name}_", ToType(method.ReturnType), parameters), method, null));
 				}
 			}
 
@@ -233,11 +236,27 @@ namespace Terumi.Deobjectification
 			// globalObject.Types - maps a Binder.Class to a string representation of the type name
 			// methods - all the methods that need translation
 			// for class method calls, call the appropriate method breakdown (except for ctors, call ctors directly)
+
 			// when i'm not tired i'll try to write cleaner code so i don't have to rewrite that at least lolo
+
+			var store = new StoreGateway(globalObject, methods);
+
+			foreach (var (method, bMethod, classCtx) in methods)
+			{
+				if (classCtx != null)
+				{
+					var translator = new CodeTranslator(method, classCtx, bMethod, store);
+					translator.Transcribe();
+				}
+				else
+				{
+					// TODO: support non class methods
+				}
+			}
 
 			Log.StageEnd();
 
-			return methods.Concat(breakdowns).ToList();
+			return methods.Select(x => x.Item1).Concat(breakdowns).ToList();
 		}
 
 		public ObjectType ToType(IType binderType)

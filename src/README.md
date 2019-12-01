@@ -29,11 +29,62 @@ This stage usually catches errors where tokens are in an invalid order, eg. `if 
 Binding is where, internally, the code links itself together. Method calls are linked to their definitions, variable references linked to their declarations, etc. etc.
 This stage usually catches error where stuff doesn't exist, eg. a call `help_em()` where no method called `help_em()` is defined
 
+If a compiler call is unable to be resolved, it is rewritten as a panic call.
+
 The compiler has complete awareness of the code at this stage, Binding. Now, the compiler breaks down the code into simpler and simpler pieces that it can put through a shell script.
 
-If a compiler call is unable to be resolved, it is left as 'null' in wait for optimization step down the line.
+4. Flattening
 
-4. Deobjectification
+Flattening is where complex expressions get broken up into smaller pieces that are easier to deal with than larger ones.
+Flattened structures are similar to varcode, in that all complicated expressions get mapped out into variable assignments.
+
+```
+number add_three(number in)
+{
+	return in + 3
+}
+
+main()
+{
+	@println(add_three(add_three(add_three(1))))
+}
+```
+gets mapped into
+```
+number add_three(number in)
+{
+	three = 3
+	result = in + three
+	return result
+}
+
+main()
+{
+	one = 1
+	added = add_three(one)
+	added = add_three(one)
+	added = add_three(one)
+	@println(added)
+}
+```
+
+Code generation also occurs in this step, eg. blank constructors are created as needed.
+
+```
+class Thing
+{
+}
+```
+generates
+```
+class Thing
+{
+	ctor() {
+	}
+}
+```
+
+5. Deobjectification
 
 Deobjectification is where the code maps all fields of classes into one large object (for inheritence) and all individual methods into methods which break into other methods, given the object passed in. At a high level, it looks like this:
 ```
@@ -178,7 +229,7 @@ class GlobalObject
 
 All garbage on this step is cleaned up in the 'optimization' step down the line.
 
-5. Varcode translation
+6. Varcode translation
 
 Terumi's 'Varcode' exists to speed up the implementation of target languages in Terumi. It appears as a register-inspired languages, with extremely limited concepts:
 
@@ -211,7 +262,7 @@ while(2) { // while the variable 2 is true, aka: true
 ```
 Since expressions are not nested, this makes optimization extremely easy to perform.
 
-6. Optimization
+7. Optimization
 
 At the core of Terumi, is optimization. Optimization is what allows Terumi users to write relatively wasteful code, and allows Terumi itself to generate garbage, but it'll all be optimized away. Giant classes and method calls turn into a single method call, thanks to optimization. Optimization is the water Terumi programmers drink and optimization is the air Terumi programmers breathe. Without optimizations, your shell scripts would be bloated at least 10 times in size.
 
@@ -225,7 +276,7 @@ Various, numerous, huge amounts of optimizations are to be performed.
 
 Once all of the optimizations are done, the output varcode is garbage free and small. Then, there's the next step
 
-7. Treeification (Treecode)
+8. Treeification (Treecode)
 
 Treeification is where var code turns back into a tree. While compiler targets may stop at optimization and write out the resulting varcode, for a shell script, varcode is wasteful as most of varcode can be translated into "set this variable to that", and then "use this variable you just set and never use it again".
 
@@ -240,10 +291,11 @@ Compilation ends at code generation. Usually, a given compiler target will take 
 1. Lexing - [x]
 2. Parsing - [x]
 3. Binding - [x]
-4. Deobjectification - [ ] <-- WIP
-5. Varcode translation - [ ]
-6. Optimization - [ ]
-7. Treeification - [ ]
+4. Flattening [ ] <-- WIP
+5. Deobjectification - [ ] <-- WIP
+6. Varcode translation - [ ]
+7. Optimization - [ ]
+8. Treeification - [ ]
 Varcode Codegen: [x]
 Treecode Codegen: [ ]
 

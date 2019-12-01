@@ -116,6 +116,16 @@ namespace Terumi.Flattening
 
 			Translate(maps);
 
+			foreach (var (_, (@class, _)) in maps.ClassMap)
+			{
+				project.Classes.Add(@class);
+			}
+
+			foreach (var (_, (method, _)) in maps.MethodMap)
+			{
+				project.Methods.Add(method);
+			}
+
 			Log.StageEnd();
 			return project;
 		}
@@ -166,11 +176,15 @@ namespace Terumi.Flattening
 #if DEBUG
 			// if we're debugging assert a couple things to make sure the wrong things are never passed in:
 			// 1: either context or method has a value
-			Debug.Assert(className != null && methodName != null);
+			Debug.Assert(className != null || methodName != null);
 
 			// 2: the uniqueCache is equivalent to the unique
 			unique = $"{file.FilePath};{file.Namespace};".Hash();
-			Debug.Assert(uniqueCache == unique);
+
+			if (uniqueCache != null)
+			{
+				Debug.Assert(uniqueCache == unique);
+			}
 #endif
 			unique = uniqueCache ?? $"{file.FilePath};{file.Namespace};".Hash();
 

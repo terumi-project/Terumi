@@ -276,6 +276,36 @@ namespace Terumi.Flattening
 
 				case Expression.Increment o:
 				{
+					// TODO: incrementing for fields
+					if (!(o.Expression is Expression.Reference.Variable v))
+					{
+						throw new NotImplementedException();
+					}
+
+					var varName = _scope.GetVarName(v.Declaration);
+
+					var one = _scope.GetName();
+					_target.Add(new Instruction.LoadConstant(one, new Number(1)));
+					_target.Add(new Instruction.Assignment(result, varName));
+
+					switch (o.IncrementType)
+					{
+						// x--
+						// returns: 'x'
+						// mutation: 'x -= 1'
+						case IncrementType.DecrementPost:
+						{
+							_target.Add(new Instruction.CompilerCall(varName, new List<string> { varName, one }, TargetMethodNames.OperatorSubtract));
+							return result;
+						}
+
+						case IncrementType.IncrementPost:
+						{
+							_target.Add(new Instruction.CompilerCall(varName, new List<string> { varName, one }, TargetMethodNames.OperatorAdd));
+							return result;
+						}
+					}
+
 					throw new NotImplementedException();
 				}
 				break;
@@ -385,6 +415,12 @@ namespace Terumi.Flattening
 						break;
 					}
 
+					if (o.Left is Expression.Reference.Field field)
+					{
+						_target.Add(new Instruction.SetField(_scope.GetThis(), field.FieldDeclaration.Name, value));
+						break;
+					}
+
 					throw new NotImplementedException();
 				}
 
@@ -413,6 +449,34 @@ namespace Terumi.Flattening
 
 					throw new NotImplementedException();
 				}
+
+				case Expression.MethodCall o:
+				{
+					var args = new List<string>();
+
+					foreach (var arg in o.Parameters)
+					{
+						args.Add(Handle(arg));
+					}
+
+					if (o.Calling.IsCompilerDefined)
+					{
+						_target.Add(new Instruction.CompilerCall(result, args, o.Calling.Name));
+					}
+					else
+					{
+						string scop = null;
+						var targetMethod = _scope.FindMethod(o.Calling as Binder.Method);
+
+						if (targetMethod.Owner != null)
+						{
+							scop = _scope.GetThis();
+						}
+
+						_target.Add(new Instruction.MethodCall(result, args, targetMethod, scop));
+					}
+				}
+				break;
 
 				default: throw new NotImplementedException();
 			}

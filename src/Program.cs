@@ -61,7 +61,7 @@ namespace Terumi
 			Log.StageEnd();
 
 			var flat = new Flattening.Flattener(bindings);
-			flat.Flatten();
+			var flattened = flat.Flatten();
 			// var deobj = new Deobjectification.Deobjectificator(bindings);
 			// deobj.Translate();
 
@@ -136,7 +136,7 @@ namespace Terumi
 			compileCommand.Handler = CommandHandler.Create<Target>(CompileProject);
 			installCommand.Handler = CommandHandler.Create<string, string>(InstallProject);
 
-#if true && DEBUG
+#if false && DEBUG
 			Directory.SetCurrentDirectory("cart");
 			Compile(new PowershellTarget());
 			return rootCommand.InvokeAsync(new string[] { "compile", "-t", "bash" });

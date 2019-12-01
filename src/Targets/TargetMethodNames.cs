@@ -57,7 +57,7 @@ namespace Terumi.Targets
 		public static string ToMethodName(this UnaryExpression unaryExpression)
 			=> unaryExpression switch
 		{
-			UnaryExpression.Negate => OperatorNot,
+			UnaryExpression.Negate => OperatorNegate,
 			UnaryExpression.Not => OperatorNot,
 			_ => throw new InvalidOperationException()
 		};

@@ -78,7 +78,7 @@ namespace Terumi.Flattening
 
 				foreach (var @class in file.Classes)
 				{
-					var skeleton = new Class(GetName(unique, file, @class, null));
+					var skeleton = new Class(GetName(unique, file, @class, null), @class);
 					maps.ClassMap[@class] = (skeleton, file);
 
 					foreach (var method in @class.Methods)
@@ -122,7 +122,14 @@ namespace Terumi.Flattening
 
 		public void Translate(Maps maps)
 		{
-
+			foreach (var (boundMethod, (method, file)) in maps.MethodMap)
+			{
+				if (method.Owner != null)
+				{
+					var translator = new InstructionTranslator(boundMethod, method.Body, new Scope(maps));
+					translator.Run();
+				}
+			}
 		}
 
 		public void Codegen(Maps maps)

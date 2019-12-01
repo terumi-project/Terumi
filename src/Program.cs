@@ -60,8 +60,10 @@ namespace Terumi
 
 			Log.StageEnd();
 
-			var deobj = new Deobjectification.Deobjectificator(bindings);
-			deobj.Translate();
+			var flat = new Flattening.Flattener(bindings);
+			flat.Flatten();
+			// var deobj = new Deobjectification.Deobjectificator(bindings);
+			// deobj.Translate();
 
 			Log.Stage("WRITING", "Writing code to output.");
 

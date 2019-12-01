@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace Terumi.Binder
 {
-	public class CodeBody
+	public class CodeBody : IEnumerable<Statement>
 	{
 		public static CodeBody None { get; } = new CodeBody(EmptyList<Statement>.Instance);
 
@@ -13,6 +14,9 @@ namespace Terumi.Binder
 		}
 
 		public List<Statement> Statements { get; }
+
+		public IEnumerator<Statement> GetEnumerator() => ((IEnumerable<Statement>)Statements).GetEnumerator();
+		IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<Statement>)Statements).GetEnumerator();
 	}
 
 	public abstract class Statement

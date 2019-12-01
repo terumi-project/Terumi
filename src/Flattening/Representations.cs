@@ -20,13 +20,15 @@ namespace Terumi.Flattening
 
 	public class Class
 	{
-		public Class(string name)
+		public Class(string name, Binder.Class boundClass)
 		{
 			Name = name;
+			BoundClass = boundClass;
 		}
 
 		public string Name { get; }
 		public List<TypedPair> Fields { get; set; } = new List<TypedPair>();
+		public Binder.Class BoundClass { get; }
 	}
 
 	public class Method
@@ -59,6 +61,16 @@ namespace Terumi.Flattening
 
 	public abstract class Instruction
 	{
+		public class New : Instruction
+		{
+			public New(string assignTo)
+			{
+				AssignTo = assignTo;
+			}
+
+			public string AssignTo { get; }
+		}
+
 		public class LoadConstant : Instruction
 		{
 			public LoadConstant(string assignTo, object objectValue)
@@ -109,6 +121,20 @@ namespace Terumi.Flattening
 			public string TargetFieldName { get; }
 		}
 
+		public class SetField : Instruction
+		{
+			public SetField(string targetVariableName, string targetFieldName, string newValue)
+			{
+				TargetVariableName = targetVariableName;
+				TargetFieldName = targetFieldName;
+				NewValue = newValue;
+			}
+
+			public string TargetVariableName { get; }
+			public string TargetFieldName { get; }
+			public string NewValue { get; }
+		}
+
 		public class If : Instruction
 		{
 			public If(string comparisonVariable, Body trueClause, Body elseClause)
@@ -137,16 +163,18 @@ namespace Terumi.Flattening
 
 		public class MethodCall : Instruction
 		{
-			public MethodCall(string? resultVariable, List<string> parameters, Method calling)
+			public MethodCall(string? resultVariable, List<string> parameters, Method calling, string? instance = null)
 			{
 				ResultVariable = resultVariable;
 				Parameters = parameters;
 				Calling = calling;
+				Instance = instance;
 			}
 
 			public string? ResultVariable { get; }
 			public List<string> Parameters { get; }
 			public Method Calling { get; }
+			public string? Instance { get; }
 		}
 
 		public class CompilerCall : Instruction
@@ -161,6 +189,16 @@ namespace Terumi.Flattening
 			public string ResultVariable { get; }
 			public List<string> Parameters { get; }
 			public string Calling { get; }
+		}
+
+		public class Return : Instruction
+		{
+			public Return(string? returnVariable)
+			{
+				ReturnVariable = returnVariable;
+			}
+
+			public string? ReturnVariable { get; }
 		}
 	}
 }

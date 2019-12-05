@@ -24,7 +24,7 @@ namespace Terumi.Deobjectification
 			Log.Stage("DEOBJ", "Deobjectifying flattened code");
 
 			// first, we're going to build a giant single global object
-			var map = new List<(Flattening.ObjectType, string)>();
+			var map = new List<(ObjectType, string)>();
 
 			foreach (var @class in _flattened.Classes)
 			{

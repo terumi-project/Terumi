@@ -6,18 +6,6 @@ using Body = System.Collections.Generic.List<Terumi.Flattening.Instruction>;
 
 namespace Terumi.Flattening
 {
-	public enum ObjectType
-	{
-		Void,
-		String,
-		Number,
-		Boolean,
-
-		// blanket 'object' type, because in the deobjectification step
-		// everything becomes a single object anyways
-		Object,
-	}
-
 	public class Class
 	{
 		public Class(string name, Binder.Class boundClass)

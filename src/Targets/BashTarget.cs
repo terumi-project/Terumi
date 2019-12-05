@@ -14,12 +14,16 @@ namespace Terumi.Targets
 	{
 		public string ShellFileName => "out.sh";
 
+		private static string HandlePanic(List<string> a)
+			=> $"echo -e \"\\033[0;31m\"{a[0]}\"\\033[0m\"; return 1";
+
 		public CompilerMethod? Match(string name, params IType[] types)
 		{
 			switch (name)
 			{
 				// TODO: supply code
 				case TargetMethodNames.TargetName: return ReturnMethod(BuiltinType.String, _ => "bash");
+				case TargetMethodNames.Panic: return ReturnMethod(BuiltinType.Void, HandlePanic);
 
 				case TargetMethodNames.IsSupported: return ReturnMethod(BuiltinType.Boolean, _ => ""); // TODO: exauhstive
 				case TargetMethodNames.Println: return ReturnMethod(BuiltinType.Void, a => $"echo {a[0]}");
@@ -65,6 +69,12 @@ namespace Terumi.Targets
 
 		private List<MethodParameter> Match(IType[] arguments)
 			=> arguments.Select((x, i) => new MethodParameter(x, $"p{i}")).ToList();
+
+		public CompilerMethod Panic(IType returnAs)
+			=> new CompilerMethod(returnAs, "panic", new List<MethodParameter> { new MethodParameter(BuiltinType.String, "panic_reason") })
+			{
+				CodeGen = HandlePanic
+			};
 
 		public void Write(IndentedTextWriter writer, List<VarCode.Method> methods)
 		{

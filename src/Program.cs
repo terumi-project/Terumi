@@ -47,17 +47,6 @@ namespace Terumi
 				return false;
 			}
 
-			var translator = new Translator(target);
-
-			foreach (var item in bindings.IndirectDependencies
-				.Concat(bindings.DirectDependencies)
-				.Concat(bindings.BoundProjectFiles))
-			{
-				translator.TranslateLight(item);
-			}
-
-			translator.TranslateHard();
-
 			Log.StageEnd();
 
 			var flat = new Flattening.Flattener(bindings);
@@ -73,7 +62,7 @@ namespace Terumi
 			if (!Directory.Exists(bin)) Directory.CreateDirectory(bin);
 
 			// try/catching to delete files w/ IOException is a good practice
-			try { File.Delete(outFile); } catch (IOException __) { }
+			try { File.Delete(outFile); } catch (IOException) { }
 
 			// looks ugly but meh
 			using var fs = File.OpenWrite(outFile);
@@ -81,10 +70,10 @@ namespace Terumi
 
 			// tabs <3
 			using var indentedWriter = new IndentedTextWriter(sw, "\t");
-			target.Write(indentedWriter, translator._diary.Methods);
+			// target.Write(indentedWriter, translator._diary.Methods);
 
 			Log.StageEnd();
-			
+
 			return true;
 		}
 

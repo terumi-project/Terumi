@@ -4,25 +4,22 @@ using System.Text;
 
 namespace Terumi.VarCode
 {
-	// a simpler representation of what the Binder provides
-	// this is to make translation from the binder to varcode easier, as this only contains varcode concepts
+	// represent the flattened state best
 
 	public class Method
 	{
-		public Method(Binder.Class? context, Binder.Method fromBinder, string name, List<Binder.MethodParameter> parameters)
+		public Method(ObjectType returns, string name, List<ObjectType> parameters)
 		{
+			Returns = returns;
 			Name = name;
 			Parameters = parameters;
-			Context = context;
-			FromBinder = fromBinder;
 		}
 
 		public int Id { get; set; }
 		public string Name { get; }
-		public List<Binder.MethodParameter> Parameters { get; }
+		public List<ObjectType> Parameters { get; }
 		public List<Instruction> Code { get; } = new List<Instruction>();
-		public Binder.Class? Context { get; }
-		public Binder.Method FromBinder { get; }
+		public ObjectType Returns { get; }
 	}
 
 	public abstract class Instruction
@@ -108,6 +105,7 @@ namespace Terumi.VarCode
 
 		public class CompilerCall : Instruction
 		{
+			// TODO: resolve all unresolved compiler calls into panics
 			public CompilerCall(int store, Binder.CompilerMethod compilerMethod, List<int> arguments)
 			{
 				Store = store;

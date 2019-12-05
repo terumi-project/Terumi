@@ -10,6 +10,7 @@ namespace Terumi.Targets
 	{
 		CompilerMethod? Match(string name, List<Expression> arguments) => Match(name, arguments.Select(x => x.Type).ToArray());
 		CompilerMethod? Match(string name, params IType[] types);
+		CompilerMethod Panic(IType claimToReturn);
 
 		void Write(IndentedTextWriter writer, List<VarCode.Method> methods);
 

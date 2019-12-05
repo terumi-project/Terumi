@@ -95,15 +95,15 @@ namespace Terumi.Flattening
 
 				Method MapMethod(Binder.Method method, Binder.Class? context, Class? owner)
 				{
-					var skeleton = new Method(GetName(unique, file, context, method), owner);
+					var skeleton = new Method(GetName(unique, file, context, method), owner, method);
 
 					foreach (var parameter in method.Parameters)
 					{
 						if (parameter.Type == Binder.BuiltinType.Void) throw new InvalidOperationException();
-						else if (parameter.Type == Binder.BuiltinType.String) skeleton.Parameters.Add(new TypedPair(Type.String, parameter.Name));
-						else if (parameter.Type == Binder.BuiltinType.Number) skeleton.Parameters.Add(new TypedPair(Type.Number, parameter.Name));
-						else if (parameter.Type == Binder.BuiltinType.Boolean) skeleton.Parameters.Add(new TypedPair(Type.Boolean, parameter.Name));
-						else skeleton.Parameters.Add(new TypedPair(Type.Object, parameter.Name));
+						else if (parameter.Type == Binder.BuiltinType.String) skeleton.Parameters.Add(new TypedPair(ObjectType.String, parameter.Name));
+						else if (parameter.Type == Binder.BuiltinType.Number) skeleton.Parameters.Add(new TypedPair(ObjectType.Number, parameter.Name));
+						else if (parameter.Type == Binder.BuiltinType.Boolean) skeleton.Parameters.Add(new TypedPair(ObjectType.Boolean, parameter.Name));
+						else skeleton.Parameters.Add(new TypedPair(ObjectType.Object, parameter.Name));
 					}
 
 					return skeleton;
@@ -134,11 +134,9 @@ namespace Terumi.Flattening
 		{
 			foreach (var (boundMethod, (method, file)) in maps.MethodMap)
 			{
-				if (method.Owner != null)
-				{
-					var translator = new InstructionTranslator(boundMethod, method.Body, new Scope(maps));
-					translator.Run();
-				}
+				// TODO: do we need to care about method owners?
+				var translator = new InstructionTranslator(boundMethod, method.Body, new Scope(maps));
+				translator.Run();
 			}
 		}
 
@@ -156,7 +154,7 @@ namespace Terumi.Flattening
 				if (!hasCtor)
 				{
 					var ctorName = GetName(null, file, boundClass.Name, Binder.Constants.ConstructorMethodName);
-					var ctorMethod = new Method(ctorName, @class);
+					var ctorMethod = new Method(ctorName, @class, null);
 					maps.Codegenned.Add(ctorMethod);
 
 					// TODO: set fields

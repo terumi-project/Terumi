@@ -6,7 +6,7 @@ using Body = System.Collections.Generic.List<Terumi.Flattening.Instruction>;
 
 namespace Terumi.Flattening
 {
-	public enum Type
+	public enum ObjectType
 	{
 		Void,
 		String,
@@ -33,27 +33,29 @@ namespace Terumi.Flattening
 
 	public class Method
 	{
-		public Method(string name, Class? owner = null)
+		public Method(string name, Class? owner, Binder.Method? boundMethod)
 		{
 			Name = name;
 			Owner = owner;
+			BoundMethod = boundMethod;
 		}
 
 		public string Name { get; }
 		public Class? Owner { get; }
 		public List<TypedPair> Parameters { get; set; } = new List<TypedPair>();
 		public Body Body { get; set; } = new Body();
+		public Binder.Method? BoundMethod { get; }
 	}
 
 	public class TypedPair
 	{
-		public TypedPair(Type type, string name)
+		public TypedPair(ObjectType type, string name)
 		{
 			Type = type;
 			Name = name;
 		}
 
-		public Type Type { get; }
+		public ObjectType Type { get; }
 		public string Name { get; }
 	}
 

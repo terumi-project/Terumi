@@ -137,13 +137,14 @@ namespace Terumi.Deobjectification
 
 		private int _this;
 		private int _i;
-		private int _junk;
+		private const int _junk = VarCode.Instruction.Nowhere;
 		private readonly VarCode.Method _varMethod;
 		private readonly Flattening.Method _method;
 		private readonly ICompilerTarget _target;
 		private readonly string[] _fieldMap;
 		private readonly int[] _fieldIds;
 		private int[] _methodParams;
+		private VarCode.Instruction[] _loadField;
 
 		public IndividualDeobjectifier
 		(
@@ -161,6 +162,7 @@ namespace Terumi.Deobjectification
 			_fieldMap = fieldMap;
 			_fieldIds = new int[_fieldMap.Length];
 			_methodParams = new int[method.Parameters.Count];
+			_loadField = new VarCode.Instruction[_fieldIds.Length];
 		}
 
 		private List<VarCode.Instruction> IncreaseScope()
@@ -177,11 +179,19 @@ namespace Terumi.Deobjectification
 			_scope = _scope.Previous;
 		}
 
-		private int FieldIdOf(string field)
+		private int FieldIdOf(string field, bool load)
 		{
 			for (int i = 0; i < _fieldMap.Length; i++)
 			{
-				if (_fieldMap[i] == field) return i;
+				if (_fieldMap[i] == field)
+				{
+					if (_loadField[i] != null && load)
+					{
+						_instructions.Add(_loadField[i]);
+					}
+
+					return i;
+				}
 			}
 
 			Log.Error($"Couldn't find field {field}");
@@ -200,14 +210,14 @@ namespace Terumi.Deobjectification
 				foreach (var field in _method.Owner.Fields)
 				{
 					var fieldVarId = _i++;
-					var fieldId = FieldIdOf(field.ToWeirdName());
-					_instructions.Add(new VarCode.Instruction.GetField(_this, fieldVarId, fieldId));
+					var fieldId = FieldIdOf(field.ToWeirdName(), false);
+					_loadField[fieldId] = new VarCode.Instruction.GetField(fieldVarId, _this, fieldId);
 					_fieldIds[fieldId] = fieldVarId;
 				}
 			}
 
 			// set parameters, and offset it by 1 if this method belongs to a class
-			int parameterId = _method.Owner == null ? 1 : 0;
+			int parameterId = _method.Owner != null ? 1 : 0;
 			var c = 0;
 
 			foreach(var p in _method.Parameters)
@@ -217,9 +227,11 @@ namespace Terumi.Deobjectification
 
 				_methodParams[c] = pId;
 				_scope.Set(Flattening.Scope.SGetParameter(c++), new ScopeId(pId));
+
+				parameterId++;
 			}
 
-			_junk = _i++;
+			// _junk = _i++;
 			Handle(_method.Body);
 
 			_varMethod.Code.AddRange(_instructions);
@@ -267,10 +279,9 @@ namespace Terumi.Deobjectification
 
 					case Instruction.Dereference o:
 					{
-						var fieldId = _fieldIds[FieldIdOf(o.TargetFieldName)];
+						var fieldId = FieldIdOf(o.TargetFieldName, false);
 						var varId = ScopeGet(o.TargetVariableName);
-						var result = _i++;
-						_scope.Set(o.ResultVariableName, new ScopeId(result));
+						var result = ScopeGet(o.ResultVariableName);
 						_instructions.Add(new VarCode.Instruction.GetField(result, varId, fieldId));
 					}
 					break;
@@ -362,9 +373,10 @@ namespace Terumi.Deobjectification
 
 					case Instruction.SetField o:
 					{
+						var fieldId = FieldIdOf(o.TargetFieldName, false);
 						var id = ScopeGet(o.NewValue);
 						var target = ScopeGet(o.TargetVariableName);
-						_instructions.Add(new VarCode.Instruction.GetField(id, target, FieldIdOf(o.TargetFieldName)));
+						_instructions.Add(new VarCode.Instruction.SetField(target, fieldId, id));
 					}
 					break;
 				}

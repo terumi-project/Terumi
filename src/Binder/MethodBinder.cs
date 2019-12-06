@@ -239,7 +239,7 @@ namespace Terumi.Binder
 				var prevScope = _scope;
 				_scope = new Scope(null, null, prevScope);
 
-				secondary = Handle(o.IfClause);
+				secondary = Handle(o.ElseClause);
 
 				_scope = prevScope;
 			}

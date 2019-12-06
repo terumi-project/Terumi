@@ -71,7 +71,8 @@ namespace Terumi.Parser
 				if (_token == null)
 				{
 					Debug.Assert(_i == _tokens.Length, "Token should be null at end of stream");
-					Error("Didn't expect EOF so soon", _i - 1);
+					// Error("Didn't expect EOF so soon", _i - 1);
+					return new Token(TokenType.Add, default, default, default);
 				}
 
 				return _token;
@@ -1637,7 +1638,19 @@ namespace Terumi.Parser
 		}
 
 		[MethodImpl(MaxOpt)]
-		private bool AtEnd(int i = -1) => (i == -1 ? _i : i) >= _tokens.Length;
+		private bool AtEnd(int i = -1)
+		{
+			var atEnd = (i == -1 ? _i : i) >= _tokens.Length;
+
+#if DEBUG
+			if (i == -1)
+			{
+				Debug.Assert(atEnd ? _token == null : _token != null, "_token should reflect if at end");
+			}
+#endif
+
+			return atEnd;
+		}
 
 		[DoesNotReturn]
 		[MethodImpl(MethodImplOptions.NoInlining)]

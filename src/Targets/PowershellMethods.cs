@@ -77,7 +77,7 @@ namespace Terumi.Targets
 				writer.WriteLine();
 				writer.Write($"function {GetName(method.Id)}");
 
-				if (method.Name == "<>main" && method.Parameters.Count == 0) _run.Add(GetName(method.Id));
+				if (method.Name.EndsWith("##main") && method.Parameters.Count == 0) _run.Add(GetName(method.Id));
 
 				if (method.Parameters.Count > 0)
 				{

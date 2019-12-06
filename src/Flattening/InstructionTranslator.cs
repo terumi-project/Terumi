@@ -372,7 +372,7 @@ namespace Terumi.Flattening
 								{
 									// weird, but we'll deal with it by adding the instance as the first arg
 									args.Insert(0, left);
-									_target.Add(new Instruction.CompilerCall(result, args, m.Name));
+									_target.Add(new Instruction.CompilerCall(m.ReturnType == BuiltinType.Void ? null : result, args, m.Name));
 								}
 								break;
 
@@ -380,7 +380,7 @@ namespace Terumi.Flattening
 								{
 									var method = _scope.FindMethod(m);
 
-									_target.Add(new Instruction.MethodCall(result, args, method, left));
+									_target.Add(new Instruction.MethodCall(method.BoundMethod.ReturnType == BuiltinType.Void ? null : result, args, method, left));
 								}
 								break;
 
@@ -465,7 +465,7 @@ namespace Terumi.Flattening
 
 					if (o.Calling.IsCompilerDefined)
 					{
-						_target.Add(new Instruction.CompilerCall(result, args, o.Calling.Name));
+						_target.Add(new Instruction.CompilerCall(o.Calling.ReturnType == BuiltinType.Void ? null : result, args, o.Calling.Name));
 					}
 					else
 					{
@@ -477,7 +477,7 @@ namespace Terumi.Flattening
 							scop = _scope.GetThis();
 						}
 
-						_target.Add(new Instruction.MethodCall(result, args, targetMethod, scop));
+						_target.Add(new Instruction.MethodCall(targetMethod.BoundMethod.ReturnType == BuiltinType.Void ? null : result, args, targetMethod, scop));
 					}
 				}
 				break;

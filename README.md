@@ -1,3 +1,21 @@
+# FULL DISCLAIMER
+**TERUMI IS CURRENTLY PRE-ALPHA. THIS MEANS THAT I RESERVE THE EXCLUSIVE RIGHT TO ABSOLUTELY DESTROY ALL COMPATIBILITY DURING THE PROCESS OF MAKING TERUMI, AND YOU ARE ENTITLED TO ABSOLUTELY NO GUARENTEES. NOT EVEN THE GUARENTEE THAT YOUR CODE WILL COMPILE WITHOUT PROBLEMS.**
+
+*i mean i'll try to not break much but imma do what i want*
+
+Because Terumi is pre-alpha (0.x.x), I reserve the exclusive right to completely break all code compatibility at any time. This includes:
+- docs becoming incorrect
+- your code no longer compiling in a new version
+- your dependencies not compiling when someone includes them
+- new project structures, with no support for older style projects
+- changing compiler function names
+- removing your dependency from terumi packages
+- pretty much anything i think is necessary, i may do
+
+You get absolutely *no* guarentees, as of right now, that your code will work in the next version.
+
+Thus, I discourage enterprises from using this, but as for the individual, I would extremely appreciate it if you build up the ecosystem around the language. I'll try to not break compatibility for no reason, but I reserve the exclusive right to do so.
+
 # Terumi
 Terumi is a programming language that transpiles to both powershell and bash, and aims to achieve the following goals:
 
@@ -21,15 +39,19 @@ cd src/bin/Release/netcoreapp3.0/
 
 # use terumi
 ./terumi new --name "some_cool_project"
-./terumi compile --name "some_cool_project" --target bash
-./terumi compile --name "some_cool_project" --target powershell
+cd "some_cool_project"
+./terumi compile "some_cool_project" --target bash
+./terumi compile "some_cool_project" --target powershell
+
+# install a dependency
+./terumi install -p "terumi"
 ```
 
 ## Helping out
 Terumi is extremely young and immature, and not suitable for production in the slightest. Want to see this language come into fruition and actually be usable?
 
 - Make something with the language as is! If something's frustrating, not easy, unclear, or not implemented but necessary, leave an issue! The language can't be improved if nobody says anything about it
-- [Give me money](https://www.patreon.com/sirjosh3917). If you choose to do so, make sure that it's not too early in the project for the same reasons one would not want to donate to a kickstarter.
+- [Give me money](https://www.patreon.com/sirjosh3917). If you choose to do so, make sure that it's not too early in the project for the same reasons one would not want to donate to a kickstarter. With money, I can reliably host online services, such as a REPL or more.
 
 ## Vaguely Similar Projects
 

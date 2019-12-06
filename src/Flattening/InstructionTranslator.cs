@@ -403,7 +403,7 @@ namespace Terumi.Flattening
 						if (p.Right is Expression.Reference.Field f)
 						{
 							// we need to assign a FIELD to whatever value
-							var obj = Handle(o.Left);
+							var obj = Handle(p.Left);
 							_target.Add(new Instruction.SetField(obj, f.FieldDeclaration, value));
 							break;
 						}

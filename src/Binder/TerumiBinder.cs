@@ -278,7 +278,7 @@ namespace Terumi.Binder
 					continue;
 				}
 
-				for (var i = 0; i > method.Parameters.Count; i++)
+				for (var i = 0; i < method.Parameters.Count; i++)
 				{
 					if (CanUseTypeAsType(method.Parameters[i].Type, parameters[i].Type))
 					{

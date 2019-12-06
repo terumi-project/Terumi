@@ -291,11 +291,11 @@ Compilation ends at code generation. Usually, a given compiler target will take 
 1. Lexing - [x]
 2. Parsing - [x]
 3. Binding - [x]
-4. Flattening [ ] <-- WIP
-5. Deobjectification - [ ] <-- WIP
-6. Varcode translation - [ ]
-7. Optimization - [ ]
-8. Treeification - [ ]
+4. Flattening [x]
+5. Deobjectification - [x]
+6. Varcode translation - [x]
+7. Optimization - [ ] <-- WIP
+8. Treeification - [ ] <-- WIP
 Varcode Codegen: [x]
 Treecode Codegen: [ ]
 

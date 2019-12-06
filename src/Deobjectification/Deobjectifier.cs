@@ -126,8 +126,7 @@ namespace Terumi.Deobjectification
 
 			public void Set(string varName, ScopeId scopeId)
 			{
-				// will throw exception if already exists
-				_defs.Add(varName, scopeId);
+				_defs[varName] = scopeId;
 			}
 		}
 
@@ -161,6 +160,7 @@ namespace Terumi.Deobjectification
 			_target = target;
 			_fieldMap = fieldMap;
 			_fieldIds = new int[_fieldMap.Length];
+			_methodParams = new int[method.Parameters.Count];
 		}
 
 		private List<VarCode.Instruction> IncreaseScope()
@@ -255,7 +255,8 @@ namespace Terumi.Deobjectification
 						int result = o.ResultVariable == null ? _junk : ScopeGet(o.ResultVariable);
 
 						// TODO: resolve compiler calls
-						_instructions.Add(new VarCode.Instruction.CompilerCall(result, null, o.Parameters.Select(ScopeGet).Select(x => (int)x).ToList()));
+						var method = Match(o.Calling, o.Parameters.Count);
+						_instructions.Add(new VarCode.Instruction.CompilerCall(result, method, o.Parameters.Select(ScopeGet).Select(x => (int)x).ToList()));
 
 						if (o.ResultVariable != null)
 						{

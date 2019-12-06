@@ -404,7 +404,7 @@ namespace Terumi.Flattening
 						{
 							// we need to assign a FIELD to whatever value
 							var obj = Handle(o.Left);
-							_target.Add(new Instruction.SetField(obj, f.FieldDeclaration.Name, value));
+							_target.Add(new Instruction.SetField(obj, f.FieldDeclaration, value));
 							break;
 						}
 
@@ -421,7 +421,7 @@ namespace Terumi.Flattening
 
 					if (o.Left is Expression.Reference.Field field)
 					{
-						_target.Add(new Instruction.SetField(_scope.GetThis(), field.FieldDeclaration.Name, value));
+						_target.Add(new Instruction.SetField(_scope.GetThis(), field.FieldDeclaration, value));
 						break;
 					}
 

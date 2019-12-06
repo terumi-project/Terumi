@@ -86,6 +86,11 @@ namespace Terumi.Flattening
 						var classMethod = MapMethod(method as Binder.Method, @class, skeleton);
 						maps.MethodMap[method as Binder.Method] = (classMethod, file);
 					}
+
+					foreach (var field in @class.Fields)
+					{
+						skeleton.Fields.Add(new TypedPair(Binder.BuiltinType.ToObjectType(field.Type), field.Name));
+					}
 				}
 
 				foreach (var method in file.Methods)

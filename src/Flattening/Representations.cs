@@ -120,7 +120,13 @@ namespace Terumi.Flattening
 
 		public class SetField : Instruction
 		{
-			public SetField(string targetVariableName, string targetFieldName, string newValue)
+			public SetField(string targetVariableName, Binder.Field targetField, string newValue)
+				: this(targetVariableName, new TypedPair(Binder.BuiltinType.ToObjectType(targetField.Type), targetField.Name).ToWeirdName(), newValue)
+			{
+				
+			}
+
+			protected SetField(string targetVariableName, string targetFieldName, string newValue)
 			{
 				TargetVariableName = targetVariableName;
 				TargetFieldName = targetFieldName;

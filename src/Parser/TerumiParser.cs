@@ -1567,6 +1567,12 @@ namespace Terumi.Parser
 		[MethodImpl(MaxOpt)]
 		private void NextUntilNewline(string @for)
 		{
+			// apparently, on linux, we somehow "miss out" on newlines
+			// this is a workaround until i know wtf is going on
+			// (might not actually be a workaround, this is probably preferred anyways?)
+			if (AtEnd()) return;
+			if (_type == TokenType.Newline) return;
+
 			Next();
 			if (AtEnd()) return;
 

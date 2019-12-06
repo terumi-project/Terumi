@@ -126,7 +126,7 @@ namespace Terumi
 			compileCommand.Handler = CommandHandler.Create<Target>(CompileProject);
 			installCommand.Handler = CommandHandler.Create<string, string>(InstallProject);
 
-#if true && DEBUG
+#if false && DEBUG
 			Directory.SetCurrentDirectory("test");
 			Compile(new PowershellTarget());
 			return rootCommand.InvokeAsync(new string[] { "compile", "-t", "bash" });

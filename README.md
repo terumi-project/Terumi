@@ -34,17 +34,17 @@ Currently, Terumi doesn't hit its goals as hard as it needs to. Only when 1.0.0 
 ```
 git clone https://github.com/SirJosh3917/Terumi.git
 cd Terumi
-dotnet build -c Release
+dotnet publish -c Release
 cd src/bin/Release/netcoreapp3.0/
 
 # use terumi
 ./terumi new --name "some_cool_project"
 cd "some_cool_project"
-./terumi compile "some_cool_project" --target bash
-./terumi compile "some_cool_project" --target powershell
+../terumi compile --target bash
+../terumi compile --target powershell
 
 # install a dependency
-./terumi install -p "terumi"
+../terumi install -p "terumi"
 ```
 
 ## Helping out

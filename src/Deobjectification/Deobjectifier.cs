@@ -295,17 +295,23 @@ namespace Terumi.Deobjectification
 						var trueClause = _instructions;
 						DecreaseScope(tmp);
 
-						_instructions.Add(new VarCode.Instruction.If(cmp, trueClause));
+						if (trueClause.Count > 0)
+						{
+							_instructions.Add(new VarCode.Instruction.If(cmp, trueClause));
+						}
 
 						var opposite = _i++;
 						_instructions.Add(new VarCode.Instruction.CompilerCall(opposite, Match(TargetMethodNames.OperatorNot, 1), new List<int> { cmp }));
 
 						tmp = IncreaseScope();
 						Handle(o.ElseClause);
-						var falseClause = _instructions;
+						var elseClause = _instructions;
 						DecreaseScope(tmp);
 
-						_instructions.Add(new VarCode.Instruction.If(opposite, falseClause));
+						if (elseClause.Count > 0)
+						{
+							_instructions.Add(new VarCode.Instruction.If(opposite, elseClause));
+						}
 					}
 					break;
 

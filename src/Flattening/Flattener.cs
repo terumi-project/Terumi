@@ -100,10 +100,8 @@ namespace Terumi.Flattening
 					foreach (var parameter in method.Parameters)
 					{
 						if (parameter.Type == Binder.BuiltinType.Void) throw new InvalidOperationException();
-						else if (parameter.Type == Binder.BuiltinType.String) skeleton.Parameters.Add(new TypedPair(ObjectType.String, parameter.Name));
-						else if (parameter.Type == Binder.BuiltinType.Number) skeleton.Parameters.Add(new TypedPair(ObjectType.Number, parameter.Name));
-						else if (parameter.Type == Binder.BuiltinType.Boolean) skeleton.Parameters.Add(new TypedPair(ObjectType.Boolean, parameter.Name));
-						else skeleton.Parameters.Add(new TypedPair(ObjectType.Object, parameter.Name));
+
+						skeleton.Parameters.Add(new TypedPair(Binder.BuiltinType.ToObjectType(parameter.Type), parameter.Name));
 					}
 
 					return skeleton;

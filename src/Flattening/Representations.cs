@@ -45,6 +45,8 @@ namespace Terumi.Flattening
 
 		public ObjectType Type { get; }
 		public string Name { get; }
+
+		internal string ToWeirdName() => $"{Type}_<>_{Name}";
 	}
 
 	// variable scope is local
@@ -99,7 +101,12 @@ namespace Terumi.Flattening
 
 		public class Dereference : Instruction
 		{
-			public Dereference(string resultVariableName, string targetVariableName, string targetFieldName)
+			public Dereference(string resultVariableName, string targetVariableName, Binder.Field field)
+				: this(resultVariableName, targetVariableName, new TypedPair(Binder.BuiltinType.ToObjectType(field.Type), field.Name).ToWeirdName())
+			{
+			}
+
+			protected Dereference(string resultVariableName, string targetVariableName, string targetFieldName)
 			{
 				ResultVariableName = resultVariableName;
 				TargetVariableName = targetVariableName;

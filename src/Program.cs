@@ -51,8 +51,9 @@ namespace Terumi
 
 			var flat = new Flattening.Flattener(bindings);
 			var flattened = flat.Flatten();
-			// var deobj = new Deobjectification.Deobjectificator(bindings);
-			// deobj.Translate();
+
+			var deobj = new Deobjectification.Deobjectifier(bindings, flattened, target);
+			var translated = deobj.Translate();
 
 			Log.Stage("WRITING", "Writing code to output.");
 
@@ -70,7 +71,7 @@ namespace Terumi
 
 			// tabs <3
 			using var indentedWriter = new IndentedTextWriter(sw, "\t");
-			// target.Write(indentedWriter, translator._diary.Methods);
+			target.Write(indentedWriter, translated);
 
 			Log.StageEnd();
 

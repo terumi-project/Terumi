@@ -145,6 +145,13 @@ namespace Terumi.Binder
 
 	public sealed class BuiltinType : IType
 	{
+		public static ObjectType ToObjectType(IType type)
+			=> type == BuiltinType.Void ? ObjectType.Void
+				: type == BuiltinType.String ? ObjectType.String
+				: type == BuiltinType.Number ? ObjectType.Number
+				: type == BuiltinType.Boolean ? ObjectType.Boolean
+				: ObjectType.Object;
+
 		public static bool IsBuiltinType(IType type)
 		{
 			return type == BuiltinType.Void

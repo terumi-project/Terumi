@@ -21,12 +21,16 @@ namespace Terumi.Flattening
 		public void IncreaseScope(string scope) => varLevels.Add($"{scope}<{_unique++}>");
 		public void DecreaseScope() => varLevels.RemoveAt(varLevels.Count - 1);
 
-		public string GetThis()
+		public string GetThis() => Scope.SGetThis();
+
+		public static string SGetThis()
 		{
 			return "$this$";
 		}
 
-		public string GetParameter(int index)
+		public string GetParameter(int index) => Scope.SGetParameter(index);
+
+		public static string SGetParameter(int index)
 		{
 			return $"<><>param_{index}";
 		}
@@ -348,7 +352,7 @@ namespace Terumi.Flattening
 						case Expression.Reference.Field p:
 						{
 							// access a field of 'left'
-							_target.Add(new Instruction.Dereference(result, left, p.FieldDeclaration.Name));
+							_target.Add(new Instruction.Dereference(result, left, p.FieldDeclaration));
 						}
 						break;
 
@@ -440,7 +444,7 @@ namespace Terumi.Flattening
 
 						case Expression.Reference.Field f:
 						{
-							_target.Add(new Instruction.Dereference(result, _scope.GetThis(), f.FieldDeclaration.Name));
+							_target.Add(new Instruction.Dereference(result, _scope.GetThis(), f.FieldDeclaration));
 							return result;
 						}
 

@@ -1,20 +1,9 @@
+[![Discord Server](https://img.shields.io/discord/652702761665691658?label=Discord&style=flat-square)](https://discord.gg/NpDXYev)
+
 # FULL DISCLAIMER
-**TERUMI IS CURRENTLY PRE-ALPHA. THIS MEANS THAT I RESERVE THE EXCLUSIVE RIGHT TO ABSOLUTELY DESTROY ALL COMPATIBILITY DURING THE PROCESS OF MAKING TERUMI, AND YOU ARE ENTITLED TO ABSOLUTELY NO GUARENTEES. NOT EVEN THE GUARENTEE THAT YOUR CODE WILL COMPILE WITHOUT PROBLEMS.**
+**TERUMI IS CURRENTLY PRE-ALPHA. THIS MEANS THAT I RESERVE THE EXCLUSIVE RIGHT TO ABSOLUTELY DESTROY ALL COMPATIBILITY DURING THE PROCESS OF MAKING TERUMI, AND YOU ARE ENTITLED TO ABSOLUTELY NO GUARENTEES.**
 
 *i mean i'll try to not break much but imma do what i want*
-
-Because Terumi is pre-alpha (0.x.x), I reserve the exclusive right to completely break all code compatibility at any time. This includes:
-- docs becoming incorrect
-- your code no longer compiling in a new version
-- your dependencies not compiling when someone includes them
-- new project structures, with no support for older style projects
-- changing compiler function names
-- removing your dependency from terumi packages
-- pretty much anything i think is necessary, i may do
-
-You get absolutely *no* guarentees, as of right now, that your code will work in the next version.
-
-Thus, I discourage enterprises from using this, but as for the individual, I would extremely appreciate it if you build up the ecosystem around the language. I'll try to not break compatibility for no reason, but I reserve the exclusive right to do so.
 
 # Terumi
 Terumi is a programming language that transpiles to both powershell and bash, and aims to achieve the following goals:

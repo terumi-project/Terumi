@@ -13,6 +13,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="c_target.c" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="c_target.c" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="LibGit2Sharp" Version="0.27.0-preview-0034" />
     <PackageReference Include="Nett" Version="0.13.0" />
     <PackageReference Include="System.CommandLine.Experimental" Version="0.3.0-alpha.19573.2" />

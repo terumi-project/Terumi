@@ -20,7 +20,8 @@ namespace Terumi
 	public enum Target
 	{
 		Powershell,
-		Bash
+		Bash,
+		C,
 	}
 
 	internal static class Program
@@ -126,10 +127,9 @@ namespace Terumi
 			compileCommand.Handler = CommandHandler.Create<Target>(CompileProject);
 			installCommand.Handler = CommandHandler.Create<string, string>(InstallProject);
 
-#if false && DEBUG
-			Directory.SetCurrentDirectory("test");
-			Compile(new PowershellTarget());
-			return rootCommand.InvokeAsync(new string[] { "compile", "-t", "bash" });
+#if true && DEBUG
+			Directory.SetCurrentDirectory("testing_project");
+			return rootCommand.InvokeAsync(new string[] { "compile", "-t", "c" });
 #else
 			return rootCommand.InvokeAsync(args);
 #endif
@@ -225,6 +225,7 @@ bin
 			{
 				case Target.Bash: compilerTarget = new BashTarget(); break;
 				case Target.Powershell: compilerTarget = new PowershellTarget(); break;
+				case Target.C: compilerTarget = new CTarget(); break;
 				default: throw new InvalidOperationException();
 			}
 

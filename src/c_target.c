@@ -527,35 +527,6 @@ int assign_gc_object(struct Value* dst, struct Value* src) {
 
 /* terumi instructions */
 
-// compiler commands
-inline void cc_command(struct Value* command) {
-	if (command->type != TYPE_STRING) {
-		printf("[PANIC] cannot 'command' on non string '%s'\n", GET_TYPE(command->type));
-		return;
-	}
-
-	system((char*)(command->data));
-}
-
-inline struct Value* cc_panic(struct Value* message) {
-	if (message->type != TYPE_STRING) {
-		printf("[PANIC] cannot 'panic' on non string '%s'\n", GET_TYPE(message->type));
-		return load_boolean(FALSE);
-	}
-
-	printf("[PANIC] %s\n", (char*)(message->data));
-	return load_boolean(FALSE);
-}
-
-inline void cc_println(struct Value* message) {
-	if (message->type != TYPE_STRING) {
-		printf("[PANIC] cannot 'println' on non string '%s'\n", GET_TYPE(message->type));
-		return;
-	}
-
-	printf("%s\n", (char*)(message->data));
-}
-
 inline struct Value* load_string(const char* value) {
 	return new_value_string(value, strlen(value));
 }
@@ -680,7 +651,7 @@ inline struct Value* get_field(struct Value* obj, int fieldId) {
 	return gcobj->fields + fieldId;
 }
 
-inline struct Value* new() {
+inline struct Value* new(){
 	return new_object();
 }
 
@@ -697,6 +668,35 @@ inline int do_comparison(struct Value* boolean) {
 	}
 
 	return *(int*)(boolean->data);
+}
+
+// compiler commands
+inline void cc_command(struct Value* command) {
+	if (command->type != TYPE_STRING) {
+		printf("[PANIC] cannot 'command' on non string '%s'\n", GET_TYPE(command->type));
+		return;
+	}
+
+	system((char*)(command->data));
+}
+
+inline struct Value* cc_panic(struct Value* message) {
+	if (message->type != TYPE_STRING) {
+		printf("[PANIC] cannot 'panic' on non string '%s'\n", GET_TYPE(message->type));
+		return load_boolean(FALSE);
+	}
+
+	printf("[PANIC] %s\n", (char*)(message->data));
+	return load_boolean(FALSE);
+}
+
+inline void cc_println(struct Value* message) {
+	if (message->type != TYPE_STRING) {
+		printf("[PANIC] cannot 'println' on non string '%s'\n", GET_TYPE(message->type));
+		return;
+	}
+
+	printf("%s\n", (char*)(message->data));
 }
 
 // <INJECT__CODE>

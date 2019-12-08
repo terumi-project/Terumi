@@ -38,6 +38,8 @@ namespace Terumi.VarCode
 
 				public int Store { get; }
 				public string Value { get; }
+
+				public override string ToString() => $"Load.String(store: {Store}, value: <IM LAZY>)";
 			}
 
 			public class Number : Load
@@ -50,6 +52,8 @@ namespace Terumi.VarCode
 
 				public int Store { get; }
 				public Terumi.Number Value { get; }
+
+				public override string ToString() => $"Load.Number(store: {Store}, value: {Value.Value})";
 			}
 
 			public class Boolean : Load
@@ -62,6 +66,8 @@ namespace Terumi.VarCode
 
 				public int Store { get; }
 				public bool Value { get; }
+
+				public override string ToString() => $"Load.Boolean(store: {Store}, value: {Value})";
 			}
 
 			public class Parameter : Load
@@ -74,6 +80,8 @@ namespace Terumi.VarCode
 
 				public int Store { get; }
 				public int ParameterNumber { get; }
+
+				public override string ToString() => $"Load.Parameter(store: {Store}, parameterNumber: {ParameterNumber})";
 			}
 		}
 
@@ -87,6 +95,8 @@ namespace Terumi.VarCode
 
 			public int Store { get; }
 			public int Value { get; }
+
+			public override string ToString() => $"Assign(store: {Store}, value: {Value})";
 		}
 
 		public class Call : Instruction
@@ -101,6 +111,8 @@ namespace Terumi.VarCode
 			public int Store { get; }
 			public Method Method { get; }
 			public List<int> Arguments { get; }
+
+			public override string ToString() => $"Call(store: {Store}, method: '{Method.Name}', arguments: <IM LAZY>)";
 		}
 
 		public class CompilerCall : Instruction
@@ -116,6 +128,8 @@ namespace Terumi.VarCode
 			public int Store { get; }
 			public Binder.CompilerMethod CompilerMethod { get; }
 			public List<int> Arguments { get; }
+
+			public override string ToString() => $"CompilerCall(store: {Store}, method: '{(CompilerMethod?.Name ?? "null")}', arguments: <IM LAZY>)";
 		}
 
 		public class SetField : Instruction
@@ -130,6 +144,8 @@ namespace Terumi.VarCode
 			public int VariableId { get; }
 			public int FieldId { get; }
 			public int ValueId { get; }
+
+			public override string ToString() => $"SetField(variableId: {VariableId}, fieldId: {FieldId}, valueId: {ValueId})";
 		}
 
 		public class GetField : Instruction
@@ -144,6 +160,8 @@ namespace Terumi.VarCode
 			public int StoreId { get; }
 			public int VariableId { get; }
 			public int FieldId { get; }
+
+			public override string ToString() => $"GetField(storeId: {StoreId}, variableId: {VariableId}, fieldId: {FieldId})";
 		}
 
 		public class New : Instruction
@@ -154,6 +172,8 @@ namespace Terumi.VarCode
 			}
 
 			public int StoreId { get; }
+
+			public override string ToString() => $"New(storeId: {StoreId})";
 		}
 
 		public class Return : Instruction
@@ -164,6 +184,8 @@ namespace Terumi.VarCode
 			}
 
 			public int ValueId { get; }
+
+			public override string ToString() => $"Return(valueId: {ValueId})";
 		}
 
 		public class If : Instruction
@@ -176,6 +198,8 @@ namespace Terumi.VarCode
 
 			public int Variable { get; }
 			public List<Instruction> Clause { get; }
+
+			public override string ToString() => $"If(variable: {Variable}, clause: <IM LAZY>)";
 		}
 
 		public class While : Instruction
@@ -188,6 +212,8 @@ namespace Terumi.VarCode
 
 			public int Comparison { get; }
 			public List<Instruction> Clause { get; }
+
+			public override string ToString() => $"While(comparison: {Comparison}, clause: <IM LAZY>)";
 		}
 	}
 }

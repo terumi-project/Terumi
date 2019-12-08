@@ -156,17 +156,26 @@ struct Value* new_value_int(int integer) {
 	return value;
 }
 
-struct Value* new_value_string(char* str, int length) {
+struct Value* new_value_string_ptr(char* str) {
 	DEBUG_PRINT("new_value_string");
 	NULL_CHECK(str, "str");
+
 	struct Value* value = malloc_value();
 	value->type = TYPE_STRING;
-
-	char* str_data = malloc(sizeof(char) * length);
-	memcpy(str_data, str, sizeof(char) * length);
-	value->data = str_data;
-
+	value->data = str;
 	return value;
+}
+
+struct Value* new_value_string(const char* str) {
+	DEBUG_PRINT("new_value_string");
+	NULL_CHECK(str, "str");
+	
+	// strdup re-implementation
+	int len = strlen(str);
+	char* new_str = malloc(sizeof(char) * (len + 1));
+	strcpy(new_str, str);
+
+	return new_value_string_ptr(new_str);
 }
 
 /* GC */
@@ -400,7 +409,7 @@ int run_gc() {
 	return cleared;
 }
 
-inline void maybe_run_gc() {
+void maybe_run_gc() {
 	DEBUG_PRINT("maybe_run_gc");
 	if (should_run_gc()) {
 		calc_threshold(run_gc());
@@ -528,23 +537,27 @@ int assign_gc_object(struct Value* dst, struct Value* src) {
 
 /* terumi instructions */
 
-inline struct Value* load_string(const char* value) {
-	return new_value_string(value, strlen(value));
+struct Value* load_string(const char* value) {
+	return new_value_string(value);
 }
 
-inline struct Value* load_number(int number) {
+struct Value* load_string_ptr(char* value) {
+	return new_value_string_ptr(value);
+}
+
+struct Value* load_number(int number) {
 	return new_value_int(number);
 }
 
-inline struct Value* load_boolean(int boolean) {
+struct Value* load_boolean(int boolean) {
 	return new_value_boolean(boolean);
 }
 
-inline struct Value* load_parameter(struct Value* parameters, int index) {
+struct Value* load_parameter(struct Value* parameters, int index) {
 	return &(parameters[index]);
 }
 
-inline void assign(struct Value* src, struct Value* target) {
+void assign(struct Value* src, struct Value* target) {
 	// TODO: figure out when to free the data
 
 	// just malloc'd
@@ -575,7 +588,14 @@ inline void assign(struct Value* src, struct Value* target) {
 			}
 
 			if (src->type == TYPE_BOOLEAN) {
-				char* buffer = malloc(sizeof(char) * 5);
+				char* buffer;
+
+				if (*(int*)(src->data)) {
+					buffer = "true";
+				} else {
+					buffer = "false";
+				}
+
 				target->data = buffer;
 				return;
 			}
@@ -629,11 +649,11 @@ inline void assign(struct Value* src, struct Value* target) {
 	}
 }
 
-inline void set_helper(struct GCObject* gcobj, int fieldId, struct Value* data) {
+void set_helper(struct GCObject* gcobj, int fieldId, struct Value* data) {
 	gcobj->fields[fieldId] = *data;
 }
 
-inline void set_field(struct Value* obj, int fieldId, struct Value* data) {
+void set_field(struct Value* obj, int fieldId, struct Value* data) {
 	if (obj->type != TYPE_OBJECT) {
 		printf("[PANIC] cannot set object field on non object '%s'\n", GET_TYPE(obj->type));
 		return;
@@ -643,7 +663,7 @@ inline void set_field(struct Value* obj, int fieldId, struct Value* data) {
 	set_helper(gcobj, fieldId, data);
 }
 
-inline struct Value* get_field(struct Value* obj, int fieldId) {
+struct Value* get_field(struct Value* obj, int fieldId) {
 	if (obj->type != TYPE_OBJECT) {
 		printf("[PANIC] cannot get field of non object '%s'\n", GET_TYPE(obj->type));
 		return 0;
@@ -653,11 +673,11 @@ inline struct Value* get_field(struct Value* obj, int fieldId) {
 	return gcobj->fields + fieldId;
 }
 
-inline struct Value* new(){
+struct Value* new() {
 	return new_object();
 }
 
-inline int do_comparison(struct Value* boolean) {
+int do_comparison(struct Value* boolean) {
 	if (boolean->type != TYPE_BOOLEAN) {
 		printf("[PANIC] cannot do comparison with non boolean '%s'\n", GET_TYPE(boolean->type));
 
@@ -674,11 +694,11 @@ inline int do_comparison(struct Value* boolean) {
 
 // compiler commands
 
-inline struct Value* cc_target_name() {
+struct Value* cc_target_name() {
 	return load_string("c");
 }
 
-inline struct Value* cc_panic(struct Value* message) {
+struct Value* cc_panic(struct Value* message) {
 	if (message->type != TYPE_STRING) {
 		printf("[PANIC] cannot 'panic' on non string '%s'\n", GET_TYPE(message->type));
 		return load_boolean(FALSE);
@@ -688,7 +708,7 @@ inline struct Value* cc_panic(struct Value* message) {
 	return load_boolean(FALSE);
 }
 
-inline void cc_command(struct Value* command) {
+void cc_command(struct Value* command) {
 	if (command->type != TYPE_STRING) {
 		printf("[PANIC] cannot 'command' on non string '%s'\n", GET_TYPE(command->type));
 		return;
@@ -697,7 +717,7 @@ inline void cc_command(struct Value* command) {
 	system((char*)(command->data));
 }
 
-inline struct Value* cc_is_supported(struct Value* item) {
+struct Value* cc_is_supported(struct Value* item) {
 	if (item->type != TYPE_STRING) {
 		printf("[PANIC] cannot 'is_supported' on non string '%s'\n", GET_TYPE(item->type));
 		return load_boolean(FALSE);
@@ -708,7 +728,7 @@ inline struct Value* cc_is_supported(struct Value* item) {
 	return load_boolean(TRUE);
 }
 
-inline void cc_println(struct Value* message) {
+void cc_println(struct Value* message) {
 	if (message->type != TYPE_STRING) {
 		printf("[PANIC] cannot 'println' on non string '%s'\n", GET_TYPE(message->type));
 		return;
@@ -717,7 +737,7 @@ inline void cc_println(struct Value* message) {
 	printf("%s\n", (char*)(message->data));
 }
 
-inline struct Value* cc_operator_and(struct Value* a, struct Value* b) {
+struct Value* cc_operator_and(struct Value* a, struct Value* b) {
 	if (a->type != TYPE_BOOLEAN
 		|| b->type != TYPE_BOOLEAN) {
 		printf("[PANIC] cannot 'operator_and' on non booleans '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
@@ -730,7 +750,7 @@ inline struct Value* cc_operator_and(struct Value* a, struct Value* b) {
 	return load_boolean(bool_a && bool_b);
 }
 
-inline struct Value* cc_operator_or(struct Value* a, struct Value* b) {
+struct Value* cc_operator_or(struct Value* a, struct Value* b) {
 	if (a->type != TYPE_BOOLEAN
 		|| b->type != TYPE_BOOLEAN) {
 		printf("[PANIC] cannot 'operator_or' on non booleans '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
@@ -743,7 +763,7 @@ inline struct Value* cc_operator_or(struct Value* a, struct Value* b) {
 	return load_boolean(bool_a || bool_b);
 }
 
-inline struct Value* cc_operator_not(struct Value* a) {
+struct Value* cc_operator_not(struct Value* a) {
 	if (a->type != TYPE_BOOLEAN) {
 		printf("[PANIC] cannot 'operator_not' on non boolean '%s'\n", GET_TYPE(a->type));
 		return load_boolean(FALSE);
@@ -754,7 +774,7 @@ inline struct Value* cc_operator_not(struct Value* a) {
 	return load_boolean(!bool_a);
 }
 
-inline struct Value* cc_operator_equal_to(struct Value* a, struct Value* b) {
+struct Value* cc_operator_equal_to(struct Value* a, struct Value* b) {
 	if (a->type != b->type) {
 		printf("[PANIC] cannot 'operator_equal_to' on variables of dissimilar types '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
 		return load_boolean(FALSE);
@@ -781,11 +801,11 @@ inline struct Value* cc_operator_equal_to(struct Value* a, struct Value* b) {
 	return load_boolean(FALSE);
 }
 
-inline struct Value* cc_operator_not_equal_to(struct Value* a, struct Value* b) {
+struct Value* cc_operator_not_equal_to(struct Value* a, struct Value* b) {
 	return cc_operator_not(cc_operator_equal_to(a, b));
 }
 
-inline struct Value* cc_operator_less_than(struct Value* a, struct Value* b) {
+struct Value* cc_operator_less_than(struct Value* a, struct Value* b) {
 	if (a->type != b->type) {
 		printf("[PANIC] cannot 'operator_less_than' on variables of dissimilar types '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
 		return load_boolean(FALSE);
@@ -799,7 +819,7 @@ inline struct Value* cc_operator_less_than(struct Value* a, struct Value* b) {
 	return load_boolean(*(int*)a->data < *(int*)b->data);
 }
 
-inline struct Value* cc_operator_greater_than(struct Value* a, struct Value* b) {
+struct Value* cc_operator_greater_than(struct Value* a, struct Value* b) {
 	if (a->type != b->type) {
 		printf("[PANIC] cannot 'operator_greater_than' on variables of dissimilar types '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
 		return load_boolean(FALSE);
@@ -813,7 +833,7 @@ inline struct Value* cc_operator_greater_than(struct Value* a, struct Value* b) 
 	return load_boolean(*(int*)a->data > * (int*)b->data);
 }
 
-inline struct Value* cc_operator_less_than_or_equal_to(struct Value* a, struct Value* b) {
+struct Value* cc_operator_less_than_or_equal_to(struct Value* a, struct Value* b) {
 	if (a->type != b->type) {
 		printf("[PANIC] cannot 'operator_less_than_or_equal_to' on variables of dissimilar types '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
 		return load_boolean(FALSE);
@@ -827,7 +847,7 @@ inline struct Value* cc_operator_less_than_or_equal_to(struct Value* a, struct V
 	return load_boolean(*(int*)a->data <= *(int*)b->data);
 }
 
-inline struct Value* cc_operator_greater_than_or_equal_to(struct Value* a, struct Value* b) {
+struct Value* cc_operator_greater_than_or_equal_to(struct Value* a, struct Value* b) {
 	if (a->type != b->type) {
 		printf("[PANIC] cannot 'operator_greater_than_or_equal_to' on variables of dissimilar types '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
 		return load_boolean(FALSE);
@@ -841,65 +861,101 @@ inline struct Value* cc_operator_greater_than_or_equal_to(struct Value* a, struc
 	return load_boolean(*(int*)a->data >= *(int*)b->data);
 }
 
-inline struct Value* cc_operator_add(struct Value* a, struct Value* b) {
+struct Value* cc_operator_add(struct Value* a, struct Value* b) {
 	if (a->type == TYPE_NUMBER && b->type == TYPE_NUMBER) {
 		return load_number(*(int*)a->data + *(int*)b->data);
 	}
 
 	if (a->type == TYPE_STRING && b->type == TYPE_STRING) {
-		char* concat = malloc(sizeof(char) * (strlen((char*)a->data) + strlen((char*)b->data)));
-		strcat(concat, (char*)a->data);
-		strcat(concat, (char*)b->data);
+		char* adata = (char*)(a->data);
+		char* bdata = (char*)(b->data);
+		int alen = strlen(adata);
+		int blen = strlen(bdata);
+
+		char* concat = malloc(sizeof(char) * (alen + blen + 1));
+		memcpy(concat, adata, alen);
+		memcpy(concat + alen, bdata, blen);
+		concat[alen + blen] = '\0';
+
 		return load_string(concat);
 	}
 
-	printf("[PANIC] cannot 'operator_add' types of not both %s or %s. received '%s' and '%s'", GET_TYPE(TYPE_NUMBER), GET_TYPE(TYPE_STRING), GET_TYPE(a->type), GET_TYPE(b->type));
+	// if we're doing a number/string mix,
+	// convert the number to a string and re-call add
+	if (a->type == TYPE_NUMBER && b->type == TYPE_STRING) {
+		struct Value* converted = malloc_value();
+		converted->type = TYPE_STRING;
+		assign(a, converted);
+
+		return cc_operator_add(converted, b);
+	}
+
+	if (a->type == TYPE_STRING && b->type == TYPE_NUMBER) {
+		struct Value* converted = malloc_value();
+		converted->type = TYPE_STRING;
+		assign(b, converted);
+
+		return cc_operator_add(a, converted);
+	}
+
+	printf("[PANIC] cannot 'operator_add' types either not a '%s' or a '%s'. received '%s' and '%s'\n", GET_TYPE(TYPE_NUMBER), GET_TYPE(TYPE_STRING), GET_TYPE(a->type), GET_TYPE(b->type));
 	return load_boolean(FALSE);
 }
 
-inline struct Value* cc_operator_negate(struct Value* a) {
+struct Value* cc_operator_negate(struct Value* a) {
 	if (a->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot 'operator_negate' non number '%s'", GET_TYPE(a->type));
+		printf("[PANIC] cannot 'operator_negate' non number '%s'\n", GET_TYPE(a->type));
 		return a;
 	}
 
 	return load_number(*(int*)a->data * -1);
 }
 
-inline struct Value* cc_operator_subtract(struct Value* a, struct Value* b) {
+struct Value* cc_operator_subtract(struct Value* a, struct Value* b) {
 	if (a->type != TYPE_NUMBER || b->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot 'operator_subtract' non numbers '%s' and '%s'", GET_TYPE(a->type), GET_TYPE(b->type));
+		printf("[PANIC] cannot 'operator_subtract' non numbers '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
 		return a;
 	}
 
 	return load_number(*(int*)a->data - *(int*)b->data);
 }
 
-inline struct Value* cc_operator_multiply(struct Value* a, struct Value* b) {
+struct Value* cc_operator_multiply(struct Value* a, struct Value* b) {
 	if (a->type != TYPE_NUMBER || b->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot 'operator_multiply' non numbers '%s' and '%s'", GET_TYPE(a->type), GET_TYPE(b->type));
+		printf("[PANIC] cannot 'operator_multiply' non numbers '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
 		return a;
 	}
 
 	return load_number(*(int*)a->data * *(int*)b->data);
 }
 
-inline struct Value* cc_operator_divide(struct Value* a, struct Value* b) {
+struct Value* cc_operator_divide(struct Value* a, struct Value* b) {
 	if (a->type != TYPE_NUMBER || b->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot 'operator_divide' non numbers '%s' and '%s'", GET_TYPE(a->type), GET_TYPE(b->type));
+		printf("[PANIC] cannot 'operator_divide' non numbers '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
 		return a;
 	}
 
 	return load_number(*(int*)a->data / *(int*)b->data);
 }
 
-inline struct Value* cc_operator_exponent(struct Value* a, struct Value* b) {
+struct Value* cc_operator_exponent(struct Value* a, struct Value* b) {
 	if (a->type != TYPE_NUMBER || b->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot 'operator_exponent' non numbers '%s' and '%s'", GET_TYPE(a->type), GET_TYPE(b->type));
+		printf("[PANIC] cannot 'operator_exponent' non numbers '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
 		return a;
 	}
 
 	return load_number((int)pow(*(int*)a->data, *(int*)b->data));
+}
+
+// C specific operator names
+
+void cc_force_type(struct Value* a, struct Value* new_type) {
+	if (new_type->type != TYPE_NUMBER) {
+		printf("[PANIC] cannot 'force_type' a type with a non number, '%s'\n", GET_TYPE(new_type->type));
+		return;
+	}
+
+	a->type = *(int*)(new_type->data);
 }
 
 // <INJECT__CODE>

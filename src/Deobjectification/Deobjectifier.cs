@@ -21,7 +21,7 @@ namespace Terumi.Deobjectification
 			_target = target;
 		}
 
-		public List<VarCode.Method> Translate()
+		public List<VarCode.Method> Translate(out int objectFields)
 		{
 			var newMethods = new List<VarCode.Method>();
 
@@ -81,7 +81,7 @@ namespace Terumi.Deobjectification
 			}
 
 			Log.StageEnd();
-
+			objectFields = map.Count;
 			return newMethods;
 		}
 	}

@@ -54,7 +54,7 @@ namespace Terumi
 			var flattened = flat.Flatten();
 
 			var deobj = new Deobjectification.Deobjectifier(bindings, flattened, target);
-			var translated = deobj.Translate();
+			var translated = deobj.Translate(out var objectFields);
 
 			Log.Stage("WRITING", "Writing code to output.");
 
@@ -72,7 +72,7 @@ namespace Terumi
 
 			// tabs <3
 			using var indentedWriter = new IndentedTextWriter(sw, "\t");
-			target.Write(indentedWriter, translated);
+			target.Write(indentedWriter, translated, objectFields);
 
 			Log.StageEnd();
 
@@ -129,7 +129,9 @@ namespace Terumi
 
 #if false && DEBUG
 			Directory.SetCurrentDirectory("testing_project");
-			return rootCommand.InvokeAsync(new string[] { "compile", "-t", "c" });
+			Compile(new CTarget());
+			return Task<int>.FromResult(0);
+			// return rootCommand.InvokeAsync(new string[] { "compile", "-t", "c" });
 #else
 			return rootCommand.InvokeAsync(args);
 #endif

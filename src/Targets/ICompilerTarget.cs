@@ -12,6 +12,9 @@ namespace Terumi.Targets
 		CompilerMethod? Match(string name, params IType[] types);
 		CompilerMethod Panic(IType claimToReturn);
 
+		void Write(IndentedTextWriter writer, List<VarCode.Method> methods, int objectFields) => Write(writer, methods);
+
+		[Obsolete("Please specify the amount of object fields")]
 		void Write(IndentedTextWriter writer, List<VarCode.Method> methods);
 
 		string ShellFileName { get; }

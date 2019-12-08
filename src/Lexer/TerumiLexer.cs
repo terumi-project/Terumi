@@ -88,9 +88,9 @@ namespace Terumi.Lexer
 
 				case '"': return String();
 
-				case '/': return IsNext('/')
+				case '/': return IsNext('/', false)
 					? SinglelineComment() // //
-					: (IsNext('*')
+					: (IsNext('*', false)
 						? MultilineComment() // /*
 						: Char(TokenType.Divide)); // /
 
@@ -311,8 +311,9 @@ namespace Terumi.Lexer
 			Debug.Assert(rawData[0] == '/');
 			Debug.Assert(rawData[1] == '*');
 
-			Debug.Assert(rawData[^1] == '/');
-			Debug.Assert(rawData[^2] == '*');
+			// we might not end wit ha */
+			// Debug.Assert(rawData[^1] == '/');
+			// Debug.Assert(rawData[^2] == '*');
 #endif
 
 			TokenType = TokenType.Comment;

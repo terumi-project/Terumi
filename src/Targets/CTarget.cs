@@ -16,6 +16,7 @@ namespace Terumi.Targets
 		{
 			switch (name)
 			{
+				case TargetMethodNames.TargetName: return C(BuiltinType.String);
 				case TargetMethodNames.Command: return C(BuiltinType.Void);
 				case TargetMethodNames.Panic: return C(BuiltinType.Void);
 				case TargetMethodNames.Println: return C(BuiltinType.Void);
@@ -39,6 +40,9 @@ namespace Terumi.Targets
 				case TargetMethodNames.OperatorMultiply: return C(types[0]);
 				case TargetMethodNames.OperatorDivide: return C(types[0]);
 				case TargetMethodNames.OperatorExponent: return C(types[0]);
+
+				case TargetMethodNames.C.ForceType: return C(BuiltinType.Void);
+
 				default: return null;
 			}
 
@@ -56,6 +60,9 @@ namespace Terumi.Targets
 		}
 
 		public void Write(IndentedTextWriter writer, List<VarCode.Method> methods)
+			=> Write(writer, methods, 3);
+
+		public void Write(IndentedTextWriter writer, List<VarCode.Method> methods, int objectFields)
 		{
 			using var sr = new StreamReader(typeof(CTarget).Assembly.GetManifestResourceStream("Terumi.c_target.c"));
 
@@ -66,7 +73,11 @@ namespace Terumi.Targets
 				var line = sr.ReadLine();
 				if (line == null) continue;
 
-				if (line == "// <INJECT__CODE>")
+				if (line == "#define GC_OBJECT_FIELDS 3")
+				{
+					writer.WriteLine("#define GC_OBJECT_FIELDS " + objectFields);
+				}
+				else if (line == "// <INJECT__CODE>")
 				{
 					// create every function prototype
 					foreach (var method in methods)
@@ -150,7 +161,7 @@ namespace Terumi.Targets
 
 					case VarCode.Instruction.Load.Boolean o:
 						EnsureVarExists(o.Store);
-						writer.WriteLine($"{GetVarName(o.Store)} = load_number({(o.Value ? "TRUE" : "FALSE")});");
+						writer.WriteLine($"{GetVarName(o.Store)} = load_boolean({(o.Value ? "TRUE" : "FALSE")});");
 						break;
 
 					case VarCode.Instruction.Load.Parameter o:
@@ -159,8 +170,8 @@ namespace Terumi.Targets
 						break;
 
 					case VarCode.Instruction.Assign o:
-						EnsureVarExists(o.Store);
-						writer.WriteLine($"assign({GetVarName(o.Store)}, {GetVarName(o.Value)});");
+						EnsureVarExists(o.Store, true);
+						writer.WriteLine($"assign({GetVarName(o.Value)}, {GetVarName(o.Store)});");
 						break;
 
 					case VarCode.Instruction.Call o:
@@ -199,11 +210,16 @@ namespace Terumi.Targets
 							writer.Write($"{GetVarName(o.Store)} = ");
 						}
 
-						writer.Write($"cc_{o.CompilerMethod.Name}({GetVarName(o.Arguments[0])}");
+						writer.Write($"cc_{o.CompilerMethod.Name}(");
 
-						for (int i2 = 1; i2 < o.Arguments.Count; i2++)
+						if (o.Arguments.Count > 0)
 						{
-							writer.Write($", {GetVarName(o.Arguments[i2])}");
+							writer.Write($"{GetVarName(o.Arguments[0])}");
+
+							for (int i2 = 1; i2 < o.Arguments.Count; i2++)
+							{
+								writer.Write($", {GetVarName(o.Arguments[i2])}");
+							}
 						}
 
 						writer.WriteLine(");");
@@ -219,7 +235,7 @@ namespace Terumi.Targets
 					case VarCode.Instruction.GetField o:
 					{
 						EnsureVarExists(o.StoreId);
-						writer.WriteLine($"{GetVarName(o.StoreId)} =  get_field({GetVarName(o.VariableId)}, {o.FieldId});");
+						writer.WriteLine($"{GetVarName(o.StoreId)} = get_field({GetVarName(o.VariableId)}, {o.FieldId});");
 					}
 					break;
 
@@ -273,15 +289,20 @@ namespace Terumi.Targets
 				index++;
 			}
 
-			void EnsureVarExists(int ensure) => this.EnsureVarExists(writer, ensure, decl);
+			void EnsureVarExists(int ensure, bool alloc = false) => this.EnsureVarExists(writer, ensure, decl, alloc);
 		}
 
-		private void EnsureVarExists(IndentedTextWriter writer, int ensure, List<int> decl)
+		private void EnsureVarExists(IndentedTextWriter writer, int ensure, List<int> decl, bool alloc)
 		{
 			if (!decl.Contains(ensure))
 			{
-				writer.WriteLine($"struct Value* {GetVarName(ensure)} = malloc_value();");
+				writer.WriteLine($"struct Value* {GetVarName(ensure)};");
 				decl.Add(ensure);
+			}
+
+			if (alloc)
+			{
+				writer.WriteLine($"{GetVarName(ensure)} = malloc_value();");
 			}
 		}
 

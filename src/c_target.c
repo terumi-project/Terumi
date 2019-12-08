@@ -569,7 +569,8 @@ inline void assign(struct Value* src, struct Value* target) {
 		if (target->type == TYPE_STRING) {
 			if (src->type == TYPE_NUMBER) {
 				char* buffer = malloc(sizeof(char) * 12);
-				target->data = itoa(*(int*)(src->data), buffer, 10);
+				snprintf(buffer, 12, "%d", *(int*)(src->data));
+				target->data = buffer;
 				return;
 			}
 

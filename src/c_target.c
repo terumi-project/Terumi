@@ -697,12 +697,12 @@ inline void cc_command(struct Value* command) {
 }
 
 inline struct Value* cc_is_supported(struct Value* item) {
-	if (message->type != TYPE_STRING) {
-		printf("[PANIC] cannot 'is_supported' on non string '%s'\n", GET_TYPE(message->type));
+	if (item->type != TYPE_STRING) {
+		printf("[PANIC] cannot 'is_supported' on non string '%s'\n", GET_TYPE(item->type));
 		return load_boolean(FALSE);
 	}
 
-	char* item = (char*)(item->data);
+	char* value = (char*)(item->data);
 	// TODO: check what's supported
 	return load_boolean(TRUE);
 }
@@ -719,7 +719,7 @@ inline void cc_println(struct Value* message) {
 inline struct Value* cc_operator_and(struct Value* a, struct Value* b) {
 	if (a->type != TYPE_BOOLEAN
 		|| b->type != TYPE_BOOLEAN) {
-		printf("[PANIC] cannot 'operator_and' on non booleans '%s' and '%s'\n", GET_TYPE(a->type, GET_TYPE(b->type));
+		printf("[PANIC] cannot 'operator_and' on non booleans '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
 		return load_boolean(FALSE);
 	}
 
@@ -858,16 +858,16 @@ inline struct Value* cc_operator_add(struct Value* a, struct Value* b) {
 
 inline struct Value* cc_operator_negate(struct Value* a) {
 	if (a->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot 'operator_negate' non number '%s'", a->type);
+		printf("[PANIC] cannot 'operator_negate' non number '%s'", GET_TYPE(a->type));
 		return a;
 	}
 
 	return load_number(*(int*)a->data * -1);
 }
 
-inline struct Value* cc_operator_negate(struct Value* a, struct Value* b) {
+inline struct Value* cc_operator_subtract(struct Value* a, struct Value* b) {
 	if (a->type != TYPE_NUMBER || b->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot 'operator_subtract' non numbers '%s' and '%s'", a->type, b->type);
+		printf("[PANIC] cannot 'operator_subtract' non numbers '%s' and '%s'", GET_TYPE(a->type), GET_TYPE(b->type));
 		return a;
 	}
 
@@ -876,7 +876,7 @@ inline struct Value* cc_operator_negate(struct Value* a, struct Value* b) {
 
 inline struct Value* cc_operator_multiply(struct Value* a, struct Value* b) {
 	if (a->type != TYPE_NUMBER || b->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot 'operator_multiply' non numbers '%s' and '%s'", a->type, b->type);
+		printf("[PANIC] cannot 'operator_multiply' non numbers '%s' and '%s'", GET_TYPE(a->type), GET_TYPE(b->type));
 		return a;
 	}
 
@@ -885,7 +885,7 @@ inline struct Value* cc_operator_multiply(struct Value* a, struct Value* b) {
 
 inline struct Value* cc_operator_divide(struct Value* a, struct Value* b) {
 	if (a->type != TYPE_NUMBER || b->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot 'operator_divide' non numbers '%s' and '%s'", a->type, b->type);
+		printf("[PANIC] cannot 'operator_divide' non numbers '%s' and '%s'", GET_TYPE(a->type), GET_TYPE(b->type));
 		return a;
 	}
 
@@ -894,7 +894,7 @@ inline struct Value* cc_operator_divide(struct Value* a, struct Value* b) {
 
 inline struct Value* cc_operator_exponent(struct Value* a, struct Value* b) {
 	if (a->type != TYPE_NUMBER || b->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot 'operator_exponent' non numbers '%s' and '%s'", a->type, b->type);
+		printf("[PANIC] cannot 'operator_exponent' non numbers '%s' and '%s'", GET_TYPE(a->type), GET_TYPE(b->type));
 		return a;
 	}
 

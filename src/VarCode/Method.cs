@@ -8,6 +8,8 @@ namespace Terumi.VarCode
 
 	public class Method
 	{
+		private static int _uniqueId = 0;
+
 		public Method(ObjectType returns, string name, List<ObjectType> parameters)
 		{
 			Returns = returns;
@@ -15,7 +17,7 @@ namespace Terumi.VarCode
 			Parameters = parameters;
 		}
 
-		public int Id { get; set; }
+		public int Id { get; set; } = _uniqueId++;
 		public string Name { get; }
 		public List<ObjectType> Parameters { get; }
 		public List<Instruction> Code { get; } = new List<Instruction>();

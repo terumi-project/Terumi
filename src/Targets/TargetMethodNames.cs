@@ -15,13 +15,13 @@ namespace Terumi.Targets
 		public const string Println = "println";
 		public const string Command = "command";
 
-		public const string OperatorAnd = "operator_add";
+		public const string OperatorAnd = "operator_and";
 		public const string OperatorOr = "operator_or";
 
 		public const string OperatorNot = "operator_not";
 
-		public const string OperatorNotEqualTo = "operator_equal_to";
-		public const string OperatorEqualTo = "operator_not_equal_to";
+		public const string OperatorEqualTo = "operator_equal_to";
+		public const string OperatorNotEqualTo = "operator_not_equal_to";
 
 		public const string OperatorLessThan = "operator_less_than";
 		public const string OperatorGreaterThan = "operator_greater_than";

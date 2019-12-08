@@ -16,11 +16,33 @@ namespace Terumi.Targets
 		{
 			switch (name)
 			{
-				case TargetMethodNames.Command: return Helper(BuiltinType.Void, "command", types);
-				case TargetMethodNames.Panic: return Helper(BuiltinType.Void, "panic", types);
-				case TargetMethodNames.Println: return Helper(BuiltinType.Void, "println", types);
+				case TargetMethodNames.Command: return C(BuiltinType.Void);
+				case TargetMethodNames.Panic: return C(BuiltinType.Void);
+				case TargetMethodNames.Println: return C(BuiltinType.Void);
+				case TargetMethodNames.IsSupported: return C(BuiltinType.Boolean);
+
+				case TargetMethodNames.OperatorAnd: return C(BuiltinType.Boolean);
+				case TargetMethodNames.OperatorOr: return C(BuiltinType.Boolean);
+				case TargetMethodNames.OperatorNot: return C(BuiltinType.Boolean);
+
+				case TargetMethodNames.OperatorEqualTo: return C(BuiltinType.Boolean);
+				case TargetMethodNames.OperatorNotEqualTo: return C(BuiltinType.Boolean);
+
+				case TargetMethodNames.OperatorLessThan: return C(BuiltinType.Boolean);
+				case TargetMethodNames.OperatorGreaterThan: return C(BuiltinType.Boolean);
+				case TargetMethodNames.OperatorLessThanOrEqualTo: return C(BuiltinType.Boolean);
+				case TargetMethodNames.OperatorGreaterThanOrEqualTo: return C(BuiltinType.Boolean);
+
+				case TargetMethodNames.OperatorAdd: return C(types[0]);
+				case TargetMethodNames.OperatorNegate: return C(types[0]);
+				case TargetMethodNames.OperatorSubtract: return C(types[0]);
+				case TargetMethodNames.OperatorMultiply: return C(types[0]);
+				case TargetMethodNames.OperatorDivide: return C(types[0]);
+				case TargetMethodNames.OperatorExponent: return C(types[0]);
 				default: return null;
 			}
+
+			CompilerMethod C(IType type) => Helper(type, name, types);
 		}
 
 		public CompilerMethod Panic(IType claimToReturn)
@@ -147,7 +169,20 @@ namespace Terumi.Targets
 							break;
 						}
 
-						writer.WriteLine($"cc_{o.CompilerMethod.Name}({GetVarName(o.Arguments[0])});");
+						if (o.Store != -1)
+						{
+							EnsureVarExists(o.Store);
+							writer.Write($"{GetVarName(o.Store)} = ");
+						}
+
+						writer.Write($"cc_{o.CompilerMethod.Name}({GetVarName(o.Arguments[0])}");
+
+						for (int i2 = 1; i2 < o.Arguments.Count; i2++)
+						{
+							writer.Write($", {GetVarName(o.Arguments[i2])}");
+						}
+
+						writer.WriteLine(");");
 					}
 					break;
 

@@ -1,982 +1,744 @@
+// for 'malloc' and 'free'
 #include <stdlib.h>
+
+// explicit inclusion of 'size_t' and friends (imported by stdlib.h)
+#include <stddef.h>
+
+// for 'printf'
 #include <stdio.h>
+
+// for 'strcmp', 'strlen', etc.
 #include <string.h>
+
+// only needed for calculating exponents. probably will re-implement pow()
+// just so Terumi can be compiled on linux
 #include <math.h>
 
+// booleans
+#include <stdbool.h>
+
 /*
-NOTICE: the GC has memory leaks
+The // <INJECT__CODE> comment signals to the C target to begin translating all
+	of the user defined methods at that point.
 
-i plan to throw this away and learn rust and make something good later
-for now, this is just a hackjob to claim support of C
-
-this is embedded within the compiler and then extracted and the // <INJECT__CODE> code
-comments is where the terumi code is extracted to.
+The // <INJECT__RUN> comment signals to the C target to execute each viable
+	main method at that point.
 */
 
-// every time a list isn't big enough, it grows
-// by this many times
-#define LIST_GROW_MULTIPLIER 3
-
-// defines how many fields there should be for an object
-#define GC_OBJECT_FIELDS 3
-
-#define TRUE 1
-#define FALSE 0
-
-#define TYPE_STRING 1
-#define TYPE_NUMBER 2
-#define TYPE_BOOLEAN 3	
-#define TYPE_OBJECT 4
-
+// use this crud only if you're tryna work on this, otherwise leave it
 // #define DEBUG
-#ifdef DEBUG
-	#define DEBUG_PRINT(x) printf("[DBG] '%s'\n", x)
-	#define NULL_CHECK(x, y) if (!x) printf("[WARN] %s is null\n", y);
+// #define DEBUG_TRACING
+#ifdef DEBUG_TRACING
+static int level = 0;
+void TRACE(const char* place) {
+	for (int i = 0; i < level; i++) printf("\t");
+	printf("[DEBUG] at '%s'\n", place);
+	level++;
+}
+void TRACE_EXIT(const char* place) {
+	level--;
+	for (int i = 0; i < level; i++) printf("\t");
+	printf("[DEBUG] left '%s'\n", place);
+}
 #else
-	#define DEBUG_PRINT(x) ;
-	#define NULL_CHECK(x, y) ;
+void TRACE(const char* place) {
+}
+void TRACE_EXIT(const char* place) {
+}
 #endif
 
-#define GET_TYPE(x) \
-	(x == TYPE_STRING ? "string" \
-	: x == TYPE_NUMBER ? "number" \
-	: x == TYPE_BOOLEAN ? "boolean" \
-	: x == TYPE_OBJECT ? "object" \
-	: "unknown")
+// defines how many fields there should be for an object
+// NOTICE: DO NOT CHANGE '3' - Terumi will replace '3' with it's own number.
+#define GC_OBJECT_FIELDS 3
 
-int* bool_true;
-int* bool_false;
+// if a list runs out of space, it will grow reallocate a new array and copy
+// all old elements into the new list.
+#define LIST_GROW_MULTIPLIER 3
 
-/* List for maintaining all variables */
-struct List {
+// defines how big a chunk of memory should be initially.
+#define DEFAULT_MEMORY_PAGE_SIZE 4000000
 
-	// array of void* (pointers to data)
+// Metadata for the type of an object in Terumi.
+enum ObjectType {
+
+	// 'Unknown' is primarily used to represent newly allocated objects.
+	UNKNOWN = 0,
+
+	// 'String' is used to represent objects whose data contains a char*
+	STRING = 1,
+
+	// 'Number' is used to represent objects whose data contains a 'struct Number*'
+	NUMBER = 2,
+
+	// bool*
+	BOOLEAN = 3,
+
+	// struct Object*
+	OBJECT = 4,
+};
+
+// A 'Value' is used to represent a given value in Terumi. Because Terumi is a
+// dynamic language, 'Value' has a generic void* to data, with an 'ObjectType'
+// to serve as a signifier for what kind of data is stored. 'Value's are freed
+// by the Terumi GC. Do not free them.
+struct Value {
+	// The type of the value. Useful for determining if it was freshly
+	// allocated, or if it is compatible with a call to a given function.
+	enum ObjectType type;
+
+	// A pointer to the data of this function. A value must guarentee these
+	// kinds of values depending upon the type:
+	// UNKNOWN - uninitialized data
+	// STRING - char* pointer
+	// NUMBER - struct Number* pointer
+	// BOOLEAN - bool* pointer
+	// OBJECT - struct Object* pointer
+	void* data;
+};
+
+// A 'ValuePtr' is an index in the GC to a GCEntry, which contains a Value.
+// These are used instead of pointers to Value. The GC, on collection, will
+// update all 'Value's that are 'Object's with "old value pointers". These
+// are particularly useful to gain immediate access to the GCEntry of a value
+// in the GC.
+struct ValuePtr {
+	int object_index;
+};
+
+// An 'Object' is used to represent a series of fields, with values. This is
+// represented with pointers to values.
+struct Object {
+	// An array of ValuePtrs to values used by a given object.
+	struct ValuePtr fields[GC_OBJECT_FIELDS];
+};
+
+// Terumi's number system may expand in the future to floating point operations
+// or more. 'Number' is used to encapsulate this. Never access 'data', instead,
+// use or create Number specific functions.
+struct Number {
+	int data;
+};
+
+// Helper for void pointer arrays to prevent screwups.
+struct VoidPtrArray {
 	void** data;
+#ifdef DEBUG
+	// in debug mode, there is bounds checking
+	size_t length;
+#endif
+};
 
-	// the length of 'data'
-	int capacity;
+// Lists are regrowable arrays. If an element is attempted to be added and the
+// list is full, a new array will be allocated LIST_GROW_MULTIPLIER times the
+// size, and all old data will be copied.
+struct List {
+	// The inner array of data, represented using a VoidPtrArray
+	struct VoidPtrArray array;
 
-	// the amount of elements actually in 'data'
+	// The total size of the array.
+	size_t capacity;
+
+	// The total amount of elements added. This number will constantly be
+	// reaching 'capacity', and a fter that, the list will resize.
 	int elements;
 };
 
-// helper method to make a new list with a given capacity
-struct List* new_list(int initialCapacity) {
-	DEBUG_PRINT("new_list");
-	struct List* list = malloc(sizeof(struct List));
+// A GCEntry manages holding a given Value.
+struct GCEntry {
+	// 'active' only specifies if this object is out of scope of the method it
+	// was created in. Once it's not active, it is only kept alive by
+	// references to it.
+	bool active;
 
-	list->elements = 0;
-	list->capacity = initialCapacity;
-	list->data = (void**)malloc(sizeof(void*) * initialCapacity);
+	// 'alive' only specifies if the GCEntry is alive - used as a 'tombstone'.
+	// This is particularly useful for the sweep & compact phase of the GC.
+	bool alive;
 
-	return list;
+	// A pointer to the value this GCEntry holds.
+	struct Value* value;
+};
+
+// An instance of the GC. Maintains all GC-related data.
+struct GC {
+	// A list of struct GCEntry*. All objects that are handheld with gc_handhold
+	// are added here.
+	struct List list;
+
+	// The threshold of the GC, which is arbitrarily used to determine when to
+	// collect.
+	size_t threshold;
+};
+
+// A large block of memory, which terumi_alloc and terumi_free use.
+struct MemoryPage {
+	// The size of this memory page.
+	size_t size;
+
+	// A raw pointer to the data of this memory page.
+	void* data;
+
+	// How many bytes of the memory page has been used. Adding data to used
+	// will result in a pointer to where unclaimed data is.
+	size_t used;
+
+	// The amount of renters. Every time a consumer allocates some memory, an
+	// appropriate memory block is found and the rented number is incremented.
+	// Once the user returns that block, the rented number is decremented, and
+	// if this block has no renters, 'used' will be reset upon the next alloc.
+	int rented;
+};
+
+// An instance of Memory. Maintains all Memory-related data.
+struct Memory {
+	// The size of a page. Will increase if lots of data is needed.
+	size_t page_size;
+
+	// A list of struct Memory*. This maintains all the memory chunks.
+	struct List memory_pages;
+};
+
+// Global instance of the Memory. Used for the terumi allocators.
+struct Memory memory;
+bool memory_init = false;
+
+// Ensures the Memory is initialized.
+void ensure_memory_init();
+// Allocates some data with terumi's memory paging system.
+void* terumi_alloc(size_t data);
+// Frees some data with terumi's memory paging system.
+bool terumi_free(void* data);
+// If 'terumi_free' fails, this will print a message to standard out for you.
+void terumi_free_warn(void* data);
+
+// Global instance of the GC. Used for managing 'struct Value's.
+struct GC gc;
+bool gc_init = false;
+
+// Ensures the GC is initialized.
+void ensure_gc_init();
+// Runs the GC. Returns the amount of objects collected.
+int run_gc();
+// Returns 'true' if the GC should be ran (some threshold was passed)
+bool should_run_gc();
+// Might run the GC. Returns -1 if it didn't, otherwise it returns the amount
+// of objects the GC collected.
+int maybe_run_gc();
+// registers a Value* to be managed (aka, handheld) by the GC. The caller is
+// expected to set 'active' to 'false' on the returned GC entry once they are
+// no longer going to use the value. Values must be created with the value
+// allocator functions. The caller should NOT call terumi_free, as the GC will.
+struct GCEntry* gc_handhold(struct Value* value);
+
+// Creates a new void pointer array with a given size.
+struct VoidPtrArray* voidptrarray_new(size_t capacity);
+// Resizes a void pointer array to a new size. The old size is used in debug
+// mode for array bound checks.
+void voidptrarray_regrow(struct VoidPtrArray* data, size_t new_size, size_t old_size);
+// Gets an element at a given index of a struct VoidPtrArray*.
+void* voidptrarray_at(struct VoidPtrArray* array, int index);
+// Sets an element at a given index of a struct VoidPtrArray*.
+void voidptrarray_set(struct VoidPtrArray* array, int index, void* value);
+
+// Constructs a number from an integer.
+struct Number* number_from_int(int integer);
+// Adds two numbers together.
+struct Number* number_add(struct Number* left, struct Number* right);
+
+// Constructs a Value from a string. Uses the terumi allocator.
+struct Value* value_from_string(char* string);
+// Constructs a Value from a boolean. Reuses a global Value*. Do not mark as
+// inactive.
+struct Value* value_from_boolean(bool state);
+// Constructs a Value from an Object. Uses the terumi allocator.
+struct Value* value_from_object(struct Object* object);
+// Constructs a Value from a Number. Uses the terumi allocator.
+struct Value* value_from_number(struct Number* number);
+
+// Constructs a new List with an initial capacity.
+struct List* list_new(size_t initial_capacity);
+// Appends an item to a given list, and resizes if necessary.
+int list_add(struct List* list, void* item);
+
+#pragma region VoidPtrArray
+struct VoidPtrArray* voidptrarray_new(size_t capacity) {
+	TRACE("voidptrarray_new");
+	struct VoidPtrArray* array = malloc(sizeof(struct VoidPtrArray));
+	void** data = malloc(sizeof(void*) * capacity);
+	array->data = data;
+#ifdef DEBUG
+	array->length = capacity;
+#endif
+	TRACE_EXIT("voidptrarray_new");
+	return array;
 }
 
-// adds an element to a list
-int add_item(struct List* list, void* item) {
-	DEBUG_PRINT("add_item");
-	NULL_CHECK(list, "list");
-	NULL_CHECK(item, "item");
+void voidptrarray_regrow(struct VoidPtrArray* data, size_t new_size, size_t old_size) {
+	TRACE("voidptrarray_regrow");
+	if (data->data == NULL) {
+		printf("data NULL");
+	}
 
+	// TODO: use realloc
+	void** new = malloc(sizeof(void*) * new_size);
+	// memcpy doesn't seem to work...?
+	for (int i = 0; i < old_size; i++) {
+		new[i] = data->data[i];
+	}
+	free(data->data);
+	data->data = new;
+#ifdef DEBUG
+	data->length = new_size;
+#endif
+
+	TRACE_EXIT("voidptrarray_regrow");
+}
+
+void* voidptrarray_at(struct VoidPtrArray* data, int index) {
+	TRACE("voidptrarray_at");
+#ifdef DEBUG
+	if (index >= data->length) {
+		printf("[WARN] OUT OF BOUNDS ACCESS ON VOID POINTER ARRAY: accesing '%i' of length '%i'\n", index, data->length);
+	}
+#endif
+	void* voidptr = data->data[index];
+	TRACE_EXIT("voidptrarray_at");
+	return voidptr;
+}
+
+void voidptrarray_set(struct VoidPtrArray* data, int index, void* value) {
+	TRACE("voidptrarray_set");
+#ifdef DEBUG
+	if (index >= data->length) {
+		printf("[WARN] OUT OF BOUNDS ACCESS ON VOID POINTER ARRAY: accesing '%i' of length '%i'\n", index, data->length);
+	}
+#endif
+	data->data[index] = value;
+	TRACE_EXIT("voidptrarray_set");
+}
+#pragma endregion
+
+#pragma region GC
+void ensure_gc_init() {
+	TRACE("ensure_gc_init");
+	if (!gc_init) {
+		gc.list = *list_new(102400);
+		gc.threshold = 102400;
+		gc_init = true;
+	}
+	TRACE_EXIT("ensure_gc_init");
+}
+
+int maybe_run_gc() {
+	TRACE("maybe_run_gc");
+	ensure_gc_init();
+	int result = should_run_gc() ? run_gc() : -1;
+
+	// GC NOTICE:
+	// if we remove more than 60% of the objects, we will downsize our threshold by half
+	// if we don't remove     ^^^ of the objects, we will increase our threshold by 2x
+
+	float percent_60 = (float)result / (float)gc.threshold;
+
+	if (percent_60 > 0.60) {
+		// gc.threshold /= 2;
+	}
+	else {
+		// gc.threshold *= 2;
+	}
+
+	TRACE_EXIT("maybe_run_gc");
+	return result;
+}
+
+void cleanup_value(struct Value* value) {
+	// TODO: figure out best wayt to clear each one
+	switch (value->type) {
+	case STRING: {
+		// free(value->data);
+	} break;
+	case NUMBER: {
+
+	} break;
+	}
+}
+
+bool should_run_gc() {
+	TRACE("should_run_gc");
+	ensure_gc_init();
+	bool should = gc.list.elements >= gc.threshold;
+	TRACE_EXIT("should_run_gc");
+	return should;
+}
+
+bool mark_referenced(bool* referenced) {
+	TRACE("mark_referenced");
+	bool modified = false;
+
+	for (int i = 0; i < gc.list.elements; i++) {
+		struct GCEntry* gcentry = voidptrarray_at(&gc.list.array, i);
+
+		// active items are referenced in a method
+		if (gcentry->active
+			// that aren't already marked
+			&& !referenced[i]) {
+
+			referenced[i] = true;
+			modified = true;
+		}
+
+		// if it's not referenced, we don't want to mark anything it references
+		// as referenceable.
+		if (!referenced[i]) continue;
+
+		// has to be an object so we can mark stuff as referenceable
+		struct Value* value = gcentry->value;
+		if (value->type != OBJECT) continue;
+
+		struct Object* object = value->data;
+
+		// mark each object the referenced object references as referenced.
+		for (int j = 0; j < GC_OBJECT_FIELDS; j++) {
+
+			int index = object->fields[j].object_index;
+
+			if (!referenced[index]) {
+				modified = true;
+				referenced[index] = true;
+			}
+		}
+	}
+
+	TRACE_EXIT("mark_referenced");
+	return modified;
+}
+
+void swap_gc(int from, int to) {
+	TRACE("swap_gc");
+	for (int i = 0; i < gc.list.elements; i++) {
+		struct GCEntry* datai = voidptrarray_at(&gc.list.array, i);
+		if (!datai->alive) continue;
+		if (datai->value->type != OBJECT) continue;
+
+		struct Object* obj = datai->value->data;
+		for (int j = 0; j < GC_OBJECT_FIELDS; j++) {
+			if (obj->fields[j].object_index == from) {
+				obj->fields[j].object_index = to;
+			}
+		}
+	}
+	TRACE_EXIT("swap_gc");
+}
+
+void compact_gc() {
+	TRACE("compact_gc");
+	int begin = 0;
+	int end = gc.list.elements - 1;
+	int last_end = gc.list.elements + 1;
+
+	// to compact the GC, we'll swap alive items from the back to dead spaces
+	// in the front.
+	while (true) {
+
+		// find a dead item in the front
+		for (; begin < gc.list.elements; begin++) {
+			struct GCEntry* entry = voidptrarray_at(&gc.list.array, begin);
+
+			if (!(entry->alive)) {
+				break;
+			}
+		}
+
+		// find an alive item from the back
+		for (; end >= 0; end--) {
+			struct GCEntry* entry = voidptrarray_at(&gc.list.array, end);
+
+			if (entry->alive) {
+				break;
+			}
+		}
+
+		if (end == -1) {
+			// there isn't a single alive item
+			break;
+		}
+
+		// if the begin is in front of the end, don't swap
+		if (begin >= end) break;
+
+		swap_gc(end, begin);
+		last_end = end;
+	}
+
+	if (end != -1 && begin >= end) {
+		TRACE_EXIT("compact_gc");
+		return;
+	}
+
+	// free all dead elements and resize list
+	// if there were no alive elements, free the entire list
+	if (end == -1) last_end = 0;
+
+	for (int i = last_end; i < gc.list.elements; i++) {
+		struct GCEntry* entry = voidptrarray_at(&gc.list.array, i);
+		terumi_free_warn(entry);
+	}
+	gc.list.elements = last_end;
+
+	TRACE_EXIT("compact_gc");
+}
+
+int run_gc() {
+	TRACE("run_gc");
+	ensure_gc_init();
+	// MARK
+	bool* referenced = terumi_alloc(sizeof(bool) * gc.list.elements);
+	memset(referenced, false, sizeof(bool) * gc.list.elements);
+
+	// this will mark all objects referenced by an alive object as alive.
+	while (mark_referenced(referenced)) {
+	}
+
+	// SWEEP
+	int cleaned = 0;
+	for (int i = 0; i < gc.list.elements; i++) {
+		if (!referenced[i]) {
+			struct GCEntry* entry = voidptrarray_at(&gc.list.array, i);
+
+			if (entry->alive) {
+				cleaned++;
+				entry->active = false;
+				entry->alive = false;
+				cleanup_value(entry->value);
+				terumi_free_warn(entry->value);
+			}
+		}
+	}
+
+	if (cleaned > 0) {
+		compact_gc();
+	}
+
+	terumi_free_warn(referenced);
+	TRACE_EXIT("run_gc");
+	return cleaned;
+}
+
+struct GCEntry* gc_handhold(struct Value* value) {
+	TRACE("gc_handhold");
+	ensure_gc_init();
+
+	struct GCEntry* entry = terumi_alloc(sizeof(struct GCEntry));
+	entry->alive = true;
+	entry->active = true;
+	entry->value = value;
+	list_add(&gc.list, entry);
+	TRACE_EXIT("gc_handhold");
+	return entry;
+}
+#pragma endregion
+
+#pragma region List
+int list_add(struct List* list, void* item) {
+	TRACE("list_add");
 	// if the list has reached maximum capacity
 	if (list->elements >= list->capacity) {
 
 		// double the capacity
-		int new_capacity = list->capacity * LIST_GROW_MULTIPLIER;
-
-		// create a new array of void*
-		void** new_memory = (void**)malloc(sizeof(void*) * new_capacity);
-
-		// copy the old data to the new memory
-		if (!memcpy(new_memory, list->data, sizeof(void*) * list->elements)) {
-			printf("Unable to memcpy");
-			return -1;
-		}
-
-		// we're no longer using this data
-		free(list->data);
-
-		list->data = new_memory;
+		size_t new_capacity = list->capacity * LIST_GROW_MULTIPLIER;
+		voidptrarray_regrow(&list->array, new_capacity, list->capacity);
 		list->capacity = new_capacity;
 	}
 
 	// insert the item into the array
 	int index = list->elements++;
-	list->data[index] = item;
-
+	voidptrarray_set(&list->array, index, item);
+	TRACE_EXIT("list_add");
 	return index;
 }
 
-/* Represents the value for a variable */
-struct Value {
-	int type;
-	void* data;
-};
-
-struct Value* malloc_value() {
-	DEBUG_PRINT("malloc_value");
-	struct Value* value = malloc(sizeof(struct Value));
-	value->type = 0;
-	return value;
+// the memory paging isn't setup and needs a list
+// so it calls the malloc version
+struct List* list_new(size_t initial_capacity) {
+	TRACE("list_new_malloc");
+	struct List* list = malloc(sizeof(struct List));
+	list->capacity = initial_capacity;
+	list->elements = 0;
+	list->array = *voidptrarray_new(initial_capacity);
+	TRACE_EXIT("list_new_malloc");
+	return list;
 }
+#pragma endregion
 
-struct Value* malloc_values(int amount) {
-	DEBUG_PRINT("malloc_values");
-	struct Value* values = malloc(sizeof(struct Value) * amount);
+#pragma region Memory
+/* Memory Paging */
+// memory paging creates pages of memory and allocates and deallocates from the
+// pages, instead of individual malloc calls. That way, fewer mallocs are
+// performed.
+size_t terumi_resize_page_size(size_t initial, size_t target) {
+	TRACE("terumi_resize_page_size");
+	size_t size = initial;
 
-	for (int i = 0; i < amount; i++) {
-		values[i].type = 0;
+	while (size < target) {
+		size *= 2;
 	}
 
-	return values;
+	TRACE_EXIT("terumi_resize_page_size");
+	return size;
 }
 
-struct Value* new_value_boolean(int boolean) {
-	DEBUG_PRINT("new_value_boolean");
-	struct Value* value = malloc_value();
-	value->type = TYPE_BOOLEAN;
+// News up a page - used and rented are left uninitialized for the caller to
+// set.
+struct MemoryPage* terumi_new_page(size_t page_size) {
+	TRACE("terumi_new_page");
+	void* data = malloc(page_size);
+	struct MemoryPage* page = malloc(sizeof(struct MemoryPage));
+	page->size = page_size;
+	page->data = data;
+	// page->used = 0;
+	// page->rented = 0;
+	list_add(&memory.memory_pages, page);
+	TRACE_EXIT("terumi_new_page");
+	return page;
+}
 
-	if (boolean) {
-		value->data = bool_true;
-	} else {
-		value->data = bool_false;
+void* terumi_alloc(size_t data) {
+	TRACE("terumi_alloc");
+	if (!memory_init) {
+		memory.memory_pages = *list_new(4);
+		memory.page_size = DEFAULT_MEMORY_PAGE_SIZE;
+		memory_init = true;
 	}
 
-	return value;
-}
+	if (memory.page_size < data) {
+		// if the data is bigger than a page, we are guarenteed to not have any
+		// pages open. resize the page, then allocate a new page.
 
-struct Value* new_value_int(int integer) {
-	DEBUG_PRINT("new_value_int");
-	int* intptr = malloc(sizeof(int));
-	*intptr = integer;
+		memory.page_size = terumi_resize_page_size(memory.page_size, data);
+		struct MemoryPage* page = terumi_new_page(memory.page_size);
 
-	struct Value* value = malloc_value();
-	value->type = TYPE_NUMBER;
-	value->data = intptr;
-	return value;
-}
-
-struct Value* new_value_string_ptr(char* str) {
-	DEBUG_PRINT("new_value_string");
-	NULL_CHECK(str, "str");
-
-	struct Value* value = malloc_value();
-	value->type = TYPE_STRING;
-	value->data = str;
-	return value;
-}
-
-struct Value* new_value_string(const char* str) {
-	DEBUG_PRINT("new_value_string");
-	NULL_CHECK(str, "str");
-	
-	// strdup re-implementation
-	int len = strlen(str);
-	char* new_str = malloc(sizeof(char) * (len + 1));
-	strcpy(new_str, str);
-
-	return new_value_string_ptr(new_str);
-}
-
-/* GC */
-struct GCObject {
-	struct Value* fields;
-};
-
-struct GCObjectEntry {
-	struct GCObject* data;
-	int alive;
-};
-
-/*
-the way the GC works in simple and alright for small projects.
-we have a list of objects, and when we need to run the GC we figure out
-which objects are still referenced
-*/
-
-struct List gc;
-
-struct GCObject* to_gc_object(struct Value* value) {
-	DEBUG_PRINT("to_gc_object");
-	NULL_CHECK(value, "value");
-	int position = *(int*)(value->data);
-	struct GCObjectEntry* entry = gc.data[position];
-	return entry->data;
-}
-
-/*
-for when to run the GC,
-we run it whenever the list capacity is higher than the last time it was high (gc_threshold).
-^ in the new_value_object and free_value (case TYPE_OBJECT) functions
-
-if the GC isn't under the threshold, we run it
-if we don't collect more than 1% of the threshold, we increase the threshold by 2 fold.
-if we collect more than 60% of the threshold, we decrease the threshold by 2 fold.
-*/
-
-// default threshold value
-int gc_threshold = 1000000;
-
-int should_run_gc() {
-	DEBUG_PRINT("should_run_gc");
-	if (gc.elements > gc_threshold) {
-		return TRUE;
+		page->rented = 1;
+		page->used = data;
+		void* page_data = page->data;
+		TRACE_EXIT("terumi_alloc");
+		return page_data;
 	}
 
-	return FALSE;
-}
+	// look through all available pages, and see if there's enough to rent for
+	// the caller
+	for (int i = 0; i < memory.memory_pages.elements; i++) {
+		struct MemoryPage* page = voidptrarray_at(&memory.memory_pages.array, i);
 
-void calc_threshold(int cleared) {
-	DEBUG_PRINT("calc_threshold");
-	int increase_threshold_percent = gc_threshold / 100;
-	int downsize_threshold_percent = (float)gc_threshold / (float)(60.0 / 100.0);
-
-	if (cleared < increase_threshold_percent) {
-		// we didn't clear more than 1% of the threshold
-		gc_threshold *= 2;
-	}
-
-	if (cleared >= downsize_threshold_percent) {
-		// decrease the threshold
-		gc_threshold /= 2;
-	}
-}
-
-int recursive_run_gc(int* references) {
-	DEBUG_PRINT("recursive_run_gc");
-	NULL_CHECK(references, "references");
-	// simple mark & sweep GC
-	// this doesn't free cyclic references so it's best to avoid them
-	memset(references, 0, sizeof(int) * gc.elements);
-
-	// for each object,
-	for (int i = 0; i < gc.elements; i++) {
-		struct GCObjectEntry* gcobject_entry = gc.data[i];
-
-		if (!(gcobject_entry->alive)) {
-			continue;
+		if (page->rented == 0) {
+			// if this is an empty page, we can allocate here.
+			page->used = data;
+			page->rented = 1;
+			void* page_data = page->data;
+			TRACE_EXIT("terumi_alloc");
+			return page_data;
 		}
 
-		struct GCObject* gcobj = gcobject_entry->data;
+		if (data + page->used < page->size) {
+			// there's enough space in this page to allocate here
+			void* voidptr = page->data + page->used;
+			page->used += data;
+			page->rented++;
+			TRACE_EXIT("terumi_alloc");
+			return voidptr;
+		}
+	}
 
-		// we find each object it references, and mark it as referenced
-		// when something has no references it is completely unreferenced by anything
-		for (int j = 0; j < GC_OBJECT_FIELDS; j++) {
-			struct Value* value = gcobj->fields + j;
+	// there are no pages big enough for the caller. we'll make a new page.
+	for (int i = 0; i < memory.memory_pages.elements; i++) {
+		struct MemoryPage* page = voidptrarray_at(&memory.memory_pages.array, i);
+	}
 
-			if (value->type < 0
-				|| value->type > TYPE_OBJECT) {
+	struct MemoryPage* page = terumi_new_page(memory.page_size);
+	page->used = data;
+	page->rented = 1;
+	void* page_data = page->data;
+	TRACE_EXIT("terumi_alloc");
+	return page_data;
+}
+
+bool terumi_free(void* data) {
+	TRACE("terumi_free");
+	if (!memory_init) {
+		printf("[PANIC] attempted to free data and memory isn't initialized.\n");
+		TRACE_EXIT("terumi_free");
+		return false;
+	}
+
+	// first, let's find the page the pointer is in
+	for (int i = 0; i < memory.memory_pages.elements; i++) {
+		struct MemoryPage* page = voidptrarray_at(&memory.memory_pages.array, i);
+
+		// if the pointer is within the block of memory
+		if ((data >= page->data) && (data < (page->data + page->size))) {
+
+			// there's one less renter.
+			page->rented--;
 #ifdef DEBUG
-				printf("[DBG] data.type is fudging wacky dude, for gc obj %i in field %i\n", i, j);
+			if (page->rented < 0) {
+				printf("[WARN] page->rented < 0");
+			}
 #endif
-			}
-
-			if (value->type == TYPE_OBJECT) {
-				// and add it to the references list
-				references[*(int*)(value->data)]++;
-			}
+			TRACE_EXIT("terumi_free");
+			return true;
 		}
 	}
 
-	// sweep time
-	int cleared = 0;
-
-	// we want to free every object not referenced
-	for (int i = 0; i < gc.elements; i++) {
-		struct GCObjectEntry* gcobject_entry = gc.data[i];
-		if (references[i] == 0 && gcobject_entry->alive) {
-			// mark it as dead and free the data
-			gcobject_entry->alive = FALSE;
-			free(gcobject_entry->data);
-
-			cleared++;
-		}
-	}
-
-	// we want to recursively clean up the GC, to get all the objects
-	if (cleared > 0) {
-		return cleared + recursive_run_gc(references);
-	}
-
-	return cleared;
+	TRACE_EXIT("terumi_free");
+	return false;
 }
 
-int run_gc() {
-	DEBUG_PRINT("run_gc");
-	int* references = malloc(sizeof(int) * gc.elements);
-	int cleared = recursive_run_gc(references);
-	free(references);
-
-	// if we didn't clear anything, we don't want to compact the list
-	if (cleared == 0) {
-		return 0;
+void terumi_free_warn(void* x) {
+	TRACE("terumi_free_warn");
+	if (!terumi_free(x)) {
+		//printf("[WARN] Unable to free data at '%i'\n", (int)x);
 	}
-
-	// now we're going to compact the GC list
-	// the algorithm to be employed is simple:
-	// from the beginning, find a dead item
-	// from the end, find an alive item
-	// swap, and continue until they meet in the middle
-
-	int begin = 0;
-	int end = gc.elements - 1;
-
-	while (begin < end) {
-
-		// find a dead item
-		while (begin < gc.capacity) {
-			struct GCObjectEntry* entry = gc.data[begin];
-
-			if (!(entry->alive)) {
-				break;
-			}
-
-			begin++;
-		}
-
-		// early exit
-		// if begin == end, swapping is useless
-		// if begin > end, then we probably couldn't find anything else to compact
-		if (begin >= end) {
-			break;
-		}
-
-		// find an alive item from the end
-		while (end >= 0) {
-			struct GCObjectEntry* entry = gc.data[end];
-
-			if (entry->alive) {
-				break;
-			}
-
-			end--;
-		}
-
-		// early exit
-		if (begin <= end) {
-			break;
-		}
-
-		// swap
-		struct GCObjectEntry* begin_entry = gc.data[begin]; // dead one
-		struct GCObjectEntry* end_entry = gc.data[end]; // alive one
-
-		begin_entry->alive = TRUE;
-		end_entry->alive = FALSE;
-
-		// we don't need to worry aobut freeing begin_entry
-		// since that's already done in the recursive_run_gc part
-		begin_entry->data = end_entry->data;
-	}
-
-	// now we've completely compacted the list
-	// let's find out how many entries are alive
-	int i = 0;
-	while (((struct GCObjectEntry*)(gc.data[i]))->alive) {
-		i++;
-	}
-
-	// i is on a dead item
-	// we want the last alive item
-	int new_length = i - 1
-
-	// but we actually want the length
-		+ 1;
-
-	gc.elements = new_length;
-
-	int leftover_capacity = gc.capacity - new_length;
-
-	// it's good to leave some free space for future objects to use
-	// but if we have too much capacity, it could give us a bad time
-	// thus, if we're only using 10 objects but we have 1000 objects of free space,
-	// we want to reclaim enough so that it's 10 objects -> 20 free
-
-	// 10 * 100 >= 1000
-	if (gc.elements * 100 >= gc.capacity) {
-		// 10 * 2 = 20
-		struct List* new_gc = new_list(gc.elements * 2);
-		memcpy(new_gc->data, gc.data, gc.elements * sizeof(struct GCObjectEntry*));
-
-		for (int i = gc.elements; i < gc.capacity; i++) {
-			free(gc.data[i]);
-		}
-
-		free(gc.data);
-		gc.data = new_gc->data;
-	}
-
-	return cleared;
+	TRACE_EXIT("terumi_free_warn");
 }
+#pragma endregion
 
-void maybe_run_gc() {
-	DEBUG_PRINT("maybe_run_gc");
-	if (should_run_gc()) {
-		calc_threshold(run_gc());
-	}
-}
-
-struct Value* new_object() {
-	DEBUG_PRINT("new_object");
-
-	struct GCObject* gcobject = malloc(sizeof(struct GCObject));
-	gcobject->fields = malloc_values(GC_OBJECT_FIELDS);
-	
-	struct GCObjectEntry* entry = malloc(sizeof(struct GCObjectEntry));
-	entry->alive = TRUE;
-	entry->data = gcobject;
-
-	int gc_index = add_item(&gc, entry);
-	struct Value* value = new_value_int(gc_index);
-	value->type = TYPE_OBJECT;
-
-	maybe_run_gc();
+#pragma region Value
+struct Value* value_from_string(char* string) {
+	TRACE("value_from_string");
+	struct Value* value = terumi_alloc(sizeof(struct Value));
+	value->type = STRING;
+	value->data = string;
+	TRACE_EXIT("value_from_string");
 	return value;
 }
+#pragma endregion
 
-void delete_value(struct Value* data) {
-	DEBUG_PRINT("delete_value");
-	NULL_CHECK(data, "data");
-	int type = data->type;
-
-	switch (type) {
-
-		case TYPE_BOOLEAN: {
-			// don't free the value (we use bool_true and bool_false)
-			free(data);
-		}
-		break;
-
-		case TYPE_STRING:
-		case TYPE_NUMBER: {
-			free(data->data);
-			free(data);
-		}
-		break;
-
-		case TYPE_OBJECT: {
-			// we're not using the value anymore so we can free it
-			// we just can't free the gcobject if it still has references
-			free(to_gc_object(data));
-			free(data);
-			maybe_run_gc();
-		}
-		break;
-
-		// case '0' is allocated using malloc_value which is fine
-		case 0: {
-			free(data);
-		}
-
-		default: {
-			printf("WARNING: unknown value type %i\n", type);
-			free(data);
-		}
-	}
-
-}
-
-int free_value(struct Value* data) {
-	DEBUG_PRINT("free_value");
-	NULL_CHECK(data, "data");
-	int type = data->type;
-
-	switch (type) {
-
-		case TYPE_BOOLEAN: {
-			// don't free the value (we use bool_true and bool_false)
-		}
-		break;
-
-		case TYPE_STRING:
-		case TYPE_NUMBER: {
-			// free the data at the value
-			free(data->data);
-		}
-		break;
-
-		case TYPE_OBJECT: {
-			// we're not using the value anymore so we can free it
-			// we just can't free the gcobject if it still has references
-			free(data);
-			maybe_run_gc();
-		}
-		break;
-
-		// case '0' is allocated using malloc_value which is fine
-		case 0: {
-			return TRUE;
-		}
-
-		default: {
-			printf("WARNING: unknown value type %i\n", type);
-			return FALSE;
-		}
-	}
-
-	// we leave the caller to free the actual value
-	// free(data);
-	return TRUE;
-}
-
-int assign_gc_object(struct Value* dst, struct Value* src) {
-	DEBUG_PRINT("assign_gc_object");
-	NULL_CHECK(dst, "dst");
-	NULL_CHECK(src, "src");
-	if (src->type != TYPE_OBJECT) {
-		printf("cannot assign gc object - source isn't a TYPE_OBJECT\n");
-		return FALSE;
-	}
-
-	int* gcobject = src->data;
-
-	dst->type = TYPE_OBJECT;
-	dst->data = gcobject;
-	return TRUE;
-}
-
-/* terumi instructions */
-
-struct Value* load_string(const char* value) {
-	return new_value_string(value);
-}
-
-struct Value* load_string_ptr(char* value) {
-	return new_value_string_ptr(value);
-}
-
-struct Value* load_number(int number) {
-	return new_value_int(number);
-}
-
-struct Value* load_boolean(int boolean) {
-	return new_value_boolean(boolean);
-}
-
-struct Value* load_parameter(struct Value* parameters, int index) {
-	return &(parameters[index]);
-}
-
-void assign(struct Value* src, struct Value* target) {
-	// TODO: figure out when to free the data
-
-	// just malloc'd
-	if (target->type == 0) {
-		target->type = src->type;
-		target->data = src->data;
-		return;
-	}
-
-	if (target->type == src->type) {
-		if (target->type == TYPE_OBJECT) {
-			assign_gc_object(target, src);
-			return;
-		}
-
-		target->data = src->data;
-		return;
-	}
-
-	if (target->type != src->type) {
-		// have to do type conversions
-		if (target->type == TYPE_STRING) {
-			if (src->type == TYPE_NUMBER) {
-				char* buffer = malloc(sizeof(char) * 12);
-				snprintf(buffer, 12, "%d", *(int*)(src->data));
-				target->data = buffer;
-				return;
-			}
-
-			if (src->type == TYPE_BOOLEAN) {
-				char* buffer;
-
-				if (*(int*)(src->data)) {
-					buffer = "true";
-				} else {
-					buffer = "false";
-				}
-
-				target->data = buffer;
-				return;
-			}
-
-			if (src->type == TYPE_OBJECT) {
-				printf("[PANIC] cannot assign a '%s' to a '%s'\n", GET_TYPE(src->type), GET_TYPE(target->type));
-				return;
-			}
-		}
-
-		if (target->type == TYPE_NUMBER) {
-			if (src->type == TYPE_STRING) {
-				int* data = malloc(sizeof(int));
-				*data = atoi(src->data);
-				target->data = data;
-				return;
-			}
-
-			if (src->type == TYPE_BOOLEAN) {
-				// booleans are just ints in C
-				target->data = src->data;
-				return;
-			}
-
-			if (src->type == TYPE_OBJECT) {
-				printf("[PANIC] cannot assign a '%s' to a '%s'\n", GET_TYPE(src->type), GET_TYPE(target->type));
-				return;
-			}
-		}
-
-		if (target->type == TYPE_BOOLEAN) {
-			if (src->type == TYPE_STRING
-				|| src->type == TYPE_OBJECT) {
-				printf("[PANIC] cannot assign a '%s' to a '%s'\n", GET_TYPE(src->type), GET_TYPE(target->type));
-				return;
-			}
-
-			// only number is possibly left
-			// booleans are ints
-			target->data = src->data;
-			return;
-		}
-
-		if (target->type == TYPE_OBJECT) {
-			printf("[PANIC] cannot assign a '%s' to a '%s'\n", GET_TYPE(src->type), GET_TYPE(target->type));
-			return;
-		}
-
-		printf("[PANIC] unknown object conversion from '%s' to '%s'\n", GET_TYPE(src->type), GET_TYPE(target->type));
-		return;
-	}
-}
-
-void set_helper(struct GCObject* gcobj, int fieldId, struct Value* data) {
-	gcobj->fields[fieldId] = *data;
-}
-
-void set_field(struct Value* obj, int fieldId, struct Value* data) {
-	if (obj->type != TYPE_OBJECT) {
-		printf("[PANIC] cannot set object field on non object '%s'\n", GET_TYPE(obj->type));
-		return;
-	}
-
-	struct GCObject* gcobj = to_gc_object(obj);
-	set_helper(gcobj, fieldId, data);
-}
-
-struct Value* get_field(struct Value* obj, int fieldId) {
-	if (obj->type != TYPE_OBJECT) {
-		printf("[PANIC] cannot get field of non object '%s'\n", GET_TYPE(obj->type));
-		return 0;
-	}
-
-	struct GCObject* gcobj = to_gc_object(obj);
-	return gcobj->fields + fieldId;
-}
-
-struct Value* new() {
-	return new_object();
-}
-
-int do_comparison(struct Value* boolean) {
-	if (boolean->type != TYPE_BOOLEAN) {
-		printf("[PANIC] cannot do comparison with non boolean '%s'\n", GET_TYPE(boolean->type));
-
-		// if the object is a number, we'll let it slide (secretly)
-		if (boolean->type == TYPE_NUMBER) {
-			return *(int*)(boolean->data);
-		}
-
-		return FALSE;
-	}
-
-	return *(int*)(boolean->data);
-}
-
-// compiler commands
-
-struct Value* cc_target_name() {
-	return load_string("c");
-}
-
-struct Value* cc_panic(struct Value* message) {
-	if (message->type != TYPE_STRING) {
-		printf("[PANIC] cannot 'panic' on non string '%s'\n", GET_TYPE(message->type));
-		return load_boolean(FALSE);
-	}
-
-	printf("[PANIC] %s\n", (char*)(message->data));
-	return load_boolean(FALSE);
-}
-
-void cc_command(struct Value* command) {
-	if (command->type != TYPE_STRING) {
-		printf("[PANIC] cannot 'command' on non string '%s'\n", GET_TYPE(command->type));
-		return;
-	}
-
-	system((char*)(command->data));
-}
-
-struct Value* cc_is_supported(struct Value* item) {
-	if (item->type != TYPE_STRING) {
-		printf("[PANIC] cannot 'is_supported' on non string '%s'\n", GET_TYPE(item->type));
-		return load_boolean(FALSE);
-	}
-
-	char* value = (char*)(item->data);
-	// TODO: check what's supported
-	return load_boolean(TRUE);
-}
-
-void cc_println(struct Value* message) {
-	if (message->type != TYPE_STRING) {
-		printf("[PANIC] cannot 'println' on non string '%s'\n", GET_TYPE(message->type));
-		return;
-	}
-
-	printf("%s\n", (char*)(message->data));
-}
-
-struct Value* cc_operator_and(struct Value* a, struct Value* b) {
-	if (a->type != TYPE_BOOLEAN
-		|| b->type != TYPE_BOOLEAN) {
-		printf("[PANIC] cannot 'operator_and' on non booleans '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
-		return load_boolean(FALSE);
-	}
-
-	int bool_a = a->data == bool_true;
-	int bool_b = b->data == bool_true;
-
-	return load_boolean(bool_a && bool_b);
-}
-
-struct Value* cc_operator_or(struct Value* a, struct Value* b) {
-	if (a->type != TYPE_BOOLEAN
-		|| b->type != TYPE_BOOLEAN) {
-		printf("[PANIC] cannot 'operator_or' on non booleans '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
-		return load_boolean(FALSE);
-	}
-
-	int bool_a = a->data == bool_true;
-	int bool_b = b->data == bool_true;
-
-	return load_boolean(bool_a || bool_b);
-}
-
-struct Value* cc_operator_not(struct Value* a) {
-	if (a->type != TYPE_BOOLEAN) {
-		printf("[PANIC] cannot 'operator_not' on non boolean '%s'\n", GET_TYPE(a->type));
-		return load_boolean(FALSE);
-	}
-
-	int bool_a = a->data == bool_true;
-
-	return load_boolean(!bool_a);
-}
-
-struct Value* cc_operator_equal_to(struct Value* a, struct Value* b) {
-	if (a->type != b->type) {
-		printf("[PANIC] cannot 'operator_equal_to' on variables of dissimilar types '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
-		return load_boolean(FALSE);
-	}
-
-	if (a->type == TYPE_STRING) {
-		return load_boolean(strcmp(a->data, b->data) == 0);
-	}
-
-	if (a->type == TYPE_NUMBER
-		|| a->type == TYPE_BOOLEAN) {
-		return load_boolean(*(int*)(a->data) == *(int*)(b->data));
-	}
-
-	if (a->type == TYPE_OBJECT) {
-		struct GCObject* left = to_gc_object(a);
-		struct GCObject* right = to_gc_object(b);
-
-		// reference equality only
-		return load_boolean(left == right);
-	}
-
-	printf("[PANIC] cannot 'operator_equal_to' on variable types '%s'\n", GET_TYPE(a->type));
-	return load_boolean(FALSE);
-}
-
-struct Value* cc_operator_not_equal_to(struct Value* a, struct Value* b) {
-	return cc_operator_not(cc_operator_equal_to(a, b));
-}
-
-struct Value* cc_operator_less_than(struct Value* a, struct Value* b) {
-	if (a->type != b->type) {
-		printf("[PANIC] cannot 'operator_less_than' on variables of dissimilar types '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
-		return load_boolean(FALSE);
-	}
-
-	if (a->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot compare types of not type '%s'\n", GET_TYPE(a->type));
-		return load_boolean(FALSE);
-	}
-
-	return load_boolean(*(int*)a->data < *(int*)b->data);
-}
-
-struct Value* cc_operator_greater_than(struct Value* a, struct Value* b) {
-	if (a->type != b->type) {
-		printf("[PANIC] cannot 'operator_greater_than' on variables of dissimilar types '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
-		return load_boolean(FALSE);
-	}
-
-	if (a->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot compare types of not type '%s'\n", GET_TYPE(a->type));
-		return load_boolean(FALSE);
-	}
-
-	return load_boolean(*(int*)a->data > * (int*)b->data);
-}
-
-struct Value* cc_operator_less_than_or_equal_to(struct Value* a, struct Value* b) {
-	if (a->type != b->type) {
-		printf("[PANIC] cannot 'operator_less_than_or_equal_to' on variables of dissimilar types '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
-		return load_boolean(FALSE);
-	}
-
-	if (a->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot compare types of not type '%s'\n", GET_TYPE(a->type));
-		return load_boolean(FALSE);
-	}
-
-	return load_boolean(*(int*)a->data <= *(int*)b->data);
-}
-
-struct Value* cc_operator_greater_than_or_equal_to(struct Value* a, struct Value* b) {
-	if (a->type != b->type) {
-		printf("[PANIC] cannot 'operator_greater_than_or_equal_to' on variables of dissimilar types '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
-		return load_boolean(FALSE);
-	}
-
-	if (a->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot compare types of not type '%s'\n", GET_TYPE(a->type));
-		return load_boolean(FALSE);
-	}
-
-	return load_boolean(*(int*)a->data >= *(int*)b->data);
-}
-
-struct Value* cc_operator_add(struct Value* a, struct Value* b) {
-	if (a->type == TYPE_NUMBER && b->type == TYPE_NUMBER) {
-		return load_number(*(int*)a->data + *(int*)b->data);
-	}
-
-	if (a->type == TYPE_STRING && b->type == TYPE_STRING) {
-		char* adata = (char*)(a->data);
-		char* bdata = (char*)(b->data);
-		int alen = strlen(adata);
-		int blen = strlen(bdata);
-
-		char* concat = malloc(sizeof(char) * (alen + blen + 1));
-		memcpy(concat, adata, alen);
-		memcpy(concat + alen, bdata, blen);
-		concat[alen + blen] = '\0';
-
-		return load_string(concat);
-	}
-
-	// if we're doing a number/string mix,
-	// convert the number to a string and re-call add
-	if (a->type == TYPE_NUMBER && b->type == TYPE_STRING) {
-		struct Value* converted = malloc_value();
-		converted->type = TYPE_STRING;
-		assign(a, converted);
-
-		return cc_operator_add(converted, b);
-	}
-
-	if (a->type == TYPE_STRING && b->type == TYPE_NUMBER) {
-		struct Value* converted = malloc_value();
-		converted->type = TYPE_STRING;
-		assign(b, converted);
-
-		return cc_operator_add(a, converted);
-	}
-
-	printf("[PANIC] cannot 'operator_add' types either not a '%s' or a '%s'. received '%s' and '%s'\n", GET_TYPE(TYPE_NUMBER), GET_TYPE(TYPE_STRING), GET_TYPE(a->type), GET_TYPE(b->type));
-	return load_boolean(FALSE);
-}
-
-struct Value* cc_operator_negate(struct Value* a) {
-	if (a->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot 'operator_negate' non number '%s'\n", GET_TYPE(a->type));
-		return a;
-	}
-
-	return load_number(*(int*)a->data * -1);
-}
-
-struct Value* cc_operator_subtract(struct Value* a, struct Value* b) {
-	if (a->type != TYPE_NUMBER || b->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot 'operator_subtract' non numbers '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
-		return a;
-	}
-
-	return load_number(*(int*)a->data - *(int*)b->data);
-}
-
-struct Value* cc_operator_multiply(struct Value* a, struct Value* b) {
-	if (a->type != TYPE_NUMBER || b->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot 'operator_multiply' non numbers '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
-		return a;
-	}
-
-	return load_number(*(int*)a->data * *(int*)b->data);
-}
-
-struct Value* cc_operator_divide(struct Value* a, struct Value* b) {
-	if (a->type != TYPE_NUMBER || b->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot 'operator_divide' non numbers '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
-		return a;
-	}
-
-	return load_number(*(int*)a->data / *(int*)b->data);
-}
-
-struct Value* cc_operator_exponent(struct Value* a, struct Value* b) {
-	if (a->type != TYPE_NUMBER || b->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot 'operator_exponent' non numbers '%s' and '%s'\n", GET_TYPE(a->type), GET_TYPE(b->type));
-		return a;
-	}
-
-	return load_number((int)pow(*(int*)a->data, *(int*)b->data));
-}
-
-// C specific operator names
-
-void cc_force_type(struct Value* a, struct Value* new_type) {
-	if (new_type->type != TYPE_NUMBER) {
-		printf("[PANIC] cannot 'force_type' a type with a non number, '%s'\n", GET_TYPE(new_type->type));
-		return;
-	}
-
-	a->type = *(int*)(new_type->data);
-}
-
+#pragma region TerumiCompilerMethods
 // <INJECT__CODE>
+#pragma endregion
 
 int main(int argc, char** argv) {
-	DEBUG_PRINT("main");
-	/* INIT */
-	gc = *new_list(gc_threshold);
+	TRACE("main");
 
-	// when we give Value a boolean, we want to reuse the same booleans
-	bool_true = malloc(sizeof(int));
-	bool_false = malloc(sizeof(int));
-	
-	*bool_false = FALSE;
-	*bool_true = TRUE;
+	for (int i = 0; i < 100000000; i++) {
+		struct GCEntry* entry = gc_handhold(value_from_string("ok boomer"));
+		entry->active = false;
+		maybe_run_gc();
+	}
 
-	// run code
-// <INJECT__RUN>
+	// <INJECT__RUN>
 
-	// end code
-	free(bool_true);
-	free(bool_false);
+	// politely kill gc
+	for (int i = 0; i < gc.list.elements; i++) {
+		struct GCEntry* entry = voidptrarray_at(&gc.list.array, i);
+		entry->active = false;
+	}
+
+	printf("Terumi cleanup: %i objects cleaned\n", run_gc());
+
+	// free all pages
+	for (int i = 0; i < memory.memory_pages.elements; i++) {
+		free(voidptrarray_at(&memory.memory_pages.array, i));
+	}
+
+	TRACE_EXIT("main");
 	return 0;
 }

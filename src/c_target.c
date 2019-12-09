@@ -3,6 +3,7 @@
 
 // explicit inclusion of 'size_t' and friends (imported by stdlib.h)
 #include <stddef.h>
+#include <stdint.h>
 
 // for 'printf'
 #include <stdio.h>
@@ -10,14 +11,16 @@
 // for 'strcmp', 'strlen', etc.
 #include <string.h>
 
-// only needed for calculating exponents. probably will re-implement pow()
-// just so Terumi can be compiled on linux
-#include <math.h>
-
 // booleans
 #include <stdbool.h>
 
 /*
+NOTICE: partial amounts of this code was written without using size_t & intx_t
+if you wish to contribute, changing 'int's to their appropriate type is good.
+- size_t: counts of something, length of something, or indexes
+- uint32_t: everything else
+- int32_t: when explicit negatives are needed (eg. Numbers)
+
 The // <INJECT__CODE> comment signals to the C target to begin translating all
 	of the user defined methods at that point.
 
@@ -26,6 +29,7 @@ The // <INJECT__RUN> comment signals to the C target to execute each viable
 */
 
 // use this crud only if you're tryna work on this, otherwise leave it
+// if a method doesn't have traces on it that's because 
 // #define DEBUG
 // #define DEBUG_TRACING
 #ifdef DEBUG_TRACING
@@ -58,6 +62,19 @@ void TRACE_EXIT(const char* place) {
 // defines how big a chunk of memory should be initially.
 #define DEFAULT_MEMORY_PAGE_SIZE 4000000
 
+// Ensure exit codes are all uniform.
+enum ExitCode {
+	SUCCESS = 0,
+
+	// The user's terumi code panics.
+	PANIC = 1,
+
+	// Typically used to refer to when a given operation is attempted to be
+	// performed on a given Value, but the types end up being incompatible.
+	// This is a result of a lack of strict enough type checking in the CTarget.
+	TOO_DYNAMIC = 2,
+};
+
 // Metadata for the type of an object in Terumi.
 enum ObjectType {
 
@@ -76,6 +93,17 @@ enum ObjectType {
 	// struct Object*
 	OBJECT = 4,
 };
+
+const char* objecttype_to_string(enum ObjectType type) {
+	switch (type) {
+		case UNKNOWN: return "UNKNOWN";
+		case STRING: return "STRING";
+		case NUMBER: return "NUMBER";
+		case BOOLEAN: return "BOOLEAN";
+		case OBJECT: return "OBJECT";
+		default: return "N/A";
+	}
+}
 
 // A 'Value' is used to represent a given value in Terumi. Because Terumi is a
 // dynamic language, 'Value' has a generic void* to data, with an 'ObjectType'
@@ -96,13 +124,24 @@ struct Value {
 	void* data;
 };
 
+// Caches multiple Values that are typically used everywhere. This currently
+// only caches the booleans TRUE, FALSE, and the numbers -1, 0, 1, and 2.
+struct ValueCache {
+	struct Value* bool_true;
+	struct Value* bool_false;
+	struct Value* number_neg1;
+	struct Value* number_0;
+	struct Value* number_1;
+	struct Value* number_2;
+};
+
 // A 'ValuePtr' is an index in the GC to a GCEntry, which contains a Value.
 // These are used instead of pointers to Value. The GC, on collection, will
 // update all 'Value's that are 'Object's with "old value pointers". These
 // are particularly useful to gain immediate access to the GCEntry of a value
 // in the GC.
 struct ValuePtr {
-	int object_index;
+	size_t object_index;
 };
 
 // An 'Object' is used to represent a series of fields, with values. This is
@@ -116,7 +155,7 @@ struct Object {
 // or more. 'Number' is used to encapsulate this. Never access 'data', instead,
 // use or create Number specific functions.
 struct Number {
-	int data;
+	int32_t data;
 };
 
 // Helper for void pointer arrays to prevent screwups.
@@ -140,7 +179,7 @@ struct List {
 
 	// The total amount of elements added. This number will constantly be
 	// reaching 'capacity', and a fter that, the list will resize.
-	int elements;
+	size_t elements;
 };
 
 // A GCEntry manages holding a given Value.
@@ -156,6 +195,9 @@ struct GCEntry {
 
 	// A pointer to the value this GCEntry holds.
 	struct Value* value;
+
+	// The index of this GCEntry in the GC. Useful for 'ValuePtr's.
+	size_t index;
 };
 
 // An instance of the GC. Maintains all GC-related data.
@@ -167,6 +209,9 @@ struct GC {
 	// The threshold of the GC, which is arbitrarily used to determine when to
 	// collect.
 	size_t threshold;
+
+	// A cache of commonly used values to prevent reallocation and GC pressure.
+	struct ValueCache cache;
 };
 
 // A large block of memory, which terumi_alloc and terumi_free use.
@@ -185,7 +230,7 @@ struct MemoryPage {
 	// appropriate memory block is found and the rented number is incremented.
 	// Once the user returns that block, the rented number is decremented, and
 	// if this block has no renters, 'used' will be reset upon the next alloc.
-	int rented;
+	uint32_t rented;
 };
 
 // An instance of Memory. Maintains all Memory-related data.
@@ -217,12 +262,12 @@ bool gc_init = false;
 // Ensures the GC is initialized.
 void ensure_gc_init();
 // Runs the GC. Returns the amount of objects collected.
-int run_gc();
+size_t run_gc();
 // Returns 'true' if the GC should be ran (some threshold was passed)
 bool should_run_gc();
 // Might run the GC. Returns -1 if it didn't, otherwise it returns the amount
 // of objects the GC collected.
-int maybe_run_gc();
+errno_t maybe_run_gc();
 // registers a Value* to be managed (aka, handheld) by the GC. The caller is
 // expected to set 'active' to 'false' on the returned GC entry once they are
 // no longer going to use the value. Values must be created with the value
@@ -235,29 +280,36 @@ struct VoidPtrArray* voidptrarray_new(size_t capacity);
 // mode for array bound checks.
 void voidptrarray_regrow(struct VoidPtrArray* data, size_t new_size, size_t old_size);
 // Gets an element at a given index of a struct VoidPtrArray*.
-void* voidptrarray_at(struct VoidPtrArray* array, int index);
+void* voidptrarray_at(struct VoidPtrArray* array, size_t index);
 // Sets an element at a given index of a struct VoidPtrArray*.
-void voidptrarray_set(struct VoidPtrArray* array, int index, void* value);
+void voidptrarray_set(struct VoidPtrArray* array, size_t index, void* value);
 
 // Constructs a number from an integer.
 struct Number* number_from_int(int integer);
-// Adds two numbers together.
 struct Number* number_add(struct Number* left, struct Number* right);
+struct Number* number_subtract(struct Number* left, struct Number* right);
+struct Number* number_multiply(struct Number* left, struct Number* right);
+struct Number* number_divide(struct Number* left, struct Number* right);
+struct Number* number_power(struct Number* base, struct Number* power);
 
+// Creates a value with an uninitialized pointer.
+struct Value* value_blank(enum ObjectType type);
 // Constructs a Value from a string. Uses the terumi allocator.
 struct Value* value_from_string(char* string);
 // Constructs a Value from a boolean. Reuses a global Value*. Do not mark as
 // inactive.
 struct Value* value_from_boolean(bool state);
+// Constructs a Value from a Number. Uses the terumi allocator. Do not free
+// the number after passing it in, that is for the Value* to manage. Do not
+// pass in Numbers not created with the number_from_x functions.
+struct Value* value_from_number(struct Number* number);
 // Constructs a Value from an Object. Uses the terumi allocator.
 struct Value* value_from_object(struct Object* object);
-// Constructs a Value from a Number. Uses the terumi allocator.
-struct Value* value_from_number(struct Number* number);
 
 // Constructs a new List with an initial capacity.
 struct List* list_new(size_t initial_capacity);
 // Appends an item to a given list, and resizes if necessary.
-int list_add(struct List* list, void* item);
+size_t list_add(struct List* list, void* item);
 
 #pragma region VoidPtrArray
 struct VoidPtrArray* voidptrarray_new(size_t capacity) {
@@ -293,11 +345,11 @@ void voidptrarray_regrow(struct VoidPtrArray* data, size_t new_size, size_t old_
 	TRACE_EXIT("voidptrarray_regrow");
 }
 
-void* voidptrarray_at(struct VoidPtrArray* data, int index) {
+void* voidptrarray_at(struct VoidPtrArray* data, size_t index) {
 	TRACE("voidptrarray_at");
 #ifdef DEBUG
 	if (index >= data->length) {
-		printf("[WARN] OUT OF BOUNDS ACCESS ON VOID POINTER ARRAY: accesing '%i' of length '%i'\n", index, data->length);
+		printf("[WARN] OUT OF BOUNDS ACCESS ON VOID POINTER ARRAY: accesing '%zu' of length '%zu'\n", index, data->length);
 	}
 #endif
 	void* voidptr = data->data[index];
@@ -305,11 +357,11 @@ void* voidptrarray_at(struct VoidPtrArray* data, int index) {
 	return voidptr;
 }
 
-void voidptrarray_set(struct VoidPtrArray* data, int index, void* value) {
+void voidptrarray_set(struct VoidPtrArray* data, size_t index, void* value) {
 	TRACE("voidptrarray_set");
 #ifdef DEBUG
 	if (index >= data->length) {
-		printf("[WARN] OUT OF BOUNDS ACCESS ON VOID POINTER ARRAY: accesing '%i' of length '%i'\n", index, data->length);
+		printf("[WARN] OUT OF BOUNDS ACCESS ON VOID POINTER ARRAY: accesing '%zu' of length '%zu'\n", index, data->length);
 	}
 #endif
 	data->data[index] = value;
@@ -323,15 +375,55 @@ void ensure_gc_init() {
 	if (!gc_init) {
 		gc.list = *list_new(102400);
 		gc.threshold = 102400;
+
+		struct Value* bool_true = value_blank(BOOLEAN);
+		bool* ptrtrue = terumi_alloc(sizeof(bool));
+		*ptrtrue = true;
+
+		struct Value* bool_false = value_blank(BOOLEAN);
+		bool* ptrfalse = terumi_alloc(sizeof(bool));
+		*ptrfalse = false;
+
+		struct Value* number_neg1 = value_blank(NUMBER);
+		struct Number* ptrneg1 = terumi_alloc(sizeof(struct Number));
+		ptrneg1->data = -1;
+		number_neg1->data = ptrneg1;
+
+		struct Value* number_0 = value_blank(NUMBER);
+		struct Number* ptr0 = terumi_alloc(sizeof(struct Number));
+		ptrneg1->data = 0;
+		number_0->data = ptr0;
+
+		struct Value* number_1 = value_blank(NUMBER);
+		struct Number* ptr1 = terumi_alloc(sizeof(struct Number));
+		ptrneg1->data = 1;
+		number_1->data = ptr1;
+
+		struct Value* number_2 = value_blank(NUMBER);
+		struct Number* ptr2 = terumi_alloc(sizeof(struct Number));
+		ptrneg1->data = 2;
+		number_2->data = ptr2;
+
+		// assigning values
+
+		gc.cache = (struct ValueCache){
+			.bool_true = bool_true,
+			.bool_false = bool_false,
+			.number_neg1 = number_neg1,
+			.number_0 = number_0,
+			.number_1 = number_1,
+			.number_2 = number_2
+		};
+
 		gc_init = true;
 	}
 	TRACE_EXIT("ensure_gc_init");
 }
 
-int maybe_run_gc() {
+errno_t maybe_run_gc() {
 	TRACE("maybe_run_gc");
 	ensure_gc_init();
-	int result = should_run_gc() ? run_gc() : -1;
+	errno_t result = should_run_gc() ? run_gc() : -1;
 
 	// GC NOTICE:
 	// if we remove more than 60% of the objects, we will downsize our threshold by half
@@ -350,15 +442,37 @@ int maybe_run_gc() {
 	return result;
 }
 
+// we want to completely nuke this value from orbit
 void cleanup_value(struct Value* value) {
-	// TODO: figure out best wayt to clear each one
 	switch (value->type) {
-	case STRING: {
-		// free(value->data);
-	} break;
-	case NUMBER: {
-
-	} break;
+		case UNKNOWN: {
+			printf("[WARN] attempting to free UNKNOWN value. please report this bug.");
+		} break;
+		case BOOLEAN: {
+			// don't free booleans
+		} break;
+		case STRING: {
+			// all strings should be allocated with terumi
+			terumi_free(value->data);
+			terumi_free(value);
+		} break;
+		case NUMBER: {
+			void* ptr = value->data;
+			if (ptr == gc.cache.number_neg1
+				|| ptr == gc.cache.number_0
+				|| ptr == gc.cache.number_1
+				|| ptr == gc.cache.number_2) {
+				// don't free it
+			} else {
+				// free the Number
+				terumi_free(value->data);
+				terumi_free(value);
+			}
+		} break;
+		case OBJECT: {
+			terumi_free(value->data);
+			terumi_free(value);
+		} break;
 	}
 }
 
@@ -374,7 +488,7 @@ bool mark_referenced(bool* referenced) {
 	TRACE("mark_referenced");
 	bool modified = false;
 
-	for (int i = 0; i < gc.list.elements; i++) {
+	for (size_t i = 0; i < gc.list.elements; i++) {
 		struct GCEntry* gcentry = voidptrarray_at(&gc.list.array, i);
 
 		// active items are referenced in a method
@@ -397,9 +511,9 @@ bool mark_referenced(bool* referenced) {
 		struct Object* object = value->data;
 
 		// mark each object the referenced object references as referenced.
-		for (int j = 0; j < GC_OBJECT_FIELDS; j++) {
+		for (size_t j = 0; j < GC_OBJECT_FIELDS; j++) {
 
-			int index = object->fields[j].object_index;
+			size_t index = object->fields[j].object_index;
 
 			if (!referenced[index]) {
 				modified = true;
@@ -412,19 +526,27 @@ bool mark_referenced(bool* referenced) {
 	return modified;
 }
 
-void swap_gc(int from, int to) {
+void swap_gc(size_t from, size_t to) {
 	TRACE("swap_gc");
-	for (int i = 0; i < gc.list.elements; i++) {
+
+	// move the item from 'from' to 'to'
+	struct GCEntry* at = voidptrarray_at(&gc.list.array, from);
+	at->index = to;
+	voidptrarray_set(&gc.list.array, from, NULL);
+	voidptrarray_set(&gc.list.array, to, at);
+
+	// update all references in the GC
+	for (size_t i = 0; i < gc.list.elements; i++) {
 		struct GCEntry* datai = voidptrarray_at(&gc.list.array, i);
 		if (!datai->alive) continue;
-		if (datai->value->type != OBJECT) continue;
 
 		struct Object* obj = datai->value->data;
-		for (int j = 0; j < GC_OBJECT_FIELDS; j++) {
+		for (size_t j = 0; j < GC_OBJECT_FIELDS; j++) {
 			if (obj->fields[j].object_index == from) {
 				obj->fields[j].object_index = to;
 			}
 		}
+		if (datai->value->type != OBJECT) continue;
 	}
 	TRACE_EXIT("swap_gc");
 }
@@ -478,7 +600,7 @@ void compact_gc() {
 	// if there were no alive elements, free the entire list
 	if (end == -1) last_end = 0;
 
-	for (int i = last_end; i < gc.list.elements; i++) {
+	for (size_t i = last_end; i < gc.list.elements; i++) {
 		struct GCEntry* entry = voidptrarray_at(&gc.list.array, i);
 		terumi_free_warn(entry);
 	}
@@ -487,7 +609,7 @@ void compact_gc() {
 	TRACE_EXIT("compact_gc");
 }
 
-int run_gc() {
+size_t run_gc() {
 	TRACE("run_gc");
 	ensure_gc_init();
 	// MARK
@@ -499,8 +621,8 @@ int run_gc() {
 	}
 
 	// SWEEP
-	int cleaned = 0;
-	for (int i = 0; i < gc.list.elements; i++) {
+	size_t cleaned = 0;
+	for (size_t i = 0; i < gc.list.elements; i++) {
 		if (!referenced[i]) {
 			struct GCEntry* entry = voidptrarray_at(&gc.list.array, i);
 
@@ -531,14 +653,14 @@ struct GCEntry* gc_handhold(struct Value* value) {
 	entry->alive = true;
 	entry->active = true;
 	entry->value = value;
-	list_add(&gc.list, entry);
+	entry->index = list_add(&gc.list, entry);
 	TRACE_EXIT("gc_handhold");
 	return entry;
 }
 #pragma endregion
 
 #pragma region List
-int list_add(struct List* list, void* item) {
+size_t list_add(struct List* list, void* item) {
 	TRACE("list_add");
 	// if the list has reached maximum capacity
 	if (list->elements >= list->capacity) {
@@ -550,7 +672,7 @@ int list_add(struct List* list, void* item) {
 	}
 
 	// insert the item into the array
-	int index = list->elements++;
+	size_t index = list->elements++;
 	voidptrarray_set(&list->array, index, item);
 	TRACE_EXIT("list_add");
 	return index;
@@ -601,13 +723,17 @@ struct MemoryPage* terumi_new_page(size_t page_size) {
 	return page;
 }
 
-void* terumi_alloc(size_t data) {
-	TRACE("terumi_alloc");
+void ensure_memory_init() {
 	if (!memory_init) {
 		memory.memory_pages = *list_new(4);
 		memory.page_size = DEFAULT_MEMORY_PAGE_SIZE;
 		memory_init = true;
 	}
+}
+
+void* terumi_alloc(size_t data) {
+	TRACE("terumi_alloc");
+	ensure_memory_init();
 
 	if (memory.page_size < data) {
 		// if the data is bigger than a page, we are guarenteed to not have any
@@ -662,11 +788,7 @@ void* terumi_alloc(size_t data) {
 
 bool terumi_free(void* data) {
 	TRACE("terumi_free");
-	if (!memory_init) {
-		printf("[PANIC] attempted to free data and memory isn't initialized.\n");
-		TRACE_EXIT("terumi_free");
-		return false;
-	}
+	ensure_memory_init();
 
 	// first, let's find the page the pointer is in
 	for (int i = 0; i < memory.memory_pages.elements; i++) {
@@ -701,22 +823,187 @@ void terumi_free_warn(void* x) {
 #pragma endregion
 
 #pragma region Value
+struct Value* value_blank(enum ObjectType type) {
+	TRACE("value_blank");
+	struct Value* value = terumi_alloc(sizeof(struct Value));
+	value->type = type;
+	TRACE_EXIT("value_blank");
+	return value;
+}
+
 struct Value* value_from_string(char* string) {
 	TRACE("value_from_string");
-	struct Value* value = terumi_alloc(sizeof(struct Value));
-	value->type = STRING;
+	struct Value* value = value_blank(STRING);
 	value->data = string;
 	TRACE_EXIT("value_from_string");
 	return value;
 }
+
+// Guarenteed to use cached values from the GC.
+struct Value* value_from_boolean(bool state) {
+	ensure_gc_init();
+
+	if (state) {
+		return gc.cache.bool_true;
+	}
+	else {
+		return gc.cache.bool_false;
+	}
+}
+
+// May use cached values from the GC.
+struct Value* value_from_number(struct Number* number) {
+	switch (number->data) {
+		case -1: ensure_gc_init(); return gc.cache.number_neg1;
+		case 0: ensure_gc_init(); return gc.cache.number_0;
+		case 1: ensure_gc_init(); return gc.cache.number_1;
+		case 2: ensure_gc_init(); return gc.cache.number_2;
+		default: {
+			// this number isn't cacheable, we have to create a value
+			struct Value* value = value_blank(NUMBER);
+			value->data = number;
+			return value;
+		}
+	}
+}
+
+struct Value* value_from_object(struct Object* object) {
+	struct Value* value = value_blank(OBJECT);
+	value->data = object;
+	return value;
+}
 #pragma endregion
 
-#pragma region TerumiCompilerMethods
+#pragma region Number
+struct Number* number_from_int(int32_t integer) {
+	switch (integer) {
+		case -1: return gc.cache.number_neg1->data;
+		case 0: return gc.cache.number_0->data;
+		case 1: return gc.cache.number_1->data;
+		case 2: return gc.cache.number_2->data;
+		default: {
+			struct Number* number = terumi_alloc(sizeof(struct Number));
+			number->data = integer;
+			return number;
+		} break;
+	}
+}
+
+struct Number* number_add(struct Number* left, struct Number* right) {
+	return number_from_int(left->data + right->data);
+}
+
+struct Number* number_subtract(struct Number* left, struct Number* right) {
+	return number_from_int(left->data - right->data);
+}
+
+struct Number* number_multiply(struct Number* left, struct Number* right) {
+	return number_from_int(left->data * right->data);
+}
+
+struct Number* number_divide(struct Number* left, struct Number* right) {
+	return number_from_int(left->data / right->data);
+}
+
+// TODO: find out function
+struct Number* number_power(struct Number* base, struct Number* power) {
+	printf("[WARN] using powers - not supported yet.");
+	return number_from_int(base->data + power->data);
+}
+#pragma endregion
+
+#pragma region CompilerMethods
+/* This is a slew of instruction specific methods implemented by terumi. */
+struct Value* instruction_load_string(const char* data);
+struct Value* instruction_load_number(int32_t integer);
+struct Value* instruction_load_boolean(bool boolean);
+struct Value* instruction_load_parameter(struct Value* parameters, size_t parameter_index);
+void instruction_assign(struct Value* target, struct Value* source);
+void instruction_set_field(struct Value* target, struct Value* object, size_t field_index);
+struct Value* instruction_get_field(struct Value* object, size_t field_index);
+struct Value* instruction_new();
+
+/* This is a slew of methods that can be called by the user, which are implemented. */
+struct Value* cc_target_name();
+// fake return type. the caller will not get input back.
+struct Value* cc_panic(struct Value* message);
+struct Value* cc_is_supported();
+struct Value* cc_println(struct Value* input);
+void cc_command(struct Value* command);
+struct Value* cc_operator_and(struct Value* left, struct Value* right);
+struct Value* cc_operator_or(struct Value* left, struct Value* right);
+struct Value* cc_operator_not(struct Value* operand);
+struct Value* cc_operator_equal_to(struct Value* left, struct Value* right);
+struct Value* cc_operator_not_equal_to(struct Value* left, struct Value* right);
+struct Value* cc_operator_less_than(struct Value* left, struct Value* right);
+struct Value* cc_operator_greater_than(struct Value* left, struct Value* right);
+struct Value* cc_operator_less_than_or_equal_to(struct Value* left, struct Value* right);
+struct Value* cc_operator_greater_than_or_equal_to(struct Value* left, struct Value* right);
+struct Value* cc_operator_add(struct Value* left, struct Value* right);
+struct Value* cc_operator_negate(struct Value* operand);
+struct Value* cc_operator_subtract(struct Value* left, struct Value* right);
+struct Value* cc_operator_multiply(struct Value* left, struct Value* right);
+struct Value* cc_operator_divide(struct Value* left, struct Value* right);
+struct Value* cc_operator_exponent(struct Value* left, struct Value* right);
+
+// helpers
+void ensure_type(struct Value* value, enum ObjectType must_be) {
+	TRACE("ensure_type");
+	if (value->type != must_be) {
+		printf(
+			"[ERR] couldn't ensure value of type '%s', value was type '%s'\n",
+			objecttype_to_string(value->type),
+			objecttype_to_string(must_be)
+		);
+
+		printf(
+			"      you've just encountered a terumi error. There is something "
+			"wrong with your code that Terumi isn't catching. Please report "
+			"this bug to the terumi compiler repository, located at "
+			"https://github.com/terumi-project/Terumi"
+		);
+
+		exit(TOO_DYNAMIC);
+	}
+	TRACE_EXIT("ensure_type");
+}
+
+struct Value* instruction_load_string(const char* data) {
+	size_t str_length = strlen(data) + sizeof(char);
+	char* dst = terumi_alloc(str_length);
+	strncpy_s(dst, str_length, data, str_length);
+	return value_from_string(dst);
+}
+
+struct Value* instruction_load_number(int32_t integer) {
+	return value_from_number(number_from_int(integer));
+}
+
+struct Value* instruction_load_boolean(bool boolean) {
+	return value_from_boolean(boolean);
+}
+
+struct Value* instruction_load_parameter(struct Value* parameters, size_t parameter_index) {
+	return &(parameters[parameter_index]);
+}
+
+void instruction_assign(struct Value* target, struct Value* source) {
+	// we're gonna have to do LOTS of type conversions here
+}
+
+void instruction_set_field(struct Value* target, struct Value* object, size_t field_index) {
+}
+
+#pragma endregion
+
+#pragma region TerumiMethods
 // <INJECT__CODE>
 #pragma endregion
 
 int main(int argc, char** argv) {
 	TRACE("main");
+
+	ensure_type(value_from_boolean(true), NUMBER);
 
 	for (int i = 0; i < 100000000; i++) {
 		struct GCEntry* entry = gc_handhold(value_from_string("ok boomer"));
@@ -732,7 +1019,7 @@ int main(int argc, char** argv) {
 		entry->active = false;
 	}
 
-	printf("Terumi cleanup: %i objects cleaned\n", run_gc());
+	printf("Terumi cleanup: %zu objects cleaned\n", run_gc());
 
 	// free all pages
 	for (int i = 0; i < memory.memory_pages.elements; i++) {

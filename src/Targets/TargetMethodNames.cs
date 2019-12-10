@@ -8,11 +8,6 @@ namespace Terumi.Targets
 	/// </summary>
 	public static class TargetMethodNames
 	{
-		public static class C
-		{
-			public const string ForceType = "force_type";
-		}
-
 		public const string TargetName = "target_name";
 		public const string Panic = "panic";
 

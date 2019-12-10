@@ -291,6 +291,10 @@ struct Value* value_from_number(struct Number* number);
 struct Value* value_from_object(struct Object* object);
 // Makes a complete deep copy of the inner value of a give nvalue.
 void* value_copy(struct Value* source);
+char* value_unpack_string(struct Value* value);
+bool value_unpack_boolean(struct Value* value);
+struct Number* value_unpack_number(struct Value* value);
+struct Object* value_unpack_object(struct Value* value);
 
 struct Object* object_blank();
 
@@ -301,6 +305,7 @@ struct Number* number_subtract(struct Number* left, struct Number* right);
 struct Number* number_multiply(struct Number* left, struct Number* right);
 struct Number* number_divide(struct Number* left, struct Number* right);
 struct Number* number_power(struct Number* base, struct Number* power);
+bool number_equal(struct Number* left, struct Number* right);
 
 // Global instance of the GC. Used for managing 'struct Value's.
 struct GC gc;
@@ -430,6 +435,36 @@ struct List* list_new(size_t initial_capacity) {
 #pragma endregion
 
 #pragma region Value
+void ensure_type(struct Value* value, enum ObjectType must_be) {
+	TRACE("ensure_type");
+	if (value->type != must_be) {
+		printf(
+			"[ERR] couldn't ensure value of type '%s', value was type '%s'\n",
+			objecttype_to_string(value->type),
+			objecttype_to_string(must_be)
+		);
+
+		print_err();
+		exit(TOO_DYNAMIC);
+	}
+	TRACE_EXIT("ensure_type");
+}
+
+void ensure_not_type(struct Value* value, enum ObjectType mustnt_be) {
+	TRACE("ensure_not_type");
+	if (value->type == mustnt_be) {
+		printf(
+			"[ERR] value of type '%s', isn't allowed. type musn't be '%s'\n",
+			objecttype_to_string(value->type),
+			objecttype_to_string(mustnt_be)
+		);
+
+		print_err();
+		exit(TOO_DYNAMIC);
+	}
+	TRACE_EXIT("ensure_not_type");
+}
+
 struct Value* value_blank(enum ObjectType type) {
 	TRACE("value_blank");
 	struct Value* value = terumi_alloc(sizeof(struct Value));
@@ -508,6 +543,26 @@ void* value_copy(struct Value* source) {
 	print_err();
 	exit(IMPOSSIBLE);
 }
+
+char* value_unpack_string(struct Value* value) {
+	ensure_type(value, STRING);
+	return value->data;
+}
+
+bool value_unpack_boolean(struct Value* value) {
+	ensure_type(value, BOOLEAN);
+	return *((bool*)(value->data));
+}
+
+struct Number* value_unpack_number(struct Value* value) {
+	ensure_type(value, NUMBER);
+	return value->data;
+}
+
+struct Object* value_unpack_object(struct Value* value) {
+	ensure_type(value, OBJECT);
+	return value->data;
+}
 #pragma endregion
 
 #pragma region GC
@@ -585,6 +640,8 @@ errno_t maybe_run_gc() {
 
 // we want to completely nuke this value from orbit
 void cleanup_value(struct Value* value) {
+	TRACE("cleanup_value");
+
 	switch (value->type) {
 		case UNKNOWN: {
 			printf("[WARN] attempting to free UNKNOWN value. please report this bug.");
@@ -615,6 +672,7 @@ void cleanup_value(struct Value* value) {
 			terumi_free(value);
 		} break;
 	}
+	TRACE_EXIT("cleanup_value");
 }
 
 bool should_run_gc() {
@@ -772,7 +830,7 @@ size_t run_gc() {
 				entry->active = false;
 				entry->alive = false;
 				cleanup_value(entry->value);
-				terumi_free_warn(entry->value);
+				// don't clean up 'entry' here - that's cleaned up in compacting
 			}
 		}
 	}
@@ -941,14 +999,15 @@ void* terumi_alloc(size_t data) {
 }
 
 bool terumi_free(void* data) {
-	void* mem = data - 1;
-	int8_t* mem_preamble = mem;
+	void* mem = data;
+	int8_t* mem_preamble = data - 1;
 
 	if (!mem_preamble[0]) {
-		printf("[WARN] attempting to free a pointer to data that is already freed.");
+		printf("[WARN] attempting to free a pointer to data that is already freed.\n");
 		return true;
 	}
 
+	mem_preamble[0] = (int8_t)0;
 	terumi_free_raw(mem);
 	return true;
 }
@@ -1007,6 +1066,10 @@ struct Number* number_power(struct Number* base, struct Number* power) {
 	printf("[WARN] using powers - not supported yet.");
 	return number_from_int(base->data + power->data);
 }
+
+bool number_equal(struct Number* left, struct Number* right) {
+	return left->data == right->data;
+}
 #pragma endregion
 
 struct Object* object_blank() {
@@ -1039,37 +1102,6 @@ void instruction_assign(struct Value* target, struct Value* source);
 void instruction_set_field(struct GCEntry* value, struct Value* object, size_t field_index);
 struct GCEntry* instruction_get_field(struct Value* object, size_t field_index);
 struct Value* instruction_new();
-
-// helpers
-void ensure_type(struct Value* value, enum ObjectType must_be) {
-	TRACE("ensure_type");
-	if (value->type != must_be) {
-		printf(
-			"[ERR] couldn't ensure value of type '%s', value was type '%s'\n",
-			objecttype_to_string(value->type),
-			objecttype_to_string(must_be)
-		);
-
-		print_err();
-		exit(TOO_DYNAMIC);
-	}
-	TRACE_EXIT("ensure_type");
-}
-
-void ensure_not_type(struct Value* value, enum ObjectType mustnt_be) {
-	TRACE("ensure_not_type");
-	if (value->type == mustnt_be) {
-		printf(
-			"[ERR] value of type '%s', isn't allowed. type musn't be '%s'\n",
-			objecttype_to_string(value->type),
-			objecttype_to_string(mustnt_be)
-		);
-
-		print_err();
-		exit(TOO_DYNAMIC);
-	}
-	TRACE_EXIT("ensure_not_type");
-}
 
 struct Value* instruction_load_string(const char* data) {
 	return value_from_string(string_copy(data));
@@ -1187,8 +1219,8 @@ struct Value* instruction_new() {
 struct Value* cc_target_name();
 // fake return type. the caller will not get input back.
 struct Value* cc_panic(struct Value* message);
-struct Value* cc_is_supported();
-struct Value* cc_println(struct Value* input);
+struct Value* cc_is_supported(struct Value* message);
+void cc_println(struct Value* input);
 void cc_command(struct Value* command);
 struct Value* cc_operator_and(struct Value* left, struct Value* right);
 struct Value* cc_operator_or(struct Value* left, struct Value* right);
@@ -1206,16 +1238,126 @@ struct Value* cc_operator_multiply(struct Value* left, struct Value* right);
 struct Value* cc_operator_divide(struct Value* left, struct Value* right);
 struct Value* cc_operator_exponent(struct Value* left, struct Value* right);
 
+struct Value* cc_target_name() {
+	return value_from_string(string_copy("c"));
+}
+
+struct Value* cc_panic(struct Value* message) {
+	ensure_type(message, STRING);
+
+	printf("[PANIC] panic in user code: '%s'\n", (char*)(message->data));
+	exit(PANIC);
+
+	return NULL;
+}
+
+struct Value* cc_is_supported(struct Value* message) {
+	ensure_type(message, STRING);
+	char* data = message->data;
+	
+	// TODO: check stuff
+	return value_from_boolean(true);
+	// if (strcmp("") != 0)
+}
+
+void cc_println(struct Value* input) {
+	ensure_type(input, STRING);
+	printf("%s\n", (char*)(input->data));
+}
+
+void cc_command(struct Value* command) {
+	system(value_unpack_string(command));
+}
+
+struct Value* cc_operator_and(struct Value* left, struct Value* right) {
+	return value_from_boolean(value_unpack_boolean(left) && value_unpack_boolean(right));
+}
+
+struct Value* cc_operator_or(struct Value* left, struct Value* right) {
+	return value_from_boolean(value_unpack_boolean(left) | value_unpack_boolean(right));
+}
+
+struct Value* cc_operator_not(struct Value* operand) {
+	return value_from_boolean(!value_unpack_boolean(operand));
+}
+
+struct Value* cc_operator_equal_to(struct Value* left, struct Value* right) {
+	// equal to must be same types
+	ensure_type(right, left->type);
+
+	switch (left->type) {
+		case UNKNOWN: return value_from_boolean(true);
+		case STRING: return value_from_boolean(strcmp(value_unpack_string(left), value_unpack_string(right)) != 0);
+		case NUMBER: return value_from_boolean(number_equal(value_unpack_number(left), value_unpack_number(right)));
+		case OBJECT: return value_from_boolean(left->data == right->data); // reference equality for objects
+		case BOOLEAN: return value_from_boolean(value_unpack_boolean(left) == value_unpack_boolean(right));
+	}
+
+	printf("[ERR] unable to compare types '%s' and '%s'.", objecttype_to_string(left->type), objecttype_to_string(right->type));
+	print_err();
+	exit(IMPOSSIBLE);
+	return NULL;
+}
+
+struct Value* cc_operator_not_equal_to(struct Value* left, struct Value* right) {
+	return cc_operator_not(cc_operator_equal_to(left, right));
+}
+
+struct Value* cc_operator_less_than(struct Value* left, struct Value* right) {
+	return value_from_boolean(value_unpack_number(left) < value_unpack_number(right));
+}
+
+struct Value* cc_operator_greater_than(struct Value* left, struct Value* right) {
+	return value_from_boolean(value_unpack_number(left) > value_unpack_number(right));
+}
+
+struct Value* cc_operator_less_than_or_equal_to(struct Value* left, struct Value* right) {
+	return cc_operator_not(cc_operator_greater_than(left, right));
+}
+
+struct Value* cc_operator_greater_than_or_equal_to(struct Value* left, struct Value* right) {
+	return cc_operator_not(cc_operator_less_than(left, right));
+}
+
+struct Value* cc_operator_add(struct Value* left, struct Value* right) {
+	return value_from_number(number_add(value_unpack_number(left), value_unpack_number(right)));
+}
+
+struct Value* cc_operator_negate(struct Value* operand) {
+	return value_from_number(number_subtract(number_from_int(0), value_unpack_number(operand)));
+}
+
+struct Value* cc_operator_subtract(struct Value* left, struct Value* right) {
+	return value_from_number(number_subtract(value_unpack_number(left), value_unpack_number(right)));
+}
+
+struct Value* cc_operator_multiply(struct Value* left, struct Value* right) {
+	return value_from_number(number_multiply(value_unpack_number(left), value_unpack_number(right)));
+}
+
+struct Value* cc_operator_divide(struct Value* left, struct Value* right) {
+	return value_from_number(number_divide(value_unpack_number(left), value_unpack_number(right)));
+}
+
+struct Value* cc_operator_exponent(struct Value* left, struct Value* right) {
+	return value_from_number(number_power(value_unpack_number(left), value_unpack_number(right)));
+}
+
 #pragma endregion
 
 #pragma region TerumiMethods
 // <INJECT__CODE>
+__terumi_hello_world(struct GCEntry* parameters) {
+	struct GCEntry* v_0 = gc_handhold(value_from_string(string_copy("Hello, World!")));
+	cc_println(v_0->value);
+}
 #pragma endregion
 
 int main(int argc, char** argv) {
 	TRACE("main");
 
 	// <INJECT__RUN>
+	__terumi_hello_world(NULL);
 
 	// politely kill gc
 	for (int i = 0; i < gc.list.elements; i++) {
@@ -1223,7 +1365,10 @@ int main(int argc, char** argv) {
 		entry->active = false;
 	}
 
-	run_gc();
+	size_t cleared = run_gc();
+#ifdef DEBUG
+	printf("[DEBUG] terumi program ended: collected %zu objects. %zu objects alive.", cleared, gc.list.elements);
+#endif
 
 	// free all pages
 	for (int i = 0; i < memory.memory_pages.elements; i++) {

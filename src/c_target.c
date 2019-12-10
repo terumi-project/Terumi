@@ -47,11 +47,11 @@ void TRACE_EXIT(const char* place) {
 	for (int i = 0; i < level; i++) printf(" ");
 	printf("[TRACE] left '%s'\n", place);
 }
-#define TRACE_EXIT(data, place) TRACE_EXIT(place); return data;
+#define TRACE_EXIT_RETURN(data, place) TRACE_EXIT(place); return data;
 #else
 #define TRACE(place)
 #define TRACE_EXIT(place)
-#define TRACE_EXIT(data, place)
+#define TRACE_EXIT_RETURN(data, place)
 #endif
 
 // defines how many fields there should be for an object
@@ -500,6 +500,8 @@ void* value_copy(struct Value* source) {
 
 			return copy;
 		}
+
+		default: break;
 	}
 
 	printf("[ERR] unable to make a copy of value with type '%s'.", objecttype_to_string(source->type));
@@ -841,35 +843,6 @@ void ensure_memory_init() {
 // in debug mode, we have a one byte preamble to ensure that we never free the
 // same memory twice. in release mode, we don't have this.
 
-#ifdef DEBUG
-void* terumi_alloc(size_t data) {
-	// allocate one extra byte to signify if this data has been freeed
-	void* mem = terumi_alloc_raw(data + 1);
-	mem[0] = true;
-	return mem + 1;
-}
-
-bool terumi_free(void* data) {
-	void* mem = data - 1;
-
-	if (!mem[0]) {
-		printf("[WARN] attempting to free a pointer to data that is already freed.");
-		return true;
-	}
-
-	terumi_alloc_raw(mem);
-	return true;
-}
-#else
-void* terumi_alloc(size_t data) {
-	return terumi_alloc(data);
-}
-
-bool terumi_free(void* data) {
-	return terumi_free(data);
-}
-#endif
-
 void* terumi_alloc_raw(size_t data) {
 	TRACE("terumi_alloc");
 	ensure_memory_init();
@@ -957,6 +930,37 @@ bool terumi_free_raw(void* data) {
 	TRACE_EXIT("terumi_free");
 	return false;
 }
+
+#ifdef DEBUG
+void* terumi_alloc(size_t data) {
+	// allocate one extra byte to signify if this data has been freeed
+	void* mem = terumi_alloc_raw(data + 1);
+	int8_t* mem_preamble = mem;
+	*mem_preamble = (int8_t)1 /*true*/;
+	return mem + 1;
+}
+
+bool terumi_free(void* data) {
+	void* mem = data - 1;
+	int8_t* mem_preamble = mem;
+
+	if (!mem_preamble[0]) {
+		printf("[WARN] attempting to free a pointer to data that is already freed.");
+		return true;
+	}
+
+	terumi_free_raw(mem);
+	return true;
+}
+#else
+void* terumi_alloc(size_t data) {
+	return terumi_alloc(data);
+}
+
+bool terumi_free(void* data) {
+	return terumi_free(data);
+}
+#endif
 
 void terumi_free_warn(void* x) {
 	TRACE("terumi_free_warn");
@@ -1058,7 +1062,7 @@ void ensure_not_type(struct Value* value, enum ObjectType mustnt_be) {
 		printf(
 			"[ERR] value of type '%s', isn't allowed. type musn't be '%s'\n",
 			objecttype_to_string(value->type),
-			objecttype_to_string(must_be)
+			objecttype_to_string(mustnt_be)
 		);
 
 		print_err();
@@ -1096,7 +1100,7 @@ void instruction_assign(struct Value* target, struct Value* source) {
 
 	if (target->type == source->type) {
 		terumi_free(target->data);
-		target->data = value_copy(source)
+		target->data = value_copy(source);
 		return;
 	}
 
@@ -1113,6 +1117,7 @@ void instruction_assign(struct Value* target, struct Value* source) {
 					char* str = string_copy(str_buffer);
 					target->data = str;
 				} break;
+				default: break;
 			}
 		} break;
 		case NUMBER: {
@@ -1134,7 +1139,7 @@ void instruction_assign(struct Value* target, struct Value* source) {
 					if (num_val > INT32_MAX || num_val < INT32_MIN) {
 						// couldn't convert
 						printf(
-							"[ERR] unable to assign type '%s' to '%s' - the converted string is too big (%d).",
+							"[ERR] unable to assign type '%s' to '%s' - the converted string is too big (%ld).",
 							objecttype_to_string(source->type),
 							objecttype_to_string(target->type),
 							num_val
@@ -1143,12 +1148,14 @@ void instruction_assign(struct Value* target, struct Value* source) {
 						exit(IMPOSSIBLE);
 					}
 				} break;
+				default: break;
 			}
 		} break;
 		case BOOLEAN: {
 		} break;
 		case OBJECT: {
 		} break;
+		default: break;
 	}
 
 	printf("[ERR] unable to assign type '%s' to '%s'.", objecttype_to_string(source->type), objecttype_to_string(target->type));
@@ -1159,13 +1166,13 @@ void instruction_assign(struct Value* target, struct Value* source) {
 void instruction_set_field(struct GCEntry* value, struct Value* object, size_t field_index) {
 	ensure_type(object, OBJECT);
 	struct Object* data = value->value->data;
-	data->fields[field_index] = value->index;
+	data->fields[field_index].object_index = value->index;
 }
 
 struct GCEntry* instruction_get_field(struct Value* object, size_t field_index) {
 	ensure_type(object, OBJECT);
 	struct Object* data = object->data;
-	struct GCEntry* entry = voidptrarray_at(&gc.list.array, data[field_index]);
+	struct GCEntry* entry = voidptrarray_at(&gc.list.array, data->fields[field_index].object_index);
 	return entry;
 }
 

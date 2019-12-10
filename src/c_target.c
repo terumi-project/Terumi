@@ -1097,7 +1097,7 @@ char* string_copy(char* source) {
 struct Value* instruction_load_string(const char* data);
 struct Value* instruction_load_number(int32_t integer);
 struct Value* instruction_load_boolean(bool boolean);
-struct Value* instruction_load_parameter(struct Value* parameters, size_t parameter_index);
+struct GCEntry* instruction_load_parameter(struct GCEntry* parameters, size_t parameter_index);
 void instruction_assign(struct Value* target, struct Value* source);
 void instruction_set_field(struct GCEntry* value, struct Value* object, size_t field_index);
 struct GCEntry* instruction_get_field(struct Value* object, size_t field_index);
@@ -1115,7 +1115,7 @@ struct Value* instruction_load_boolean(bool boolean) {
 	return value_from_boolean(boolean);
 }
 
-struct Value* instruction_load_parameter(struct Value* parameters, size_t parameter_index) {
+struct GCEntry* instruction_load_parameter(struct GCEntry* parameters, size_t parameter_index) {
 	return &(parameters[parameter_index]);
 }
 
@@ -1347,17 +1347,13 @@ struct Value* cc_operator_exponent(struct Value* left, struct Value* right) {
 
 #pragma region TerumiMethods
 // <INJECT__CODE>
-__terumi_hello_world(struct GCEntry* parameters) {
-	struct GCEntry* v_0 = gc_handhold(value_from_string(string_copy("Hello, World!")));
-	cc_println(v_0->value);
-}
 #pragma endregion
 
 int main(int argc, char** argv) {
 	TRACE("main");
 
-	// <INJECT__RUN>
-	__terumi_hello_world(NULL);
+	// must be on the first level of indentation
+// <INJECT__RUN>
 
 	// politely kill gc
 	for (int i = 0; i < gc.list.elements; i++) {

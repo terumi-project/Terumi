@@ -10,6 +10,7 @@ namespace Terumi.Targets
 {
 	public class CTarget : ICompilerTarget
 	{
+		public static int call_id = 0;
 		public string ShellFileName => "out.c";
 
 		public CompilerMethod Match(string name, params IType[] types)
@@ -40,8 +41,6 @@ namespace Terumi.Targets
 				case TargetMethodNames.OperatorMultiply: return C(types[0]);
 				case TargetMethodNames.OperatorDivide: return C(types[0]);
 				case TargetMethodNames.OperatorExponent: return C(types[0]);
-
-				case TargetMethodNames.C.ForceType: return C(BuiltinType.Void);
 
 				default: return null;
 			}
@@ -119,11 +118,11 @@ namespace Terumi.Targets
 			}
 			else
 			{
-				writer.Write("struct Value* ");
+				writer.Write("struct GCEntry* ");
 			}
 
 			writer.Write(GetName(method.Id));
-			writer.Write("(struct Value* parameters)");
+			writer.Write($"(struct GCEntry* parameters[{method.Parameters.Count}])");
 		}
 
 		public void Translate(IndentedTextWriter writer, VarCode.Method method)
@@ -142,7 +141,6 @@ namespace Terumi.Targets
 		public void Translate(IndentedTextWriter writer, List<int> decl, List<VarCode.Instruction> instruction)
 		{
 			int index = 0;
-			writer.WriteLine("struct Value* __tmp_parameters;");
 			foreach (var i in instruction)
 			{
 				writer.WriteLine($"// instruction '{index}': {i}");
@@ -151,36 +149,38 @@ namespace Terumi.Targets
 				{
 					case VarCode.Instruction.Load.String o:
 						EnsureVarExists(o.Store);
-						writer.WriteLine($"{GetVarName(o.Store)} = load_string(\"{o.Value}\");");
+						writer.WriteLine($"{GetVarName(o.Store)} = gc_handhold(instruction_load_string(\"{o.Value}\"));");
 						break;
 
 					case VarCode.Instruction.Load.Number o:
 						EnsureVarExists(o.Store);
-						writer.WriteLine($"{GetVarName(o.Store)} = load_number({o.Value.Value});");
+						writer.WriteLine($"{GetVarName(o.Store)} = gc_handhold(instruction_load_number({o.Value.Value}));");
 						break;
 
 					case VarCode.Instruction.Load.Boolean o:
 						EnsureVarExists(o.Store);
-						writer.WriteLine($"{GetVarName(o.Store)} = load_boolean({(o.Value ? "TRUE" : "FALSE")});");
+						writer.WriteLine($"{GetVarName(o.Store)} = gc_handhold(instruction_load_boolean({(o.Value ? "true" : "false")}));");
 						break;
 
 					case VarCode.Instruction.Load.Parameter o:
 						EnsureVarExists(o.Store);
-						writer.WriteLine($"{GetVarName(o.Store)} = load_parameter(parameters, {o.ParameterNumber});");
+						writer.WriteLine($"{GetVarName(o.Store)} = parameters[{o.ParameterNumber}];");
 						break;
 
 					case VarCode.Instruction.Assign o:
 						EnsureVarExists(o.Store, true);
-						writer.WriteLine($"assign({GetVarName(o.Value)}, {GetVarName(o.Store)});");
+						writer.WriteLine($"instruction_assign({GetVarName(o.Store)}->value, {GetVarName(o.Value)}->value);");
 						break;
 
 					case VarCode.Instruction.Call o:
 					{
-						writer.WriteLine(@$"__tmp_parameters = malloc_values({o.Arguments.Count});");
+						string call = $"__call_{GetName(o.Method.Id)}_{call_id++}";
+
+						writer.WriteLine(@$"struct GCEntry* {call}[{o.Arguments.Count}];");
 						int argIndex = 0;
 						foreach (var p in o.Arguments)
 						{
-							writer.WriteLine($"__tmp_parameters[{argIndex}] = *{GetVarName(p)};");
+							writer.WriteLine($"{call}[{argIndex}] = {GetVarName(p)};");
 							argIndex++;
 						}
 
@@ -190,7 +190,7 @@ namespace Terumi.Targets
 							writer.Write($"{GetVarName(o.Store)} = ");
 						}
 
-						writer.WriteLine($"{GetName(o.Method.Id)}(__tmp_parameters);");
+						writer.WriteLine($"{GetName(o.Method.Id)}({call});");
 					}
 					break;
 
@@ -207,19 +207,24 @@ namespace Terumi.Targets
 						if (o.Store != -1)
 						{
 							EnsureVarExists(o.Store);
-							writer.Write($"{GetVarName(o.Store)} = ");
+							writer.Write($"{GetVarName(o.Store)} = gc_handhold(");
 						}
 
 						writer.Write($"cc_{o.CompilerMethod.Name}(");
 
 						if (o.Arguments.Count > 0)
 						{
-							writer.Write($"{GetVarName(o.Arguments[0])}");
+							writer.Write($"{GetVarName(o.Arguments[0])}->value");
 
 							for (int i2 = 1; i2 < o.Arguments.Count; i2++)
 							{
-								writer.Write($", {GetVarName(o.Arguments[i2])}");
+								writer.Write($", {GetVarName(o.Arguments[i2])}->value");
 							}
+						}
+
+						if (o.Store != -1)
+						{
+							writer.Write(")");
 						}
 
 						writer.WriteLine(");");
@@ -228,21 +233,21 @@ namespace Terumi.Targets
 
 					case VarCode.Instruction.SetField o:
 					{
-						writer.WriteLine($"set_field({GetVarName(o.VariableId)}, {o.FieldId}, {GetVarName(o.ValueId)});");
+						writer.WriteLine($"instruction_set_field({GetVarName(o.VariableId)}, {GetVarName(o.ValueId)}->value, {o.FieldId});");
 					}
 					break;
 
 					case VarCode.Instruction.GetField o:
 					{
 						EnsureVarExists(o.StoreId);
-						writer.WriteLine($"{GetVarName(o.StoreId)} = get_field({GetVarName(o.VariableId)}, {o.FieldId});");
+						writer.WriteLine($"{GetVarName(o.StoreId)} = instruction_get_field({GetVarName(o.VariableId)}->value, {o.FieldId});");
 					}
 					break;
 
 					case VarCode.Instruction.New o:
 					{
 						EnsureVarExists(o.StoreId);
-						writer.WriteLine($"{GetVarName(o.StoreId)} = new_object();");
+						writer.WriteLine($"{GetVarName(o.StoreId)} = gc_handhold(instruction_new());");
 					}
 					break;
 
@@ -259,7 +264,7 @@ namespace Terumi.Targets
 
 					case VarCode.Instruction.If o:
 					{
-						writer.WriteLine($"if (do_comparison({GetVarName(o.Variable)})) {{");
+						writer.WriteLine($"if (value_unpack_boolean({GetVarName(o.Variable)}->value)) {{");
 						writer.Indent++;
 
 						var declBackup = decl.ToArray();
@@ -273,7 +278,7 @@ namespace Terumi.Targets
 
 					case VarCode.Instruction.While o:
 					{
-						writer.WriteLine($"while (do_comparison({GetVarName(o.Comparison)})) {{");
+						writer.WriteLine($"while (value_unpack_boolean({GetVarName(o.Comparison)}->value)) {{");
 						writer.Indent++;
 
 						var declBackup = decl.ToArray();
@@ -296,13 +301,13 @@ namespace Terumi.Targets
 		{
 			if (!decl.Contains(ensure))
 			{
-				writer.WriteLine($"struct Value* {GetVarName(ensure)};");
+				writer.WriteLine($"struct GCEntry* {GetVarName(ensure)};");
 				decl.Add(ensure);
 			}
 
 			if (alloc)
 			{
-				writer.WriteLine($"{GetVarName(ensure)} = malloc_value();");
+				writer.WriteLine($"{GetVarName(ensure)} = gc_handhold(value_blank(UNKNOWN));");
 			}
 		}
 

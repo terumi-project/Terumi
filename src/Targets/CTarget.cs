@@ -131,13 +131,17 @@ namespace Terumi.Targets
 			writer.WriteLine(" {");
 			writer.Indent++;
 
+			writer.WriteLine($"TRACE(\"{GetName(method.Id)}\");");
+			_hacky_workaround_method = method;
 			Translate(writer, new List<int>(), method.Code);
+			writer.WriteLine($"TRACE_EXIT(\"{GetName(method.Id)}\");");
 
 			writer.Indent--;
 			writer.WriteLine('}');
 			writer.WriteLine();
 		}
 
+		private VarCode.Method _hacky_workaround_method;
 		public void Translate(IndentedTextWriter writer, List<int> decl, List<VarCode.Instruction> instruction)
 		{
 			int index = 0;
@@ -233,7 +237,7 @@ namespace Terumi.Targets
 
 					case VarCode.Instruction.SetField o:
 					{
-						writer.WriteLine($"instruction_set_field({GetVarName(o.VariableId)}, {GetVarName(o.ValueId)}->value, {o.FieldId});");
+						writer.WriteLine($"instruction_set_field({GetVarName(o.ValueId)}, {GetVarName(o.VariableId)}->value, {o.FieldId});");
 					}
 					break;
 
@@ -253,6 +257,8 @@ namespace Terumi.Targets
 
 					case VarCode.Instruction.Return o:
 					{
+						writer.WriteLine($"TRACE_EXIT(\"{GetName(_hacky_workaround_method.Id)}\");");
+
 						if (o.ValueId == -1)
 						{
 							writer.WriteLine("return;");
@@ -303,11 +309,11 @@ namespace Terumi.Targets
 			{
 				writer.WriteLine($"struct GCEntry* {GetVarName(ensure)};");
 				decl.Add(ensure);
-			}
 
-			if (alloc)
-			{
-				writer.WriteLine($"{GetVarName(ensure)} = gc_handhold(value_blank(UNKNOWN));");
+				if (alloc)
+				{
+					writer.WriteLine($"{GetVarName(ensure)} = gc_handhold(value_blank(UNKNOWN));");
+				}
 			}
 		}
 

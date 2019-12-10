@@ -575,10 +575,12 @@ void ensure_gc_init() {
 		struct Value* bool_true = value_blank(BOOLEAN);
 		bool* ptrtrue = terumi_alloc(sizeof(bool));
 		*ptrtrue = true;
+		bool_true->data = ptrtrue;
 
 		struct Value* bool_false = value_blank(BOOLEAN);
 		bool* ptrfalse = terumi_alloc(sizeof(bool));
 		*ptrfalse = false;
+		bool_false->data = ptrfalse;
 
 		struct Value* number_neg1 = value_blank(NUMBER);
 		struct Number* ptrneg1 = terumi_alloc(sizeof(struct Number));
@@ -587,17 +589,17 @@ void ensure_gc_init() {
 
 		struct Value* number_0 = value_blank(NUMBER);
 		struct Number* ptr0 = terumi_alloc(sizeof(struct Number));
-		ptrneg1->data = 0;
+		ptr0->data = 0;
 		number_0->data = ptr0;
 
 		struct Value* number_1 = value_blank(NUMBER);
 		struct Number* ptr1 = terumi_alloc(sizeof(struct Number));
-		ptrneg1->data = 1;
+		ptr1->data = 1;
 		number_1->data = ptr1;
 
 		struct Value* number_2 = value_blank(NUMBER);
 		struct Number* ptr2 = terumi_alloc(sizeof(struct Number));
-		ptrneg1->data = 2;
+		ptr2->data = 2;
 		number_2->data = ptr2;
 
 		// assigning values
@@ -655,7 +657,7 @@ void cleanup_value(struct Value* value) {
 			terumi_free(value);
 		} break;
 		case NUMBER: {
-			void* ptr = value->data;
+			void* ptr = value;
 			if (ptr == gc.cache.number_neg1
 				|| ptr == gc.cache.number_0
 				|| ptr == gc.cache.number_1
@@ -1083,6 +1085,20 @@ struct Object* object_blank() {
 	return object;
 }
 
+char* string_concat(char* a, char* b) {
+	ensure_gc_init();
+
+	size_t strlen_a = strlen(a);
+	size_t strlen_b = strlen(b);
+	size_t str_len = strlen_a + strlen_b + sizeof(char);
+	char* dst = terumi_alloc(str_len);
+	memcpy(dst, a, strlen_a);
+	memcpy(dst + strlen_a, b, strlen_b);
+	dst[strlen_a + strlen_b] = '\0';
+
+	return dst;
+}
+
 char* string_copy(char* source) {
 	ensure_gc_init();
 
@@ -1131,6 +1147,15 @@ void instruction_assign(struct Value* target, struct Value* source) {
 	}
 
 	if (target->type == source->type) {
+		// assigning two booleans doesn't need anything to be freed
+		if (source->type == BOOLEAN) {
+
+			// do explicit unwrapping & from boolean to ensure we don't
+			// overwrite any pointers or something stupid
+			target->data = value_from_boolean(value_unpack_boolean(source))->data;
+			return;
+		}
+
 		terumi_free(target->data);
 		target->data = value_copy(source);
 		return;
@@ -1148,7 +1173,7 @@ void instruction_assign(struct Value* target, struct Value* source) {
 					// sprintf should write a null terminator for us
 					char* str = string_copy(str_buffer);
 					target->data = str;
-				} break;
+				} return;
 				default: break;
 			}
 		} break;
@@ -1179,7 +1204,7 @@ void instruction_assign(struct Value* target, struct Value* source) {
 						print_err();
 						exit(IMPOSSIBLE);
 					}
-				} break;
+				} return;
 				default: break;
 			}
 		} break;
@@ -1197,14 +1222,22 @@ void instruction_assign(struct Value* target, struct Value* source) {
 
 void instruction_set_field(struct GCEntry* value, struct Value* object, size_t field_index) {
 	ensure_type(object, OBJECT);
-	struct Object* data = value->value->data;
+	struct Object* data = object->data;
 	data->fields[field_index].object_index = value->index;
 }
 
 struct GCEntry* instruction_get_field(struct Value* object, size_t field_index) {
 	ensure_type(object, OBJECT);
 	struct Object* data = object->data;
-	struct GCEntry* entry = voidptrarray_at(&gc.list.array, data->fields[field_index].object_index);
+	int32_t object_index = data->fields[field_index].object_index;
+
+	if (object_index == -1) {
+		printf("[ERR] unable to get field '%i' from object when field isn't initialized.\n");
+		print_err();
+		exit(IMPOSSIBLE);
+	}
+
+	struct GCEntry* entry = voidptrarray_at(&gc.list.array, object_index);
 	return entry;
 }
 
@@ -1320,7 +1353,16 @@ struct Value* cc_operator_greater_than_or_equal_to(struct Value* left, struct Va
 }
 
 struct Value* cc_operator_add(struct Value* left, struct Value* right) {
-	return value_from_number(number_add(value_unpack_number(left), value_unpack_number(right)));
+	if (left->type == STRING) {
+		ensure_type(right, STRING);
+
+		// concatenation
+		return value_from_string(string_concat(value_unpack_string(left), value_unpack_string(right)));
+	} else {
+
+		// actual addition
+		return value_from_number(number_add(value_unpack_number(left), value_unpack_number(right)));
+	}
 }
 
 struct Value* cc_operator_negate(struct Value* operand) {
@@ -1355,8 +1397,9 @@ int main(int argc, char** argv) {
 	// must be on the first level of indentation
 // <INJECT__RUN>
 
-	// politely kill gc
+	// cleanup all GC resources
 	for (int i = 0; i < gc.list.elements; i++) {
+		// mark every entry as dead that isn't dead
 		struct GCEntry* entry = voidptrarray_at(&gc.list.array, i);
 		entry->active = false;
 	}

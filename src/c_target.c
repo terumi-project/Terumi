@@ -961,11 +961,11 @@ bool terumi_free(void* data) {
 }
 #else
 void* terumi_alloc(size_t data) {
-	return terumi_alloc(data);
+	return terumi_alloc_raw(data);
 }
 
 bool terumi_free(void* data) {
-	return terumi_free(data);
+	return terumi_free_raw(data);
 }
 #endif
 
@@ -1279,11 +1279,11 @@ struct Value* cc_operator_not_equal_to(struct Value* left, struct Value* right) 
 }
 
 struct Value* cc_operator_less_than(struct Value* left, struct Value* right) {
-	return value_from_boolean(value_unpack_number(left) < value_unpack_number(right));
+	return value_from_boolean(value_unpack_number(left)->data < value_unpack_number(right)->data);
 }
 
 struct Value* cc_operator_greater_than(struct Value* left, struct Value* right) {
-	return value_from_boolean(value_unpack_number(left) > value_unpack_number(right));
+	return value_from_boolean(value_unpack_number(left)->data > value_unpack_number(right)->data);
 }
 
 struct Value* cc_operator_less_than_or_equal_to(struct Value* left, struct Value* right) {

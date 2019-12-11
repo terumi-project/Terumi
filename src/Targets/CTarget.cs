@@ -89,7 +89,7 @@ namespace Terumi.Targets
 
 					foreach (var method in methods)
 					{
-						if (method.Name.EndsWith("##main") && method.Parameters.Count == 0) run.Add(GetName(method.Id));
+						if (method.IsEntryPoint) run.Add(GetName(method.Id));
 						writer.WriteLine($"// {method.Name}");
 
 						Translate(writer, method);

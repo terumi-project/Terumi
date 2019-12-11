@@ -22,6 +22,8 @@ namespace Terumi.VarCode
 		public List<ObjectType> Parameters { get; }
 		public List<Instruction> Code { get; } = new List<Instruction>();
 		public ObjectType Returns { get; }
+
+		public bool IsEntryPoint => Name.EndsWith("##main") && Parameters.Count == 0;
 	}
 
 	public abstract class Instruction

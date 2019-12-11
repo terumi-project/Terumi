@@ -26,7 +26,7 @@ namespace Terumi
 
 	internal static class Program
 	{
-		public static bool Compile(ICompilerTarget target)
+		public static async Task<bool> Compile(ICompilerTarget target)
 		{
 			Log.Stage("SETUP", $"Loading project @'{Directory.GetCurrentDirectory()}'");
 			if (!Project.TryLoad(Directory.GetCurrentDirectory(), out var project))
@@ -56,6 +56,8 @@ namespace Terumi
 			var deobj = new Deobjectification.Deobjectifier(bindings, flattened, target);
 			var translated = deobj.Translate(out var objectFields);
 
+			var optimized = await VarCode.Optimization.PruneMethods.UsedMethods(translated);
+
 			Log.Stage("WRITING", "Writing code to output.");
 
 			var bin = $"{Directory.GetCurrentDirectory()}/bin";
@@ -72,7 +74,7 @@ namespace Terumi
 
 			// tabs <3
 			using var indentedWriter = new IndentedTextWriter(sw, "\t");
-			target.Write(indentedWriter, translated, objectFields);
+			target.Write(indentedWriter, optimized, objectFields);
 
 			Log.StageEnd();
 
@@ -128,8 +130,8 @@ namespace Terumi
 			installCommand.Handler = CommandHandler.Create<string, string>(InstallProject);
 
 #if false && DEBUG
-			Directory.SetCurrentDirectory("testing_project");
-			Compile(new CTarget());
+			Directory.SetCurrentDirectory("test");
+			return Compile(new CTarget()).ContinueWith(t => Task<int>.FromResult(0)).GetAwaiter().GetResult();
 			return Task<int>.FromResult(0);
 			// return rootCommand.InvokeAsync(new string[] { "compile", "-t", "c" });
 #else

@@ -67,9 +67,6 @@ namespace Terumi.Targets
 
 		public void Write(IndentedTextWriter writer, List<VarCode.Method> methods)
 		{
-			int id = 0;
-			foreach (var method in methods) method.Id = id++;
-
 			writer.WriteLine($"$global:_gc = 0");
 
 			foreach (var method in methods)
@@ -77,7 +74,7 @@ namespace Terumi.Targets
 				writer.WriteLine();
 				writer.Write($"function {GetName(method.Id)}");
 
-				if (method.Name.EndsWith("##main") && method.Parameters.Count == 0) _run.Add(GetName(method.Id));
+				if (method.IsEntryPoint) _run.Add(GetName(method.Id));
 
 				if (method.Parameters.Count > 0)
 				{

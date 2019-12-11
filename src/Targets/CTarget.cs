@@ -133,7 +133,24 @@ namespace Terumi.Targets
 
 			writer.WriteLine($"TRACE(\"{GetName(method.Id)}\");");
 			_hacky_workaround_method = method;
-			Translate(writer, new List<int>(), method.Code);
+
+			var decl = new List<int>();
+			var pcalls = new List<int>();
+			Translate(writer, decl, pcalls, method.Code);
+
+			// when we return from a method we must mark everything
+			// that was created as not active so the GC can free it
+			foreach (var variable in decl)
+			{
+				writer.WriteLine($"{GetVarName(variable)}->active = false;");
+			}
+
+			// anything passed in as a parameter should remain active
+			foreach (var p in pcalls)
+			{
+				writer.WriteLine($"{GetVarName(p)}->active = true;");
+			}
+
 			writer.WriteLine($"TRACE_EXIT(\"{GetName(method.Id)}\");");
 
 			writer.Indent--;
@@ -142,7 +159,7 @@ namespace Terumi.Targets
 		}
 
 		private VarCode.Method _hacky_workaround_method;
-		public void Translate(IndentedTextWriter writer, List<int> decl, List<VarCode.Instruction> instruction)
+		public void Translate(IndentedTextWriter writer, List<int> decl, List<int> pcalls, List<VarCode.Instruction> instruction)
 		{
 			int index = 0;
 			foreach (var i in instruction)
@@ -168,6 +185,7 @@ namespace Terumi.Targets
 
 					case VarCode.Instruction.Load.Parameter o:
 						EnsureVarExists(o.Store);
+						pcalls.Add(o.Store);
 						writer.WriteLine($"{GetVarName(o.Store)} = parameters[{o.ParameterNumber}];");
 						break;
 
@@ -200,8 +218,6 @@ namespace Terumi.Targets
 
 					case VarCode.Instruction.CompilerCall o:
 					{
-						// TODO: support +1 args
-						// TODO: support return types
 						if (o.CompilerMethod == null)
 						{
 							writer.WriteLine($"cc_panic(\"couldn't find a matching compiler call.\");");
@@ -257,6 +273,19 @@ namespace Terumi.Targets
 
 					case VarCode.Instruction.Return o:
 					{
+						// when we return from a method we must mark everything
+						// that was created as not active so the GC can free it
+						foreach (var variable in decl)
+						{
+							writer.WriteLine($"{GetVarName(variable)}->active = false;");
+						}
+
+						// anything passed in as a parameter should remain active
+						foreach (var p in pcalls)
+						{
+							writer.WriteLine($"{GetVarName(p)}->active = true;");
+						}
+
 						writer.WriteLine($"TRACE_EXIT(\"{GetName(_hacky_workaround_method.Id)}\");");
 
 						if (o.ValueId == -1)
@@ -264,6 +293,7 @@ namespace Terumi.Targets
 							writer.WriteLine("return;");
 						}
 
+						writer.WriteLine($"{GetVarName(o.ValueId)}->active = true;");
 						writer.WriteLine($"return {GetVarName(o.ValueId)};");
 					}
 					break;
@@ -273,9 +303,23 @@ namespace Terumi.Targets
 						writer.WriteLine($"if (value_unpack_boolean({GetVarName(o.Variable)}->value)) {{");
 						writer.Indent++;
 
-						var declBackup = decl.ToArray();
-						Translate(writer, decl, o.Clause);
-						decl = new List<int>(declBackup);
+						var childDecl = new List<int>(decl);
+						var pcalls2 = new List<int>();
+						Translate(writer, childDecl, pcalls2, o.Clause);
+
+						// foreach declaration that isn't in the parent scope,
+						// we need to mark that GCEntry as not active so the GC
+						// can free it
+						foreach (var variable in childDecl.Where(x => !decl.Contains(x)))
+						{
+							writer.WriteLine($"{GetVarName(variable)}->active = false;");
+						}
+
+						// anything passed in as a parameter should remain active
+						foreach (var p in pcalls2)
+						{
+							writer.WriteLine($"{GetVarName(p)}->active = true;");
+						}
 
 						writer.Indent--;
 						writer.WriteLine('}');
@@ -287,9 +331,23 @@ namespace Terumi.Targets
 						writer.WriteLine($"while (value_unpack_boolean({GetVarName(o.Comparison)}->value)) {{");
 						writer.Indent++;
 
-						var declBackup = decl.ToArray();
-						Translate(writer, decl, o.Clause);
-						decl = new List<int>(declBackup);
+						var childDecl = new List<int>(decl);
+						var pcalls2 = new List<int>();
+						Translate(writer, childDecl, pcalls2, o.Clause);
+
+						// foreach declaration that isn't in the parent scope,
+						// we need to mark that GCEntry as not active so the GC
+						// can free it
+						foreach (var variable in childDecl.Where(x => !decl.Contains(x)))
+						{
+							writer.WriteLine($"{GetVarName(variable)}->active = false;");
+						}
+
+						// anything passed in as a parameter should remain active
+						foreach (var p in pcalls2)
+						{
+							writer.WriteLine($"{GetVarName(p)}->active = true;");
+						}
 
 						writer.Indent--;
 						writer.WriteLine('}');

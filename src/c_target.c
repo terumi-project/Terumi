@@ -193,12 +193,8 @@ struct Number {
 // Caches multiple Values that are typically used everywhere. This currently
 // only caches the booleans TRUE, FALSE, and the numbers -1, 0, 1, and 2.
 struct ValueCache {
-	struct Value* bool_true;
-	struct Value* bool_false;
-	struct Value* number_neg1;
-	struct Value* number_0;
-	struct Value* number_1;
-	struct Value* number_2;
+	bool* true_ptr;
+	bool* false_ptr;
 };
 
 // An instance of the GC. Maintains all GC-related data.
@@ -377,33 +373,28 @@ void voidptrarray_regrow(struct VoidPtrArray* data, size_t new_size, size_t old_
 }
 
 void* voidptrarray_at(struct VoidPtrArray* data, size_t index) {
-	TRACE("voidptrarray_at");
 #ifdef DEBUG
 	if (index >= data->length) {
 		printf("[WARN] OUT OF BOUNDS ACCESS ON VOID POINTER ARRAY: accesing '%zu' of length '%zu'\n", index, data->length);
 	}
 #endif
 	void* voidptr = data->data[index];
-	TRACE_EXIT("voidptrarray_at");
 	return voidptr;
 }
 
 void voidptrarray_set(struct VoidPtrArray* data, size_t index, void* value) {
-	TRACE("voidptrarray_set");
 #ifdef DEBUG
 	if (index >= data->length) {
 		printf("[WARN] OUT OF BOUNDS ACCESS ON VOID POINTER ARRAY: accesing '%zu' of length '%zu'\n", index, data->length);
 	}
 #endif
 	data->data[index] = value;
-	TRACE_EXIT("voidptrarray_set");
 }
 #pragma endregion
 
 #pragma region List
 
 size_t list_add(struct List* list, void* item) {
-	TRACE("list_add");
 	// if the list has reached maximum capacity
 	if (list->elements >= list->capacity) {
 
@@ -416,7 +407,6 @@ size_t list_add(struct List* list, void* item) {
 	// insert the item into the array
 	size_t index = list->elements++;
 	voidptrarray_set(&list->array, index, item);
-	TRACE_EXIT("list_add");
 	return index;
 }
 
@@ -436,7 +426,6 @@ struct List* list_new(size_t initial_capacity) {
 
 #pragma region Value
 void ensure_type(struct Value* value, enum ObjectType must_be) {
-	TRACE("ensure_type");
 	if (value->type != must_be) {
 		printf(
 			"[ERR] couldn't ensure value of type '%s', value was type '%s'\n",
@@ -447,11 +436,9 @@ void ensure_type(struct Value* value, enum ObjectType must_be) {
 		print_err();
 		exit(TOO_DYNAMIC);
 	}
-	TRACE_EXIT("ensure_type");
 }
 
 void ensure_not_type(struct Value* value, enum ObjectType mustnt_be) {
-	TRACE("ensure_not_type");
 	if (value->type == mustnt_be) {
 		printf(
 			"[ERR] value of type '%s', isn't allowed. type musn't be '%s'\n",
@@ -462,50 +449,37 @@ void ensure_not_type(struct Value* value, enum ObjectType mustnt_be) {
 		print_err();
 		exit(TOO_DYNAMIC);
 	}
-	TRACE_EXIT("ensure_not_type");
 }
 
 struct Value* value_blank(enum ObjectType type) {
-	TRACE("value_blank");
 	struct Value* value = terumi_alloc(sizeof(struct Value));
 	value->type = type;
-	TRACE_EXIT("value_blank");
 	return value;
 }
 
 struct Value* value_from_string(char* string) {
-	TRACE("value_from_string");
 	struct Value* value = value_blank(STRING);
 	value->data = string;
-	TRACE_EXIT("value_from_string");
 	return value;
 }
 
-// Guarenteed to use cached values from the GC.
 struct Value* value_from_boolean(bool state) {
 	ensure_gc_init();
+	struct Value* v = value_blank(BOOLEAN);
 
 	if (state) {
-		return gc.cache.bool_true;
+		v->data = gc.cache.true_ptr;
 	} else {
-		return gc.cache.bool_false;
+		v->data = gc.cache.false_ptr;
 	}
+
+	return v;
 }
 
-// May use cached values from the GC.
 struct Value* value_from_number(struct Number* number) {
-	switch (number->data) {
-		case -1: ensure_gc_init(); return gc.cache.number_neg1;
-		case 0: ensure_gc_init(); return gc.cache.number_0;
-		case 1: ensure_gc_init(); return gc.cache.number_1;
-		case 2: ensure_gc_init(); return gc.cache.number_2;
-		default: {
-			// this number isn't cacheable, we have to create a value
-			struct Value* value = value_blank(NUMBER);
-			value->data = number;
-			return value;
-		}
-	}
+	struct Value* value = value_blank(NUMBER);
+	value->data = number;
+	return value;
 }
 
 struct Value* value_from_object(struct Object* object) {
@@ -518,12 +492,11 @@ void* value_copy(struct Value* source) {
 	ensure_gc_init();
 
 	switch (source->type) {
-		// booleans are cached
 		case BOOLEAN: return source->data;
 		// these will automatically return cached values if necessary
-		case NUMBER: return number_from_int(((struct Number*)(source->data))->data);
+		case NUMBER: return number_from_int(value_unpack_number(source)->data);
 		// make a copy of the string
-		case STRING: return string_copy((char*)(source->data));
+		case STRING: return string_copy(value_unpack_string(source));
 		// makes a copy of the object
 		case OBJECT: {
 			struct Object* source_object = source->data;
@@ -567,59 +540,28 @@ struct Object* value_unpack_object(struct Value* value) {
 
 #pragma region GC
 void ensure_gc_init() {
-	TRACE("ensure_gc_init");
 	if (!gc_init) {
-		gc.list = *list_new(102400);
-		gc.threshold = 102400;
+		gc.list = *list_new(4096000);
+		gc.threshold = 4096;
 
-		struct Value* bool_true = value_blank(BOOLEAN);
 		bool* ptrtrue = terumi_alloc(sizeof(bool));
 		*ptrtrue = true;
-		bool_true->data = ptrtrue;
 
-		struct Value* bool_false = value_blank(BOOLEAN);
 		bool* ptrfalse = terumi_alloc(sizeof(bool));
 		*ptrfalse = false;
-		bool_false->data = ptrfalse;
-
-		struct Value* number_neg1 = value_blank(NUMBER);
-		struct Number* ptrneg1 = terumi_alloc(sizeof(struct Number));
-		ptrneg1->data = -1;
-		number_neg1->data = ptrneg1;
-
-		struct Value* number_0 = value_blank(NUMBER);
-		struct Number* ptr0 = terumi_alloc(sizeof(struct Number));
-		ptr0->data = 0;
-		number_0->data = ptr0;
-
-		struct Value* number_1 = value_blank(NUMBER);
-		struct Number* ptr1 = terumi_alloc(sizeof(struct Number));
-		ptr1->data = 1;
-		number_1->data = ptr1;
-
-		struct Value* number_2 = value_blank(NUMBER);
-		struct Number* ptr2 = terumi_alloc(sizeof(struct Number));
-		ptr2->data = 2;
-		number_2->data = ptr2;
 
 		// assigning values
 
 		gc.cache = (struct ValueCache){
-			.bool_true = bool_true,
-			.bool_false = bool_false,
-			.number_neg1 = number_neg1,
-			.number_0 = number_0,
-			.number_1 = number_1,
-			.number_2 = number_2
+			.true_ptr = ptrtrue,
+			.false_ptr = ptrfalse,
 		};
 
 		gc_init = true;
 	}
-	TRACE_EXIT("ensure_gc_init");
 }
 
 errno_t maybe_run_gc() {
-	TRACE("maybe_run_gc");
 	ensure_gc_init();
 	errno_t result = should_run_gc() ? run_gc() : -1;
 
@@ -636,7 +578,6 @@ errno_t maybe_run_gc() {
 		// gc.threshold *= 2;
 	}
 
-	TRACE_EXIT("maybe_run_gc");
 	return result;
 }
 
@@ -649,7 +590,8 @@ void cleanup_value(struct Value* value) {
 			printf("[WARN] attempting to free UNKNOWN value. please report this bug.");
 		} break;
 		case BOOLEAN: {
-			// don't free booleans
+			// don't free the pointer to the data for a boolean
+			terumi_free(value);
 		} break;
 		case STRING: {
 			// all strings should be allocated with terumi
@@ -657,17 +599,9 @@ void cleanup_value(struct Value* value) {
 			terumi_free(value);
 		} break;
 		case NUMBER: {
-			void* ptr = value;
-			if (ptr == gc.cache.number_neg1
-				|| ptr == gc.cache.number_0
-				|| ptr == gc.cache.number_1
-				|| ptr == gc.cache.number_2) {
-				// don't free it
-			} else {
-				// free the Number
-				terumi_free(value->data);
-				terumi_free(value);
-			}
+			// free the Number & value
+			terumi_free(value->data);
+			terumi_free(value);
 		} break;
 		case OBJECT: {
 			terumi_free(value->data);
@@ -678,10 +612,8 @@ void cleanup_value(struct Value* value) {
 }
 
 bool should_run_gc() {
-	TRACE("should_run_gc");
 	ensure_gc_init();
 	bool should = gc.list.elements >= gc.threshold;
-	TRACE_EXIT("should_run_gc");
 	return should;
 }
 
@@ -731,23 +663,32 @@ void swap_gc(size_t from, size_t to) {
 	TRACE("swap_gc");
 
 	// move the item from 'from' to 'to'
-	struct GCEntry* at = voidptrarray_at(&gc.list.array, from);
-	at->index = to;
-	voidptrarray_set(&gc.list.array, from, NULL);
-	voidptrarray_set(&gc.list.array, to, at);
+	struct GCEntry* at_from = voidptrarray_at(&gc.list.array, from);
+	at_from->index = to;
+
+	struct GCEntry* at_to = voidptrarray_at(&gc.list.array, to);
+	at_to->index = from;
+
+	voidptrarray_set(&gc.list.array, to, at_from);
+	voidptrarray_set(&gc.list.array, from, at_to);
 
 	// update all references in the GC
 	for (size_t i = 0; i < gc.list.elements; i++) {
 		struct GCEntry* datai = voidptrarray_at(&gc.list.array, i);
-		if (!datai->alive) continue;
+
+		if (!(datai->alive)) continue;
+		if (datai->value->type != OBJECT) continue;
 
 		struct Object* obj = datai->value->data;
 		for (size_t j = 0; j < GC_OBJECT_FIELDS; j++) {
-			if (obj->fields[j].object_index == from) {
+			int32_t index = obj->fields[j].object_index;
+
+			if (index == from) {
 				obj->fields[j].object_index = to;
+			} else if (index == to) {
+				obj->fields[j].object_index = from;
 			}
 		}
-		if (datai->value->type != OBJECT) continue;
 	}
 	TRACE_EXIT("swap_gc");
 }
@@ -756,7 +697,7 @@ void compact_gc() {
 	TRACE("compact_gc");
 	int begin = 0;
 	int end = gc.list.elements - 1;
-	int last_end = gc.list.elements + 1;
+	bool was_swap = false;
 
 	// to compact the GC, we'll swap alive items from the back to dead spaces
 	// in the front.
@@ -789,23 +730,34 @@ void compact_gc() {
 		if (begin >= end) break;
 
 		swap_gc(end, begin);
-		last_end = end;
+		was_swap = true;
 	}
 
-	if (end != -1 && begin >= end) {
+	// nothing is to be compacted
+	if (!was_swap) {
 		TRACE_EXIT("compact_gc");
 		return;
 	}
 
-	// free all dead elements and resize list
-	// if there were no alive elements, free the entire list
-	if (end == -1) last_end = 0;
-
-	for (size_t i = last_end; i < gc.list.elements; i++) {
+	// find the first dead element from the beginning
+	size_t dead_index = 0;
+	for (size_t i = 0; i < gc.list.elements; i++) {
 		struct GCEntry* entry = voidptrarray_at(&gc.list.array, i);
-		terumi_free_warn(entry);
+
+		if (entry->alive) continue;
+		dead_index = i;
+		break;
 	}
-	gc.list.elements = last_end;
+
+	// now that dead index is the index of the first dead item,
+	// free everything starting at it up until the end
+
+	for (size_t i = dead_index; i < gc.list.elements; i++) {
+		struct GCEntry* entry = voidptrarray_at(&gc.list.array, i);
+		terumi_free(entry);
+	}
+
+	gc.list.elements = dead_index;
 
 	TRACE_EXIT("compact_gc");
 }
@@ -841,13 +793,16 @@ size_t run_gc() {
 		compact_gc();
 	}
 
+#ifdef DEBUG
+	printf("[GC] cleaned %zu objects.\n", cleaned);
+#endif
+
 	terumi_free_warn(referenced);
 	TRACE_EXIT("run_gc");
 	return cleaned;
 }
 
 struct GCEntry* gc_handhold(struct Value* value) {
-	TRACE("gc_handhold");
 	ensure_gc_init();
 
 	struct GCEntry* entry = terumi_alloc(sizeof(struct GCEntry));
@@ -855,7 +810,7 @@ struct GCEntry* gc_handhold(struct Value* value) {
 	entry->active = true;
 	entry->value = value;
 	entry->index = list_add(&gc.list, entry);
-	TRACE_EXIT("gc_handhold");
+	maybe_run_gc();
 	return entry;
 }
 #pragma endregion
@@ -904,7 +859,6 @@ void ensure_memory_init() {
 // same memory twice. in release mode, we don't have this.
 
 void* terumi_alloc_raw(size_t data) {
-	TRACE("terumi_alloc");
 	ensure_memory_init();
 
 	if (memory.page_size < data) {
@@ -917,7 +871,6 @@ void* terumi_alloc_raw(size_t data) {
 		page->rented = 1;
 		page->used = data;
 		void* page_data = page->data;
-		TRACE_EXIT("terumi_alloc");
 		return page_data;
 	}
 
@@ -931,7 +884,6 @@ void* terumi_alloc_raw(size_t data) {
 			page->used = data;
 			page->rented = 1;
 			void* page_data = page->data;
-			TRACE_EXIT("terumi_alloc");
 			return page_data;
 		}
 
@@ -940,7 +892,6 @@ void* terumi_alloc_raw(size_t data) {
 			void* voidptr = page->data + page->used;
 			page->used += data;
 			page->rented++;
-			TRACE_EXIT("terumi_alloc");
 			return voidptr;
 		}
 	}
@@ -954,15 +905,12 @@ void* terumi_alloc_raw(size_t data) {
 	page->used = data;
 	page->rented = 1;
 	void* page_data = page->data;
-	TRACE_EXIT("terumi_alloc");
 	return page_data;
 }
 
 bool terumi_free_raw(void* data) {
-	TRACE("terumi_free");
 
 	if (data == NULL) {
-		TRACE_EXIT("terumi_free");
 		return true;
 	}
 
@@ -982,12 +930,10 @@ bool terumi_free_raw(void* data) {
 				printf("[WARN] page->rented < 0");
 			}
 #endif
-			TRACE_EXIT("terumi_free");
 			return true;
 		}
 	}
 
-	TRACE_EXIT("terumi_free");
 	return false;
 }
 
@@ -1034,17 +980,9 @@ void terumi_free_warn(void* x) {
 
 #pragma region Number
 struct Number* number_from_int(int32_t integer) {
-	switch (integer) {
-		case -1: return gc.cache.number_neg1->data;
-		case 0: return gc.cache.number_0->data;
-		case 1: return gc.cache.number_1->data;
-		case 2: return gc.cache.number_2->data;
-		default: {
-			struct Number* number = terumi_alloc(sizeof(struct Number));
-			number->data = integer;
-			return number;
-		} break;
-	}
+	struct Number* number = terumi_alloc(sizeof(struct Number));
+	number->data = integer;
+	return number;
 }
 
 struct Number* number_add(struct Number* left, struct Number* right) {
@@ -1150,9 +1088,12 @@ void instruction_assign(struct Value* target, struct Value* source) {
 		// assigning two booleans doesn't need anything to be freed
 		if (source->type == BOOLEAN) {
 
-			// do explicit unwrapping & from boolean to ensure we don't
-			// overwrite any pointers or something stupid
-			target->data = value_from_boolean(value_unpack_boolean(source))->data;
+			if (value_unpack_boolean(source) == true) {
+				target->data = gc.cache.true_ptr;
+			} else {
+				target->data = gc.cache.false_ptr;
+			}
+
 			return;
 		}
 
@@ -1242,6 +1183,7 @@ struct GCEntry* instruction_get_field(struct Value* object, size_t field_index) 
 }
 
 struct Value* instruction_new() {
+	maybe_run_gc();
 	return value_from_object(object_blank());
 }
 
@@ -1406,7 +1348,7 @@ int main(int argc, char** argv) {
 
 	size_t cleared = run_gc();
 #ifdef DEBUG
-	printf("[DEBUG] terumi program ended: collected %zu objects. %zu objects alive.", cleared, gc.list.elements);
+	printf("[GC] program ended: collected %zu objects. %zu objects alive.", cleared, gc.list.elements);
 #endif
 
 	// free all pages

@@ -9,15 +9,18 @@ namespace Terumi.VarCode.Optimization
 	{
 		public static async ValueTask Optimize(List<Method> oldMethods, int fieldCount)
 		{
-			bool passAgain = false;
-
 			var methods = await PruneMethods.UsedMethods(oldMethods).ConfigureAwait(false);
-			passAgain = passAgain || methods.Count < oldMethods.Count;
+			var passAgain = methods.Count < oldMethods.Count;
 
 			// TODO: parallelize?
 			foreach (var method in methods)
 			{
-				passAgain = passAgain || PeelObjects.Peel(method, fieldCount);
+				passAgain = PeelObjects.Peel(method, fieldCount) || passAgain;
+			}
+
+			foreach (var method in methods)
+			{
+				passAgain = PeelParameters.Peel(method) || passAgain;
 			}
 
 			if (passAgain)

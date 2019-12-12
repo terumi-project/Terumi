@@ -112,7 +112,7 @@ namespace Terumi.VarCode
 				}
 
 				public int Store { get; }
-				public int ParameterNumber { get; }
+				public int ParameterNumber { get; internal set; }
 
 				public override string ToString() => $"Load.Parameter(store: {Store}, parameterNumber: {ParameterNumber})";
 			}

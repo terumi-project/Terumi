@@ -39,7 +39,7 @@ namespace Terumi.VarCode.Optimization
 	/// </summary>
 	public class PeelParameters
 	{
-		public static bool Peel(Method method)
+		public static bool Peel(Method method, List<Method> allMethods)
 		{
 			var used = new List<int>();
 			Find(method.Code, used);
@@ -62,7 +62,7 @@ namespace Terumi.VarCode.Optimization
 
 			Replace(method.Code, map);
 
-			for (int i = used.Count - 1; i >= 0; i--)
+			for (int i = method.Parameters.Count - 1; i >= 0; i--)
 			{
 				if (!used.Contains(i))
 				{

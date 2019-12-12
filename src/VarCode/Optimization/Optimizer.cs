@@ -20,7 +20,12 @@ namespace Terumi.VarCode.Optimization
 
 			foreach (var method in methods)
 			{
-				passAgain = PeelParameters.Peel(method) || passAgain;
+				passAgain = PeelParameters.Peel(method, methods) || passAgain;
+			}
+
+			foreach (var method in methods)
+			{
+				passAgain = ParameterLoadInlining.Peel(method) || passAgain;
 			}
 
 			if (passAgain)

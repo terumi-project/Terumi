@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -7,6 +8,30 @@ namespace Terumi
 {
 	public static class MiscExtensions
 	{
+		public static int MaybeMax<T>(this IEnumerable<T> enumerable, Func<T, int> converter)
+			=> enumerable.Select(converter).MaybeMax();
+
+		public static int MaybeMax(this IEnumerable<int> enumerable)
+		{
+			bool wereElements = false;
+			int total = 0;
+
+			using var enumerator = enumerable.GetEnumerator();
+
+			while (enumerator.MoveNext())
+			{
+				wereElements = true;
+				total += enumerator.Current;
+			}
+
+			if (!wereElements)
+			{
+				return -1;
+			}
+
+			return total;
+		}
+
 		public static bool Any<T>(this IEnumerable<T> enumerable, Predicate<T> predicate, out T result)
 		{
 			foreach (var item in enumerable)

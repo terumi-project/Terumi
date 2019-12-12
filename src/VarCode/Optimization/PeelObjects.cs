@@ -96,6 +96,7 @@ namespace Terumi.VarCode.Optimization
 			{
 				Root = root;
 				New = @new;
+				Ripe = true;
 			}
 
 			private List<List<int>> _aliasScopes = new List<List<int>>();

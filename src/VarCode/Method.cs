@@ -44,11 +44,11 @@ namespace Terumi.VarCode
 				case Instruction.GetField o: return Math.Max(o.VariableId, o.StoreId);
 				case Instruction.SetField o: return Math.Max(o.VariableId, o.ValueId);
 
-				case Instruction.Call o: return Math.Max(o.Store, o.Arguments.Max());
-				case Instruction.CompilerCall o: return Math.Max(o.Store, o.Arguments.Max());
+				case Instruction.Call o: return Math.Max(o.Store, o.Arguments.MaybeMax());
+				case Instruction.CompilerCall o: return Math.Max(o.Store, o.Arguments.MaybeMax());
 
-				case Instruction.If o: return Math.Max(o.Variable, o.Clause.Max(GetHighestId));
-				case Instruction.While o: return Math.Max(o.Comparison, o.Clause.Max(GetHighestId));
+				case Instruction.If o: return Math.Max(o.Variable, o.Clause.MaybeMax(GetHighestId));
+				case Instruction.While o: return Math.Max(o.Comparison, o.Clause.MaybeMax(GetHighestId));
 			}
 
 			throw new InvalidOperationException();
@@ -143,7 +143,7 @@ namespace Terumi.VarCode
 
 			public int Store { get; }
 			public Method Method { get; }
-			public List<int> Arguments { get; }
+			public List<int> Arguments { get; internal set;}
 
 			public override string ToString() => $"Call(store: {Store}, method: '{Method.Name}', arguments: <IM LAZY>)";
 		}

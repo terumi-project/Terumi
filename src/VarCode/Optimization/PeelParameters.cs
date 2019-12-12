@@ -70,6 +70,11 @@ namespace Terumi.VarCode.Optimization
 				}
 			}
 
+			foreach (var m in allMethods)
+			{
+				ReplaceCallers(m.Code, method, used);
+			}
+
 			return true;
 		}
 
@@ -124,6 +129,44 @@ namespace Terumi.VarCode.Optimization
 					case Instruction.While o:
 					{
 						Replace(o.Clause, map);
+					}
+					break;
+				}
+			}
+		}
+
+		// we assume we've just shifted down the parameters, not remapped them
+		private static void ReplaceCallers(List<Instruction> instructions, Method search, List<int> stillInUse)
+		{
+			foreach (var i in instructions)
+			{
+				switch (i)
+				{
+					case Instruction.Call o when o.Method == search:
+					{
+						var newArgs = new List<int>();
+
+						for (var j = 0; j < o.Arguments.Count; j++)
+						{
+							if (stillInUse.Contains(j))
+							{
+								newArgs.Add(o.Arguments[j]);
+							}
+						}
+
+						o.Arguments = newArgs;
+					}
+					break;
+
+					case Instruction.If o:
+					{
+						ReplaceCallers(o.Clause, search, stillInUse);
+					}
+					break;
+
+					case Instruction.While o:
+					{
+						ReplaceCallers(o.Clause, search, stillInUse);
 					}
 					break;
 				}

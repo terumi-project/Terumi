@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Terumi.VarCode
@@ -24,6 +25,34 @@ namespace Terumi.VarCode
 		public ObjectType Returns { get; }
 
 		public bool IsEntryPoint => Name.EndsWith("##main") && Parameters.Count == 0;
+	}
+
+	public static class InstrExctsnsnsnsndasidnioasdioasinjADSJIODSAJIODIJOSA
+	{
+		public static int GetHighestId(this Instruction instruction)
+		{
+			switch (instruction)
+			{
+				case Instruction.New o: return o.StoreId;
+				case Instruction.Return o: return o.ValueId;
+				case Instruction.Load.String o: return o.Store;
+				case Instruction.Load.Number o: return o.Store;
+				case Instruction.Load.Boolean o: return o.Store;
+				case Instruction.Load.Parameter o: return o.Store;
+
+				case Instruction.Assign o: return Math.Max(o.Store, o.Value);
+				case Instruction.GetField o: return Math.Max(o.VariableId, o.StoreId);
+				case Instruction.SetField o: return Math.Max(o.VariableId, o.ValueId);
+
+				case Instruction.Call o: return Math.Max(o.Store, o.Arguments.Max());
+				case Instruction.CompilerCall o: return Math.Max(o.Store, o.Arguments.Max());
+
+				case Instruction.If o: return Math.Max(o.Variable, o.Clause.Max(GetHighestId));
+				case Instruction.While o: return Math.Max(o., o.Clause.Max(GetHighestId));
+			}
+
+			throw new InvalidOperationException();
+		}
 	}
 
 	public abstract class Instruction

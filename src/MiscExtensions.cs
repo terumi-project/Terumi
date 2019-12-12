@@ -7,6 +7,21 @@ namespace Terumi
 {
 	public static class MiscExtensions
 	{
+		public static bool Any<T>(this IEnumerable<T> enumerable, Predicate<T> predicate, out T result)
+		{
+			foreach (var item in enumerable)
+			{
+				if (predicate(item))
+				{
+					result = item;
+					return true;
+				}
+			}
+
+			result = default;
+			return false;
+		}
+
 		public static IEnumerable<string> ExcludeLast(this IEnumerable<string> array)
 		{
 			using var enumerator = array.GetEnumerator();

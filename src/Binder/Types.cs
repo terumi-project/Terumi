@@ -211,6 +211,8 @@ namespace Terumi.Binder
 		string Name { get; }
 
 		List<MethodParameter> Parameters { get; }
+
+		bool IsConstructor => Name == "ctor";
 	}
 
 	public class CompilerMethod : IMethod
@@ -263,6 +265,8 @@ namespace Terumi.Binder
 		public string Name { get; }
 		public List<MethodParameter> Parameters { get; set; } = new List<MethodParameter>();
 		public CodeBody Body { get; set; }
+
+		public bool IsConstructor => Name == "ctor";
 	}
 
 	public class MethodParameter

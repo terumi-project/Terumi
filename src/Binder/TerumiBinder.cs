@@ -142,6 +142,12 @@ namespace Terumi.Binder
 
 		internal bool CanUseTypeAsType(IType supposeToBe, IType tryingToUse)
 		{
+			bool result = TypeSimilarity.MayBeUsedAs(supposeToBe, tryingToUse);
+			return result;
+
+			// TODO: delete code
+			// may be necessary...?
+
 			// make sure they're not builtin types
 			// if they're built in types they're not replaceable
 			if (BuiltinType.IsBuiltinType(supposeToBe) || BuiltinType.IsBuiltinType(tryingToUse))
@@ -320,7 +326,7 @@ namespace Terumi.Binder
 
 				for (var i = 0; i < method.Parameters.Count; i++)
 				{
-					if (method.Parameters[i].Type != arguments[i].Type) goto fail;
+					if (!CanUseTypeAsType(method.Parameters[i].Type, arguments[i].Type)) goto fail;
 				}
 
 				targetMethod = method;

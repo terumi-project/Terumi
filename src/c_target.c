@@ -735,6 +735,17 @@ void compact_gc() {
 
 	// nothing is to be compacted
 	if (!was_swap) {
+
+		// set end of list to first dead object
+		for (size_t i = 0; i < gc.list.elements; i++) {
+			struct GCEntry* entry = voidptrarray_at(&gc.list.array, i);
+
+			if (entry->alive) continue;
+
+			gc.list.elements = i;
+			break;
+		}
+
 		TRACE_EXIT("compact_gc");
 		return;
 	}
@@ -1346,9 +1357,10 @@ int main(int argc, char** argv) {
 		entry->active = false;
 	}
 
+	size_t all_alive = gc.list.elements;
 	size_t cleared = run_gc();
 #ifdef DEBUG
-	printf("[GC] program ended: collected %zu objects. %zu objects alive.", cleared, gc.list.elements);
+	printf("[GC] program ended; collected %zu/%zu objects; %zu objects still alive.", cleared, all_alive, gc.list.elements);
 #endif
 
 	// free all pages

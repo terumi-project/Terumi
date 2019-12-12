@@ -56,7 +56,9 @@ namespace Terumi
 			var deobj = new Deobjectification.Deobjectifier(bindings, flattened, target);
 			var translated = deobj.Translate(out var objectFields);
 
-			var optimized = VarCode.Optimization.PruneMethods.UsedMethods(translated).GetAwaiter().GetResult();
+			// TODO: async
+			// for now it's easier to debug without async
+			VarCode.Optimization.Optimizer.Optimize(translated, objectFields).GetAwaiter().GetResult();
 
 			Log.Stage("WRITING", "Writing code to output.");
 
@@ -74,7 +76,7 @@ namespace Terumi
 
 			// tabs <3
 			using var indentedWriter = new IndentedTextWriter(sw, "\t");
-			target.Write(indentedWriter, optimized, objectFields);
+			target.Write(indentedWriter, translated, objectFields);
 
 			Log.StageEnd();
 

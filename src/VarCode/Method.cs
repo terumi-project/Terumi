@@ -48,7 +48,7 @@ namespace Terumi.VarCode
 				case Instruction.CompilerCall o: return Math.Max(o.Store, o.Arguments.Max());
 
 				case Instruction.If o: return Math.Max(o.Variable, o.Clause.Max(GetHighestId));
-				case Instruction.While o: return Math.Max(o., o.Clause.Max(GetHighestId));
+				case Instruction.While o: return Math.Max(o.Comparison, o.Clause.Max(GetHighestId));
 			}
 
 			throw new InvalidOperationException();

@@ -221,6 +221,18 @@ namespace Terumi.VarCode.Optimization
 						}
 					}
 					break;
+
+					case Instruction.If o:
+					{
+						Peel(o.Clause, ref highest);
+					}
+					break;
+
+					case Instruction.While o:
+					{
+						Peel(o.Clause, ref highest);
+					}
+					break;
 				}
 			}
 

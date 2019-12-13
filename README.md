@@ -1,29 +1,29 @@
-[![Discord Server](https://img.shields.io/discord/652702761665691658?label=Discord&style=flat-square)](https://discord.gg/NpDXYev)
-
 # FULL DISCLAIMER
 **TERUMI IS CURRENTLY PRE-ALPHA. THIS MEANS THAT I RESERVE THE EXCLUSIVE RIGHT TO ABSOLUTELY DESTROY ALL COMPATIBILITY DURING THE PROCESS OF MAKING TERUMI, AND YOU ARE ENTITLED TO ABSOLUTELY NO GUARENTEES.**
 
-# Terumi
+# Terumi [![Discord Server](https://img.shields.io/discord/652702761665691658?label=Discord&style=flat-square)](https://discord.gg/NpDXYev)
+```
+main()
+{
+	@println("Hello, World!")
+}
+```
+
 Terumi is a programming language designed to replace massive shell script projects.
 
-- Compiles to Powershell and Bash (and C). No interpreters (Python) necessary.
-- First class `class` support.
-- Strongly typed, yet flexible type system, allowing productivity.
-- Stupidly simple syntax, saves and prevents googling.
-
-## Goals of Terumi
-
-- Become the primary choice for big shell script projects.
-- Type system that allows you to be productive and catch mistakes at compile time.
+- Compiles to Powershell and Bash (and C). No interpreters (Python, Ruby) necessary.
+- First class `class` support, unlike shell scripts.
+- Strong yet flexible type system, similar to TypeScript.
+- Stupidly simple syntax, similar to C.
+- Hassle-free package manager, consciously designed last.
 - Versionless, content-focused dependencies.
-- Hassle-free package manager.
 
 # Get Terumi
 
 1. Make sure you have [.NET Core 3.0 or higher](https://dotnet.microsoft.com/download)
 2. Make sure you have [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 
-```
+```shell
 git clone https://github.com/terumi-project/Terumi.git
 cd Terumi
 dotnet publish -c Release
@@ -40,7 +40,39 @@ cd project_name
 dotnet "../terumi.dll" compile --target bash
 ```
 
-## Who should use Terumi
+# Example
+
+*[Click here to read more](#about-the-terumi-language)*
+
+```
+class Printer
+{
+	print(string data) @println(data)
+}
+
+class MaliciousPrinter
+{
+	print(string data) @println("Stole '{data}'!")
+}
+
+print_secure_data(Printer printer) printer.print("Secure Data")
+
+main() print_secure_data(new MaliciousPrinter())
+```
+
+*Note: braces shouldn't omitted so often in a real codebase.*
+
+# Help Out
+Terumi is extremely young, immature, and not production ready. Terumi needs your help.
+
+- **Make something with Terumi!** Submit issues as you find bugs or see that something is incomplete.
+- [Give me money](https://www.patreon.com/sirjosh3917). I like money. I can host Terumi REPLs with money.
+
+## Who uses Terumi
+
+Nobody, yet. Be the first and [let us know you're using it.](https://github.com/terumi-project/Terumi/issues/new/choose)
+
+# Who should use Terumi
 
 If you're the author of a large shell script project, you are the consumer of which this programming language markets towards.
 
@@ -50,33 +82,11 @@ A few examples of "large shell script projects" are the following:
 - [pihole](https://github.com/pi-hole/pi-hole)
 - [nvm](https://github.com/nvm-sh/nvm)
 
-## Who uses Terumi
-
-Nobody, yet. Be the first and [let us know you're using it.](https://github.com/terumi-project/Terumi/issues/new/choose)
-
-# Help Out
-Terumi is extremely young, immature, and production *un*ready. Terumi needs help getting to market.
-
-- **Make something with Terumi!** Submit issues as you find bugs or see that something is incomplete.
-- [Give me money](https://www.patreon.com/sirjosh3917). I like money. I can host Terumi REPLs with money.
-
-## Vaguely Similar Projects
-
-- [Batsh](https://github.com/BYVoid/Batsh)  - aims to create platform independency with batch and bash
-- [ShellJS](https://github.com/shelljs/shelljs) - aims to create platform independency with unix tools implemented in js
-- [Bish](https://github.com/tdenniston/bish) - aims to make bash usable
-- [Zsh](http://www.zsh.org/) - aims to be a better `sh`
-- [Powscript](https://github.com/coderofsalvation/powscript) - aims to make bash codebases easier to read
-- [BashClass](https://github.com/amirbawab/BashClass) - aims to bring classes to bash
-- [Plumbum](https://plumbum.readthedocs.io/en/latest/index.html) - aims to create platform independency with unix tools implemented in python
-- [Harpy](https://github.com/markpwns1/Harpy) - aims to make writing code in batch easier
-- [Python](https://github.com/python/cpython) - not a shell script, but an interpreter for a very powerful language that is often used as a substitute for shell scripts
-
-## About the Terumi Language
+# About the Terumi Language
 
 The claims Terumi makes are all backed thanks to its **type system**. This is a strong selling point for Terumi, as it features the perfect balance between dynamic and strongly typed, and enables the other parts of Terumi (dependency system) to flourish.
 
-### Type System
+## Type System
 
 The Terumi type system is simple: *if it looks like a duck, it is a duck.*. Your code won't need to even think about being unit testable or modular, because it simply *just is*.
 
@@ -84,16 +94,15 @@ This is some extremely modular code.
 ```
 class ProgramInfo
 {
-	string get_program_name() {
+	string get_program_name()
 		return "Cool Program"
-	}
 }
 
-print_program_info() {
+print_program_info()
 	print_program_info(new ProgramInfo())
-}
 
-print_program_info(ProgramInfo info) {
+print_program_info(ProgramInfo info)
+{
 	@println("- - - {info.get_program_name()} - - -")
 }
 ```
@@ -105,13 +114,8 @@ class OtherProgramInfo
 {
 	string _name
 
-	ctor(string name) {
-		_name = name
-	}
-
-	string get_program_name() {
-		return _name
-	}
+	ctor(string name) _name = name
+	string get_program_name() return _name
 }
 
 main()
@@ -122,7 +126,7 @@ main()
 
 Because `OtherProgramInfo` *looks* like a `ProgramInfo`, it can be passed in. It has the same public methods and public fields.
 
-### Dependency System
+## Dependency System
 
 The package manager was designed to be an *after thought*, but dependencies were prioritized. This conscious decision allows the language to have arguably the best dependency system - or as it should be named, the *tool* system. Terumi handles dependencies in a fundamentally different way, which prefers thinking about dependencies moreso as "tools to obtain a goal" rather than "hunks of reusable code".
 
@@ -167,3 +171,15 @@ As a result, dependencies should be thought of moreso as *tools*.
 Thanks to the scopes of dependencies, they become content based. Version conflicts no longer exist.
 
 If you wish to try include two versions of a dependency into your project expecting it to work, it won't. There is a preferred way to overcome this: "wrapper packages". A wrapper package is a package that includes inner packages. The inner packages require a specific version of a dependency, and provides version specific classes. The wrapper packages includes the inner packages, and provides a version agnostic way to use the package.
+
+## Vaguely Similar Projects
+
+- [Batsh](https://github.com/BYVoid/Batsh)  - aims to create platform independency with batch and bash
+- [ShellJS](https://github.com/shelljs/shelljs) - aims to create platform independency with unix tools implemented in js
+- [Bish](https://github.com/tdenniston/bish) - aims to make bash usable
+- [Zsh](http://www.zsh.org/) - aims to be a better `sh`
+- [Powscript](https://github.com/coderofsalvation/powscript) - aims to make bash codebases easier to read
+- [BashClass](https://github.com/amirbawab/BashClass) - aims to bring classes to bash
+- [Plumbum](https://plumbum.readthedocs.io/en/latest/index.html) - aims to create platform independency with unix tools implemented in python
+- [Harpy](https://github.com/markpwns1/Harpy) - aims to make writing code in batch easier
+- [Python](https://github.com/python/cpython) - not a shell script, but an interpreter for a very powerful language that is often used as a substitute for shell scripts

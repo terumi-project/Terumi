@@ -131,14 +131,18 @@ namespace Terumi
 			compileCommand.Handler = CommandHandler.Create<Target>(CompileProject);
 			installCommand.Handler = CommandHandler.Create<string, string>(InstallProject);
 
-#if !false && DEBUG
-			Directory.SetCurrentDirectory("test");
-			Compile(new CTarget());
-			return Task<int>.FromResult(0);
-			// return rootCommand.InvokeAsync(new string[] { "compile", "-t", "c" });
-#else
-			return rootCommand.InvokeAsync(args);
+#if DEBUG
+			if (File.Exists("pass.txt"))
+			{
+				Log.Info("[DEBUG] 'pass.txt' exists, assuming you're trying to work on the Terumi project. " +
+	"Going to execute the command in pass.txt");
+				var info = File.ReadAllLines("pass.txt");
+				Directory.SetCurrentDirectory(info[0]);
+				return rootCommand.InvokeAsync(info[1].Split(' '));
+			}
 #endif
+
+			return rootCommand.InvokeAsync(args);
 		}
 
 		private static void NewProject(string name)

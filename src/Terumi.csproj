@@ -26,4 +26,10 @@
     <PackageReference Include="System.CommandLine.Experimental" Version="0.3.0-alpha.19573.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="pass.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

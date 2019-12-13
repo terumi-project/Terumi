@@ -26,6 +26,78 @@ namespace Terumi
 
 	internal static class Program
 	{
+		// TODO: use async
+		// terumi doesn't use async currently:
+		// makes it harder to debug, makes stack traces larger & complicated-er
+		private static int Main(string[] args)
+		{
+			var newCommand = new Command("new", "Creates a new, blank terumi project")
+			{
+				new Option(new string[] { "--name", "-n" }, "Name of the project")
+				{
+					Required = true,
+					Argument = new Argument<string>()
+				}
+			};
+
+			var compileCommand = new Command("compile", "Compiles a terumi project")
+			{
+				new Option(new string[] { "--target", "-t" }, "Target language to compile into")
+				{
+					Required = true,
+					Argument = new Argument<Target>()
+				}
+			};
+
+			var installCommand = new Command("install", "Installs a terumi package from a package source")
+			{
+				new Option(new string[] { "--package-name", "-p" }, "Name of the package")
+				{
+					Required = true,
+					Argument = new Argument<string>()
+				},
+
+				new Option(new string[] { "--version", "-v" }, "Version of the project")
+				{
+					Required = false,
+					Argument = new Argument<string>()
+				},
+
+				// TODO: better source
+				new Option(new string[] { "--source", "-s" }, "Package source")
+				{
+					Required = false,
+					Argument = new Argument<string>(),
+					Description = "A url to use for package fetching. Use '{?}' as a substitute for the package name. " +
+	 "An example would be the terumi package source: https://raw.githubusercontent.com/terumi-project/packages/master/packages/{?}.toml"
+				}
+			};
+
+			var rootCommand = new RootCommand("Terumi Compiler")
+			{
+				newCommand,
+				compileCommand,
+				installCommand
+			};
+
+			newCommand.Handler = CommandHandler.Create<string>(NewProject);
+			compileCommand.Handler = CommandHandler.Create<Target>(CompileProject);
+			installCommand.Handler = CommandHandler.Create<string, string, string>(InstallProject);
+
+#if DEBUG
+			if (File.Exists("pass.txt"))
+			{
+				Log.Info("[DEBUG] 'pass.txt' exists, assuming you're trying to work on the Terumi project. " +
+	"Going to execute the command in pass.txt");
+				var info = File.ReadAllLines("pass.txt");
+				Directory.SetCurrentDirectory(info[0]);
+				return rootCommand.Invoke(info[1].Split(' '));
+			}
+#endif
+
+			return rootCommand.Invoke(args);
+		}
+
 		public static bool Compile(ICompilerTarget target)
 		{
 			Log.Stage("SETUP", $"Loading project @'{Directory.GetCurrentDirectory()}'");
@@ -81,68 +153,6 @@ namespace Terumi
 			Log.StageEnd();
 
 			return true;
-		}
-
-		private static Task<int> Main(string[] args)
-		{
-			var newCommand = new Command("new", "Creates a new, blank terumi project")
-			{
-				new Option(new string[] { "--name", "-n" }, "Name of the project")
-				{
-					Required = true,
-					Argument = new Argument<string>()
-				}
-			};
-
-			var compileCommand = new Command("compile", "Compiles a terumi project")
-			{
-				new Option(new string[] { "--target", "-t" }, "Target language to compile into")
-				{
-					Required = true,
-					Argument = new Argument<Target>()
-				}
-			};
-
-			var installCommand = new Command("install", "Installs a terumi package from a package source")
-			{
-				new Option(new string[] { "--package-name", "-p" }, "Name of the package")
-				{
-					Required = true,
-					Argument = new Argument<string>()
-				},
-
-				new Option(new string[] { "--version", "-v" }, "Version of the project")
-				{
-					Required = false,
-					Argument = new Argument<string>()
-				}
-
-				// TODO: configurable package source
-			};
-
-			var rootCommand = new RootCommand("Terumi Compiler")
-			{
-				newCommand,
-				compileCommand,
-				installCommand
-			};
-
-			newCommand.Handler = CommandHandler.Create<string>(NewProject);
-			compileCommand.Handler = CommandHandler.Create<Target>(CompileProject);
-			installCommand.Handler = CommandHandler.Create<string, string>(InstallProject);
-
-#if DEBUG
-			if (File.Exists("pass.txt"))
-			{
-				Log.Info("[DEBUG] 'pass.txt' exists, assuming you're trying to work on the Terumi project. " +
-	"Going to execute the command in pass.txt");
-				var info = File.ReadAllLines("pass.txt");
-				Directory.SetCurrentDirectory(info[0]);
-				return rootCommand.InvokeAsync(info[1].Split(' '));
-			}
-#endif
-
-			return rootCommand.InvokeAsync(args);
 		}
 
 		private static void NewProject(string name)
@@ -242,7 +252,7 @@ bin
 			Log.Info($"Could compile project: {Compile(compilerTarget)}");
 		}
 
-		private static async Task InstallProject(string packageName, string? version)
+		private static async Task InstallProject(string packageName, string? version, string? sourceUrl)
 		{
 			Log.Stage("LOAD", "Loading project");
 
@@ -254,8 +264,15 @@ bin
 
 			Log.StageEnd();
 
+			Source source = Source.Instance;
+
+			if (sourceUrl != null)
+			{
+				source = new Source(package => new Uri(sourceUrl.Replace("{?}", package)));
+			}
+
 			Log.Stage("PULL", "Downloading package from repository");
-			var package = await Source.Instance.Fetch(packageName);
+			var package = await source.Fetch(packageName);
 
 			if (package == null)
 			{

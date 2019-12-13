@@ -3,44 +3,62 @@
 # FULL DISCLAIMER
 **TERUMI IS CURRENTLY PRE-ALPHA. THIS MEANS THAT I RESERVE THE EXCLUSIVE RIGHT TO ABSOLUTELY DESTROY ALL COMPATIBILITY DURING THE PROCESS OF MAKING TERUMI, AND YOU ARE ENTITLED TO ABSOLUTELY NO GUARENTEES.**
 
-*i mean i'll try to not break much but imma do what i want*
-
 # Terumi
-Terumi is a programming language that transpiles to both powershell and bash, and aims to achieve the following goals:
+Terumi is a programming language designed to replace massive shell script projects.
 
-- Completely reinvent the idea of dependencies
-- Complete embrace of open source
-- Enable huge shell script based codebases to be maintained easier (e.g. [msm](https://github.com/msmhq/msm), [pihole](https://github.com/pi-hole/pi-hole), [nvm](https://github.com/nvm-sh/nvm) to name a few)
-- Extremely compact output
+- Compiles to Powershell and Bash (and C). No interpreters (Python) necessary.
+- First class `class` support.
+- Strongly typed, yet flexible type system, allowing productivity.
+- Stupidly simple syntax, saves and prevents googling.
 
-Currently, Terumi doesn't hit its goals as hard as it needs to. Only when 1.0.0 comes around should it be recommended for use in the real world.
+## Goals of Terumi
 
-## Using it
+- Become the primary choice for big shell script projects.
+- Type system that allows you to be productive and catch mistakes at compile time.
+- Versionless, content-focused dependencies.
+- Hassle-free package manager.
+
+# Get Terumi
 
 1. Make sure you have [.NET Core 3.0 or higher](https://dotnet.microsoft.com/download)
-2. You'll also need `git`
+2. Make sure you have [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 
 ```
-git clone https://github.com/SirJosh3917/Terumi.git
+git clone https://github.com/terumi-project/Terumi.git
 cd Terumi
 dotnet publish -c Release
 cd src/bin/Release/netcoreapp3.0/
 
-# use terumi
-./terumi new --name "some_cool_project"
-cd "some_cool_project"
-../terumi compile --target bash
-../terumi compile --target powershell
+# windows
+terumi new --name "project_name"
+cd project_name
+..\terumi compile --target powershell
 
-# install a dependency
-../terumi install -p "terumi"
+# linux
+dotnet terumi.dll new --name "project_name"
+cd project_name
+dotnet "../terumi.dll" compile --target bash
 ```
 
-## Helping out
-Terumi is extremely young and immature, and not suitable for production in the slightest. Want to see this language come into fruition and actually be usable?
+## Who should use Terumi
 
-- Make something with the language as is! If something's frustrating, not easy, unclear, or not implemented but necessary, leave an issue! The language can't be improved if nobody says anything about it
-- [Give me money](https://www.patreon.com/sirjosh3917). If you choose to do so, make sure that it's not too early in the project for the same reasons one would not want to donate to a kickstarter. With money, I can reliably host online services, such as a REPL or more.
+If you're the author of a large shell script project, you are the consumer of which this programming language markets towards.
+
+A few examples of "large shell script projects" are the following:
+
+- [msm](https://github.com/msmhq/msm)
+- [pihole](https://github.com/pi-hole/pi-hole)
+- [nvm](https://github.com/nvm-sh/nvm)
+
+## Who uses Terumi
+
+Nobody, yet. Be the first and [let us know you're using it.](https://github.com/terumi-project/Terumi/issues/new/choose)
+
+# Help Out
+Terumi is extremely young, immature, and production *un*ready. Terumi needs help getting to market.
+
+- **Make something with Terumi!** Submit issues as you find bugs or see that something is incomplete.
+- [Give me money](https://www.patreon.com/sirjosh3917). I like money. I can host Terumi REPLs with money.
 
 ## Vaguely Similar Projects
 
@@ -54,237 +72,98 @@ Terumi is extremely young and immature, and not suitable for production in the s
 - [Harpy](https://github.com/markpwns1/Harpy) - aims to make writing code in batch easier
 - [Python](https://github.com/python/cpython) - not a shell script, but an interpreter for a very powerful language that is often used as a substitute for shell scripts
 
-## Goals
+## About the Terumi Language
 
-Note: All goals are to be achieved in 1.0.0 - currently, most of what the goals specify, aren't implemented yet. If a goal is specified in the present tense, it may not be implemented yet (e.g.: `Extremely compact output`)
+The claims Terumi makes are all backed thanks to its **type system**. This is a strong selling point for Terumi, as it features the perfect balance between dynamic and strongly typed, and enables the other parts of Terumi (dependency system) to flourish.
 
-### Dependencies
+### Type System
 
-In Terumi, dependencies are not seen as they traditionally are - they are to be seen as tools.
+The Terumi type system is simple: *if it looks like a duck, it is a duck.*. Your code won't need to even think about being unit testable or modular, because it simply *just is*.
 
-When a dependency is included, only the code in that dependency is visible. Dependencies that you explicitly include are known as "direct dependencies". Likewise, dependencies of a direct dependency are known as "indirect dependencies". All indirect dependencies are completely unusable - you cannot refer to them by their name, and thus cannot instantiate them or have them as fields to any variables.
+This is some extremely modular code.
+```
+class ProgramInfo
+{
+	string get_program_name() {
+		return "Cool Program"
+	}
+}
 
-In order to remedy issues with being unable to use indirect dependencies, Terumi's type system is, in a nutshell, "if it looks like a duck, it is a duck". Take the following code:
+print_program_info() {
+	print_program_info(new ProgramInfo())
+}
+
+print_program_info(ProgramInfo info) {
+	@println("- - - {info.get_program_name()} - - -")
+}
+```
+
+Initially, it looks tightly coupled to `ProgramInfo`. However, *if it looks like a duck, it is a duck.*. You can pass in `any` object to `print_program_info(ProgramInfo)`, as long as the first parameter *looks like* a `ProgramInfo`. Thus, the following compiles:
 
 ```
-class Runnable
+class OtherProgramInfo
 {
-	run() {
-		@println("I'm running!")
+	string _name
+
+	ctor(string name) {
+		_name = name
 	}
-}
 
-contract Runner
-{
-	Runnable the_runner
-}
-
-do_running(Runner runner)
-{
-	runner.the_runner.run()
-}
-
-class Nice
-{
-	ctor() {
-		the_runner = this
-	}
-	
-	Nice the_runner
-	
-	run() {
-		@println("Nice.")
+	string get_program_name() {
+		return _name
 	}
 }
 
 main()
 {
-	do_running(new Nice())
+	print_program_info(new OtherProgramInfo("Super Cool Program"))
 }
 ```
 
-Since `Nice` looks like a `Runnable` and a `Runner`, it can be used as both.
+Because `OtherProgramInfo` *looks* like a `ProgramInfo`, it can be passed in. It has the same public methods and public fields.
 
-Terumi also uses `git` for dependencies:
+### Dependency System
 
-### Open Source (related to dependency system)
+The package manager was designed to be an *after thought*, but dependencies were prioritized. This conscious decision allows the language to have arguably the best dependency system - or as it should be named, the *tool* system. Terumi handles dependencies in a fundamentally different way, which prefers thinking about dependencies moreso as "tools to obtain a goal" rather than "hunks of reusable code".
 
-The point of open source ties in closely with the dependency system. The way Terumi does package management, is through git repositories.
-
-*Any* git repository can be used to pull packages from.
-
-### Enable easier maintenance
-
-Thanks to first class `class` support, a great dependency system, and simplicity, Terumi enables huge codebases to be maintained easier.
-
-Unit testing (if that's your thing), code reuse (classes), productivity (type system), and slimmer shell files (less to download) can be achieved simply by rewriting your entire codebase in Terumi.
-
-### Extremely compact output
-
-Since Terumi has all the source code available to it when it compiles, and it doesn't have the burden of having to compile to some intermediate language, it is capable of making huge decisions to wipe entire parts of a codebase out.
-
-- Don't use a certain method in a class? It can dissapear.
-- Can a conditional statement be calculated at compile time? The overhead dissapears.
-
-Terumi is able to take complicated code, such as this
-```
-class Dotnet
-{
-	string _path
-
-	ctor(string path) {
-		_path = path
-	}
-	
-	string path() {
-		return _path
-	}
-}
-
-class VersionCommand
-{
-	Dotnet _dotnet
-
-	ctor(Dotnet dotnet) {
-		_dotnet = dotnet
-	}
-	
-	run() {
-		@/{_dotnet.path()} --version
-	}
-}
-
-main()
-{
-	new VersionCommand(new Dotnet("dotnet")).run()
-}
-```
-into
-```
-@/dotnet --version
-```
-at compile time.
-
-## Syntax
-
-Terumi's syntax is extremely similar to other languages, allowing you to use the language without having to google every half a nanosecond for syntax specific things (looking at you, powershell and bash).
+A Terumi project has a `config.toml` file. This file needs to only contain a list of dependencies that the project requires, and allows them to be specified using a `git` repo, or a `file path`. If a project does not have any dependencies, it can be safely omitted. Often times there is a `name = ""` field in the configuration file, but this is primarily used for the package manager, and can be omitted.
 
 ```
-// packages are used to package up multiple bits of code in multiple files as
-// one so you can reference all of it with a `use` statement
+# this is the entire config.toml file
+[[libs]]
+git_url = "https://github.com/terumi-project/terumi_std"
+branch = "master"
+commit = "725a0c5ee2c2c7f2d92cce09be5b4292db6e3b44"
 
-// any identifier since ever is always `lowercase_separated_by_underscores`, except for class names
-// 
-
-// if no package is specified, it is inferred by the folder hierarchy
-package my.super_cool.package
-
-// include all of the things in some.cool.package in your code
-use some.super_cool.package
-
-// this is a comment
-/* so is this */
-
-// any top level braces are Allman style (https://en.wikipedia.org/wiki/Indentation_style#Allman_style)
-main()
-{
-	// no statements have semicolons - newlines are expected to end a statement
-	// variable declarations
-	string a_string = "hello"
-	string another_string = "world"
-	
-	// example of string interpolation
-	string interpolation = "{a_string} {another_string}"
-	
-	// strings can span multiple lines
-	// if the first character of a string is a newline,
-	// the newline isn't included
-	string valid_string = "
-X | O | O
---+---+--
-X | X |  
---+---+--
-X |   | O"
-	
-	// a method call prefixed with `@` is a compiler method call
-	// these are important because their implementation is determined by the compiler
-	@println(interpolation)
-	
-	// like shell scripts, terumi can execute raw commands
-	// @/ represents a call to something
-	
-	@/type test.txt
-	
-	// a @/ ends at the end of a newline, and the data is treated as any regular string
-	
-	string file = "test.txt"
-	@/type \"{file}\"
-	
-	// terumi supports conditionals
-	
-	bool condition = true
-	
-	if (condition) {
-		@println("condition is true")
-	} else {
-		@println("condition is false")
-	}
-	
-	for(number i = 0; i < 10; i++) {
-		@println("iteration!")
-	}
-	
-	number i = 0
-	while(i++ < 10) {
-		@println("iteration!")
-	}
-	
-	// these are supported too
-	
-	if condition {
-		@println("no parenthesis!")
-	}
-	
-	for ({
-		@println("initialization block")
-		number i = 0;
-	}; do_condition(i); {
-		@println("end block")
-		i++
-	}) {
-		@println("in for loop with i:")
-	}
-}
-
-bool do_condition(number input) {
-	@println("do_condition called")
-	return input < 10
-}
-
-// classes are PascalCase
-class AClass
-{
-	// a field or method is considered 'private' when it is prefixed with an underscore
-	
-	// fields
-	string _a
-	number _b
-
-	// methods inside a class are K&R style (https://en.wikipedia.org/wiki/Indentation_style#K&R_style)
-
-	// ctor is short for `constructor`
-	ctor() {
-		_a = "a"
-		_b = 7
-	}
-	
-	// if you are going to have getters and setters (which terumi doesn't recommend using), this is the preferred style:
-	string a() {
-		return _a
-	}
-	
-	a(string value) {
-		_a = value
-	}
-}
+[[libs]]
+path = "some/path/to/another/cool_project"
 ```
+
+Terumi will resolve dependencies by fetching them at the specified git url, using the branch and commit as specified. If the branch and commit aren't specified. Terumi will refuse to fetch these a given dependency.
+
+1. Dependency Scopes: How Terumi handles dependencies of a dependency.
+2. Type System: How Terumi handles types in dependencies of a dependency.
+3. Content Based: How Terumi handles having multiple "versions" of the same dependency.
+
+1. Dependency Scopes
+
+There are 3 "scopes of code" in the compiler:
+- The Project: Your code.
+- Immediate Dependencies: The dependencies your code depends on.
+- Indirect Dependencies: All the dependencies that every dependency depends on.
+
+`The Project` will only see the code, and can only use the code of `Immediate Dependencies`.
+
+2. Type System
+
+In a language such as Java, dependency scopes like Terumi simply wouldn't be possible. What if a method in an immediate dependency references an indirect dependency? Terumi handles this, by not handling it. The Type System does.
+
+You cannot `new` objects that are not visible. You cannot declare variables with types that are not visible. The objects that are visible are the objects within the current namespace, and the objects in namespaces included with `use`.
+
+As a result, dependencies should be thought of moreso as *tools*.
+
+3. Content Based
+
+Thanks to the scopes of dependencies, they become content based. Version conflicts no longer exist.
+
+If you wish to try include two versions of a dependency into your project expecting it to work, it won't. There is a preferred way to overcome this: "wrapper packages". A wrapper package is a package that includes inner packages. The inner packages require a specific version of a dependency, and provides version specific classes. The wrapper packages includes the inner packages, and provides a version agnostic way to use the package.

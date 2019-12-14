@@ -47,17 +47,21 @@ dotnet "../terumi.dll" compile --target bash
 ```
 class Printer
 {
-	print(string data) @println(data)
+	print(string data)
+		@println(data)
 }
 
 class MaliciousPrinter
 {
-	print(string data) @println("Stole '{data}'!")
+	print(string data)
+		@println("Stole '{data}'!")
 }
 
-print_secure_data(Printer printer) printer.print("Secure Data")
+print_secure_data(Printer printer)
+	printer.print("Secure Data")
 
-main() print_secure_data(new MaliciousPrinter())
+main()
+	print_secure_data(new MaliciousPrinter())
 ```
 
 *Note: braces shouldn't omitted so often in a real codebase.*

@@ -259,15 +259,15 @@ namespace Terumi.Targets
 
 					case VarCode.Instruction.GetField o:
 					{
-						EnsureVarExists(o.StoreId);
-						writer.WriteLine($"{GetVarName(o.StoreId)} = instruction_get_field({GetVarName(o.VariableId)}->value, {o.FieldId});");
+						EnsureVarExists(o.Store);
+						writer.WriteLine($"{GetVarName(o.Store)} = instruction_get_field({GetVarName(o.VariableId)}->value, {o.FieldId});");
 					}
 					break;
 
 					case VarCode.Instruction.New o:
 					{
-						EnsureVarExists(o.StoreId);
-						writer.WriteLine($"{GetVarName(o.StoreId)} = gc_handhold(instruction_new());");
+						EnsureVarExists(o.Store);
+						writer.WriteLine($"{GetVarName(o.Store)} = gc_handhold(instruction_new());");
 					}
 					break;
 
@@ -300,7 +300,7 @@ namespace Terumi.Targets
 
 					case VarCode.Instruction.If o:
 					{
-						writer.WriteLine($"if (value_unpack_boolean({GetVarName(o.Variable)}->value)) {{");
+						writer.WriteLine($"if (value_unpack_boolean({GetVarName(o.ComparisonId)}->value)) {{");
 						writer.Indent++;
 
 						var childDecl = new List<int>(decl);
@@ -328,7 +328,7 @@ namespace Terumi.Targets
 
 					case VarCode.Instruction.While o:
 					{
-						writer.WriteLine($"while (value_unpack_boolean({GetVarName(o.Comparison)}->value)) {{");
+						writer.WriteLine($"while (value_unpack_boolean({GetVarName(o.ComparisonId)}->value)) {{");
 						writer.Indent++;
 
 						var childDecl = new List<int>(decl);
@@ -371,6 +371,12 @@ namespace Terumi.Targets
 				if (alloc)
 				{
 					writer.WriteLine($"{GetVarName(ensure)} = gc_handhold(value_blank(UNKNOWN));");
+				}
+				else
+				{
+					// probably about to set it to a new value
+					// tell the GC that we don't want to keep track of this one
+					writer.WriteLine($"{GetVarName(ensure)}->active = false;");
 				}
 			}
 		}

@@ -33,7 +33,7 @@ namespace Terumi.VarCode
 		{
 			switch (instruction)
 			{
-				case Instruction.New o: return o.StoreId;
+				case Instruction.New o: return o.Store;
 				case Instruction.Return o: return o.ValueId;
 				case Instruction.Load.String o: return o.Store;
 				case Instruction.Load.Number o: return o.Store;
@@ -41,18 +41,30 @@ namespace Terumi.VarCode
 				case Instruction.Load.Parameter o: return o.Store;
 
 				case Instruction.Assign o: return Math.Max(o.Store, o.Value);
-				case Instruction.GetField o: return Math.Max(o.VariableId, o.StoreId);
+				case Instruction.GetField o: return Math.Max(o.VariableId, o.Store);
 				case Instruction.SetField o: return Math.Max(o.VariableId, o.ValueId);
 
 				case Instruction.Call o: return Math.Max(o.Store, o.Arguments.MaybeMax());
 				case Instruction.CompilerCall o: return Math.Max(o.Store, o.Arguments.MaybeMax());
 
-				case Instruction.If o: return Math.Max(o.Variable, o.Clause.MaybeMax(GetHighestId));
-				case Instruction.While o: return Math.Max(o.Comparison, o.Clause.MaybeMax(GetHighestId));
+				case Instruction.If o: return Math.Max(o.ComparisonId, o.Clause.MaybeMax(GetHighestId));
+				case Instruction.While o: return Math.Max(o.ComparisonId, o.Clause.MaybeMax(GetHighestId));
 			}
 
 			throw new InvalidOperationException();
 		}
+	}
+
+	public interface IResultInstruction
+	{
+		int Store { get; }
+	}
+
+	public interface IClauseInstruction
+	{
+		int ComparisonId { get; }
+
+		List<Instruction> Clause { get; }
 	}
 
 	public abstract class Instruction
@@ -61,7 +73,7 @@ namespace Terumi.VarCode
 
 		public abstract class Load : Instruction
 		{
-			public class String : Load
+			public class String : Load, IResultInstruction
 			{
 				public String(int store, string value)
 				{
@@ -75,7 +87,7 @@ namespace Terumi.VarCode
 				public override string ToString() => $"Load.String(store: {Store}, value: <IM LAZY>)";
 			}
 
-			public class Number : Load
+			public class Number : Load, IResultInstruction
 			{
 				public Number(int store, Terumi.Number value)
 				{
@@ -89,7 +101,7 @@ namespace Terumi.VarCode
 				public override string ToString() => $"Load.Number(store: {Store}, value: {Value.Value})";
 			}
 
-			public class Boolean : Load
+			public class Boolean : Load, IResultInstruction
 			{
 				public Boolean(int store, bool value)
 				{
@@ -103,7 +115,7 @@ namespace Terumi.VarCode
 				public override string ToString() => $"Load.Boolean(store: {Store}, value: {Value})";
 			}
 
-			public class Parameter : Load
+			public class Parameter : Load, IResultInstruction
 			{
 				public Parameter(int store, int parameterNumber)
 				{
@@ -118,7 +130,7 @@ namespace Terumi.VarCode
 			}
 		}
 
-		public class Assign : Instruction
+		public class Assign : Instruction, IResultInstruction
 		{
 			public Assign(int store, int value)
 			{
@@ -132,7 +144,7 @@ namespace Terumi.VarCode
 			public override string ToString() => $"Assign(store: {Store}, value: {Value})";
 		}
 
-		public class Call : Instruction
+		public class Call : Instruction, IResultInstruction
 		{
 			public Call(int store, Method method, List<int> arguments)
 			{
@@ -148,7 +160,7 @@ namespace Terumi.VarCode
 			public override string ToString() => $"Call(store: {Store}, method: '{Method.Name}', arguments: <IM LAZY>)";
 		}
 
-		public class CompilerCall : Instruction
+		public class CompilerCall : Instruction, IResultInstruction
 		{
 			// TODO: resolve all unresolved compiler calls into panics
 			public CompilerCall(int store, Binder.CompilerMethod compilerMethod, List<int> arguments)
@@ -181,32 +193,32 @@ namespace Terumi.VarCode
 			public override string ToString() => $"SetField(variableId: {VariableId}, fieldId: {FieldId}, valueId: {ValueId})";
 		}
 
-		public class GetField : Instruction
+		public class GetField : Instruction, IResultInstruction
 		{
 			public GetField(int storeId, int variableId, int fieldId)
 			{
-				StoreId = storeId;
+				Store = storeId;
 				VariableId = variableId;
 				FieldId = fieldId;
 			}
 
-			public int StoreId { get; }
+			public int Store { get; }
 			public int VariableId { get; }
 			public int FieldId { get; }
 
-			public override string ToString() => $"GetField(storeId: {StoreId}, variableId: {VariableId}, fieldId: {FieldId})";
+			public override string ToString() => $"GetField(storeId: {Store}, variableId: {VariableId}, fieldId: {FieldId})";
 		}
 
-		public class New : Instruction
+		public class New : Instruction, IResultInstruction
 		{
 			public New(int storeId)
 			{
-				StoreId = storeId;
+				Store = storeId;
 			}
 
-			public int StoreId { get; }
+			public int Store { get; }
 
-			public override string ToString() => $"New(storeId: {StoreId})";
+			public override string ToString() => $"New(storeId: {Store})";
 		}
 
 		public class Return : Instruction
@@ -221,32 +233,32 @@ namespace Terumi.VarCode
 			public override string ToString() => $"Return(valueId: {ValueId})";
 		}
 
-		public class If : Instruction
+		public class If : Instruction, IClauseInstruction
 		{
 			public If(int variable, List<Instruction> clause)
 			{
-				Variable = variable;
+				ComparisonId = variable;
 				Clause = clause;
 			}
 
-			public int Variable { get; }
+			public int ComparisonId { get; }
 			public List<Instruction> Clause { get; }
 
-			public override string ToString() => $"If(variable: {Variable}, clause: <IM LAZY>)";
+			public override string ToString() => $"If(variable: {ComparisonId}, clause: <IM LAZY>)";
 		}
 
-		public class While : Instruction
+		public class While : Instruction, IClauseInstruction
 		{
 			public While(int comparison, List<Instruction> clause)
 			{
-				Comparison = comparison;
+				ComparisonId = comparison;
 				Clause = clause;
 			}
 
-			public int Comparison { get; }
+			public int ComparisonId { get; }
 			public List<Instruction> Clause { get; }
 
-			public override string ToString() => $"While(comparison: {Comparison}, clause: <IM LAZY>)";
+			public override string ToString() => $"While(comparison: {ComparisonId}, clause: <IM LAZY>)";
 		}
 	}
 }

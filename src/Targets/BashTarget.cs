@@ -149,7 +149,7 @@ namespace Terumi.Targets
 
 				case Instruction.New o:
 				{
-					writer.WriteLine($"local {GetName(o.StoreId)}=\"$_gc\"");
+					writer.WriteLine($"local {GetName(o.Store)}=\"$_gc\"");
 					writer.WriteLine($"_gc=\"$_gc\"\"a\"");
 				}
 				break;
@@ -164,7 +164,7 @@ namespace Terumi.Targets
 				case Instruction.GetField o:
 				{
 					writer.WriteLine($"local find=\"${GetName(o.VariableId)}\"\"{BashTarget.GetName(o.FieldId)}\"");
-					writer.WriteLine($"local {GetName(o.StoreId)}=${{!find}}");
+					writer.WriteLine($"local {GetName(o.Store)}=${{!find}}");
 				}
 				break;
 
@@ -207,7 +207,7 @@ namespace Terumi.Targets
 
 				case Instruction.If o:
 				{
-					writer.WriteLine($"if [[ $((${GetName(o.Variable)})) -eq 1 ]]; then");
+					writer.WriteLine($"if [[ $((${GetName(o.ComparisonId)})) -eq 1 ]]; then");
 
 					writer.Indent++;
 					Write(writer, o.Clause, offset);
@@ -219,7 +219,7 @@ namespace Terumi.Targets
 
 				case Instruction.While o:
 				{
-					writer.WriteLine($"while [[ $((${GetName(o.Comparison)})) -eq 1 ]]; do");
+					writer.WriteLine($"while [[ $((${GetName(o.ComparisonId)})) -eq 1 ]]; do");
 
 					writer.Indent++;
 					Write(writer, o.Clause, offset);

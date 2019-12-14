@@ -157,7 +157,7 @@ namespace Terumi.Targets
 
 				case Instruction.New o:
 				{
-					writer.WriteLine($"${GetName(o.StoreId)} = $global:_gc++");
+					writer.WriteLine($"${GetName(o.Store)} = $global:_gc++");
 				}
 				break;
 
@@ -170,7 +170,7 @@ namespace Terumi.Targets
 
 				case Instruction.GetField o:
 				{
-					writer.WriteLine($"${GetName(o.StoreId)} = Get-Variable -Scope 'Global' -ValueOnly -Name \"${GetName(o.VariableId)}.{PowershellTarget.GetName(o.FieldId)}\"");
+					writer.WriteLine($"${GetName(o.Store)} = Get-Variable -Scope 'Global' -ValueOnly -Name \"${GetName(o.VariableId)}.{PowershellTarget.GetName(o.FieldId)}\"");
 				}
 				break;
 
@@ -219,7 +219,7 @@ namespace Terumi.Targets
 
 				case Instruction.If o:
 				{
-					writer.WriteLine($"if (${GetName(o.Variable)}) {{");
+					writer.WriteLine($"if (${GetName(o.ComparisonId)}) {{");
 
 					writer.Indent++;
 					Write(writer, o.Clause, offset);
@@ -231,7 +231,7 @@ namespace Terumi.Targets
 
 				case Instruction.While o:
 				{
-					writer.WriteLine($"while (${GetName(o.Comparison)}) {{");
+					writer.WriteLine($"while (${GetName(o.ComparisonId)}) {{");
 
 					writer.Indent++;
 					Write(writer, o.Clause, offset);

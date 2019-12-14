@@ -216,7 +216,7 @@ namespace Terumi.VarCode.Optimization
 					{
 						if (_ripe.Any(x => x.Is(o.VariableId), out var p))
 						{
-							instructions.Insert(i, new Instruction.Assign(o.StoreId, p.ObjectToFields[o.FieldId]));
+							instructions.Insert(i, new Instruction.Assign(o.Store, p.ObjectToFields[o.FieldId]));
 							instructions.RemoveAt(i + 1);
 						}
 					}
@@ -260,7 +260,7 @@ namespace Terumi.VarCode.Optimization
 						// we add stuff in a FIFO order
 						// and are pretty much guarenteed to still have the index of the peelable
 						creations.Add(peelables.Count);
-						peelables.Add(new Peelable(o.StoreId, o));
+						peelables.Add(new Peelable(o.Store, o));
 					}
 					break;
 

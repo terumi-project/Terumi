@@ -363,6 +363,8 @@ namespace Terumi.Targets
 
 		private void EnsureVarExists(IndentedTextWriter writer, int ensure, List<int> decl, bool alloc)
 		{
+			var allocated = false;
+
 			if (!decl.Contains(ensure))
 			{
 				writer.WriteLine($"struct GCEntry* {GetVarName(ensure)};");
@@ -371,13 +373,14 @@ namespace Terumi.Targets
 				if (alloc)
 				{
 					writer.WriteLine($"{GetVarName(ensure)} = gc_handhold(value_blank(UNKNOWN));");
+					allocated = true;
 				}
-				else
-				{
-					// probably about to set it to a new value
-					// tell the GC that we don't want to keep track of this one
-					writer.WriteLine($"{GetVarName(ensure)}->active = false;");
-				}
+			}
+			else if (!allocated)
+			{
+				// probably about to set it to a new value
+				// tell the GC that we don't want to keep track of this one
+				writer.WriteLine($"{GetVarName(ensure)}->active = false;");
 			}
 		}
 

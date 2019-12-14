@@ -27,7 +27,7 @@ The // <INJECT__RUN> comment signals to the C target to execute each viable
 Debug mode enables a couple extra checks which will allow for program faults
 to be found earlier, but at the cost of performance.
 */
-#define DEBUG
+// #define DEBUG
 
 /*
 Tracing will print a visible trace of method call stacks for the developer, aka

@@ -1048,13 +1048,22 @@ char* string_concat(char* a, char* b) {
 	return dst;
 }
 
-char* string_copy(char* source) {
+char* string_copy_length(char* source, size_t length) {
 	ensure_gc_init();
 
-	size_t str_length = strlen(source) + sizeof(char);
+	size_t str_length = length + sizeof(char);
 	char* dst = terumi_alloc(str_length);
-	strncpy_s(dst, str_length, source, str_length);
+	memcpy(dst, source, str_length - 1);
+	dst[str_length - 1] = '\0';
+
+	// notice: this was used previously, but caused a seg fault...?
+	// strncpy_s(dst, str_length, source, str_length);
+
 	return dst;
+}
+
+char* string_copy(char* source) {
+	return string_copy_length(source, strlen(source));
 }
 
 #pragma region Instructions
@@ -1184,7 +1193,7 @@ struct GCEntry* instruction_get_field(struct Value* object, size_t field_index) 
 	int32_t object_index = data->fields[field_index].object_index;
 
 	if (object_index == -1) {
-		printf("[ERR] unable to get field '%i' from object when field isn't initialized.\n");
+		printf("[ERR] unable to get field '%d' from object when field isn't initialized.\n", object_index);
 		print_err();
 		exit(IMPOSSIBLE);
 	}
@@ -1223,6 +1232,8 @@ struct Value* cc_operator_subtract(struct Value* left, struct Value* right);
 struct Value* cc_operator_multiply(struct Value* left, struct Value* right);
 struct Value* cc_operator_divide(struct Value* left, struct Value* right);
 struct Value* cc_operator_exponent(struct Value* left, struct Value* right);
+struct Value* cc_string_substring(struct Value* str, struct Value* index, struct Value* length);
+struct Value* cc_string_length(struct Value* str);
 
 struct Value* cc_target_name() {
 	return value_from_string(string_copy("c"));
@@ -1336,6 +1347,52 @@ struct Value* cc_operator_divide(struct Value* left, struct Value* right) {
 
 struct Value* cc_operator_exponent(struct Value* left, struct Value* right) {
 	return value_from_number(number_power(value_unpack_number(left), value_unpack_number(right)));
+}
+
+struct Value* cc_string_substring(struct Value* str, struct Value* index, struct Value* length) {
+	char* src_str = value_unpack_string(str);
+	int32_t int_index = value_unpack_number(index)->data;
+	int32_t int_length = value_unpack_number(length)->data;
+
+	if (int_length == 0) {
+		return value_from_string(string_copy(""));
+	}
+
+	int32_t src_str_length = strlen(src_str);
+
+	if (int_index < 0) {
+		printf("[ERR] attempting to substring from a negative index.");
+		print_err();
+		exit(IMPOSSIBLE);
+	}
+
+	if (int_length < 0) {
+		printf("[ERR] attempting to substring with a negative length.");
+		print_err();
+		exit(IMPOSSIBLE);
+	}
+
+	size_t szt_index = int_index;
+	size_t szt_length = int_length;
+
+	if (szt_index > INT_MAX - szt_length) {
+		printf("[ERR] overflow when attempting to substring (index %zu + length %zu)", szt_index, szt_length);
+		print_err();
+		exit(IMPOSSIBLE);
+	}
+
+	if (src_str_length < szt_index + szt_length) {
+		printf("[ERR] substring operation almost went out of bounds (string length %zu, index %zu, substring length %zu)", src_str_length, szt_index, szt_length);
+		print_err();
+		exit(IMPOSSIBLE);
+	}
+
+	char* sub_string = string_copy_length(src_str + szt_index, szt_length);
+	return value_from_string(sub_string);
+}
+
+struct Value* cc_string_length(struct Value* str) {
+	return value_from_number(number_from_int(strlen(value_unpack_string(str))));
 }
 
 #pragma endregion

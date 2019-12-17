@@ -42,6 +42,9 @@ namespace Terumi.Targets
 				case TargetMethodNames.OperatorDivide: return C(types[0]);
 				case TargetMethodNames.OperatorExponent: return C(types[0]);
 
+				case TargetMethodNames.StringSubstring: return C(types[0]);
+				case TargetMethodNames.StringLength: return C(BuiltinType.Number);
+
 				default: return null;
 			}
 

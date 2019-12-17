@@ -35,6 +35,9 @@ namespace Terumi.Targets
 		public const string OperatorDivide = "operator_divide";
 		public const string OperatorExponent = "operator_exponent";
 
+		public const string StringSubstring = "string_substring";
+		public const string StringLength = "string_length";
+
 		public static string ToMethodName(this BinaryExpression binaryExpression)
 			=> binaryExpression switch
 		{

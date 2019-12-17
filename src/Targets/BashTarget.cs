@@ -56,6 +56,9 @@ namespace Terumi.Targets
 				case TargetMethodNames.OperatorMultiply: return ReturnMethod(types[0], a => $"ret=$(({a[0]} * {a[1]}))");
 				case TargetMethodNames.OperatorDivide: return ReturnMethod(types[0], a => $"ret=$(({a[0]} / {a[1]}))");
 				case TargetMethodNames.OperatorExponent: return ReturnMethod(types[0], a => $"ret=$(({a[0]} ** {a[1]}))");
+
+				case TargetMethodNames.StringSubstring: return ReturnMethod(BuiltinType.String, a => $"ret=${{{a[0].Substring(1)}:$(({a[1]})):$(({a[2]}))}}");
+				case TargetMethodNames.StringLength: return ReturnMethod(BuiltinType.String, a => $"ret=${{#{a[0].Substring(1)}}}");
 			}
 
 			throw new NotImplementedException();

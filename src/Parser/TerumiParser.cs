@@ -1546,8 +1546,6 @@ namespace Terumi.Parser
 		{
 			if (_i == 0) return;
 
-			Set(_i - 1);
-
 			while (IsAllWhitespace(_type))
 			{
 				if (_i == 0) return;

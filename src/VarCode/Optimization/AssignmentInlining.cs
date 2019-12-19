@@ -112,8 +112,10 @@ namespace Terumi.VarCode.Optimization
 
 			public bool WasUsed(int id)
 			{
-				return UsedVariables.ContainsKey(id) || (_parent?.WasUsed(id) == true);
+				return UsedVariables.ContainsKey(id) || ParentUsed(id);
 			}
+
+			public bool ParentUsed(int id) => _parent?.WasUsed(id) == true;
 		}
 
 		private static bool ReplaceFuture(List<Instruction> body, int k, int targetId, int rewriteId)
@@ -217,14 +219,28 @@ namespace Terumi.VarCode.Optimization
 			{
 				var ins = body[i];
 
+				scope.Register(ins);
+
 				switch (ins)
 				{
 					case Instruction.Assign o:
 					{
 						// assignments are where we make our decisions if we can inline something
-
 						// if we never used the value, we can remove the assignment and update all uses of an instruction to the value it was being set to
-						if (!scope.WasUsed(o.Value))
+
+						// eg.
+						// a = ""
+						// b = a <-- after point, 'a' has never been used
+						//       ^ we can replace all instances of 'b' with 'a'
+						// @println(b)
+
+						// a = ""
+						// if something
+						//     c = "b"
+						//     a = c <-- *cannot* replace A with C, because A is used below
+						// @println(a)
+
+						if (!scope.WasUsed(o.Value) && !scope.ParentUsed(o.Store))
 						{
 							var didRepl = ReplaceFuture(body, i + 1, o.Store, o.Value);
 							didOptimize = didRepl || didOptimize;
@@ -239,11 +255,8 @@ namespace Terumi.VarCode.Optimization
 
 					case IClauseInstruction o:
 					{
-						var parent = scope;
-						scope = new Scope(parent);
-						scope.Register(o.ComparisonId, ins);
-						didOptimize = Optimize(o.Clause, scope) || didOptimize;
-						scope = parent;
+						var tmpScope = new Scope(scope);
+						didOptimize = Optimize(o.Clause, tmpScope) || didOptimize;
 					}
 					break;
 				}

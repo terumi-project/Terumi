@@ -188,7 +188,7 @@ namespace Terumi.VarCode
 
 			public int VariableId { get; }
 			public int FieldId { get; }
-			public int ValueId { get; }
+			public int ValueId { get; internal set; }
 
 			public override string ToString() => $"SetField(variableId: {VariableId}, fieldId: {FieldId}, valueId: {ValueId})";
 		}
@@ -203,7 +203,7 @@ namespace Terumi.VarCode
 			}
 
 			public int Store { get; }
-			public int VariableId { get; }
+			public int VariableId { get; internal set; }
 			public int FieldId { get; }
 
 			public override string ToString() => $"GetField(storeId: {Store}, variableId: {VariableId}, fieldId: {FieldId})";
@@ -228,7 +228,7 @@ namespace Terumi.VarCode
 				ValueId = valueId;
 			}
 
-			public int ValueId { get; }
+			public int ValueId { get; internal set; }
 
 			public override string ToString() => $"Return(valueId: {ValueId})";
 		}
@@ -241,7 +241,7 @@ namespace Terumi.VarCode
 				Clause = clause;
 			}
 
-			public int ComparisonId { get; }
+			public int ComparisonId { get; internal set; }
 			public List<Instruction> Clause { get; }
 
 			public override string ToString() => $"If(variable: {ComparisonId}, clause: <IM LAZY>)";
@@ -255,7 +255,7 @@ namespace Terumi.VarCode
 				Clause = clause;
 			}
 
-			public int ComparisonId { get; }
+			public int ComparisonId { get; internal set; }
 			public List<Instruction> Clause { get; }
 
 			public override string ToString() => $"While(comparison: {ComparisonId}, clause: <IM LAZY>)";

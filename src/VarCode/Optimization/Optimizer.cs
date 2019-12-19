@@ -33,6 +33,11 @@ namespace Terumi.VarCode.Optimization
 				passAgain = CompileTimeComputing.Optimize(method.Code) || passAgain;
 			}
 
+			foreach (var method in methods)
+			{
+				passAgain = AssignmentInlining.Optimize(method.Code) || passAgain;
+			}
+
 			if (passAgain)
 			{
 				await Optimize(methods, fieldCount);

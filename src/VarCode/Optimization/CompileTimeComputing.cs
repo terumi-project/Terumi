@@ -139,7 +139,7 @@ namespace Terumi.VarCode.Optimization
 			}
 		}
 
-		private static bool Hunt(Scope scope, List<Instruction> instructions, List<int> previousAssigned)
+		private static List<int> GetFoldable(IEnumerable<Instruction> instructions, List<int> previousAssigned, out List<int> all)
 		{
 			// first, find all the variables that get assigned
 			var assigned = new List<int>();
@@ -154,15 +154,31 @@ namespace Terumi.VarCode.Optimization
 				else if (i is IResultInstruction o)
 					assigned.Add(o.Store);
 
-			var all = new List<int>(assigned.Concat(previousAssigned));
+			all = new List<int>(assigned.Concat(previousAssigned));
 
 			var canFold = all.GroupBy(x => x)
 				.Where(x => x.Count() == 1).Select(x => x.First()).ToList();
 
+			return canFold;
+		}
+
+		private static bool Hunt(Scope scope, List<Instruction> instructions, List<int> previousAssigned)
+		{
 			var didOpt = false;
 
 			for (int index = 0; index < instructions.Count; index++)
 			{
+				// calculate a new list of foldable variables for each iteration.
+				// very expensive, but a cheap workaround to be able to optimize behavior as such:
+
+				// a = ""
+				// b = ""
+				// c = ""
+				// a = a + b <-- inlineable, if we don't look at the next instruction
+				// a = a + c <-- oh no, can't inline the upper statement because we use 'a' here
+
+				var canFold = GetFoldable(instructions.Take(index), previousAssigned, out var all);
+
 				var i = instructions[index];
 				switch (i)
 				{
@@ -174,6 +190,7 @@ namespace Terumi.VarCode.Optimization
 						TryOptimize1(TargetMethodNames.OperatorNegate, (Number n, int store) => new Instruction.Load.Number(store, new Number((System.Numerics.BigInteger)0 - n.Value)));
 						TryOptimize1(TargetMethodNames.OperatorNot, (bool b, int store) => new Instruction.Load.Boolean(store, !b));
 						TryOptimize<Number>(TargetMethodNames.OperatorAdd, (a, b, s) => new Instruction.Load.Number(s, new Number(a.Value + b.Value)));
+						TryOptimize<string>(TargetMethodNames.OperatorAdd, (a, b, s) => new Instruction.Load.String(s, a + b));
 						TryOptimize<Number>(TargetMethodNames.OperatorDivide, (a, b, s) => new Instruction.Load.Number(s, new Number(a.Value / b.Value)));
 						TryOptimize<Number>(TargetMethodNames.OperatorExponent, (a, b, s) => new Instruction.Load.Number(s, new Number(System.Numerics.BigInteger.Pow(a.Value, (int)b.Value))));
 						TryOptimize<Number>(TargetMethodNames.OperatorMultiply, (a, b, s) => new Instruction.Load.Number(s, new Number(a.Value * b.Value)));

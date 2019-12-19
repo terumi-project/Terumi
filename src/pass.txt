@@ -1,2 +1,2 @@
 test
-compile -t c
+compile -t powershell

@@ -12,35 +12,15 @@ namespace Terumi.VarCode.Optimization
 			var methods = await PruneMethods.UsedMethods(oldMethods).ConfigureAwait(false);
 			var passAgain = methods.Count < oldMethods.Count;
 
-			// TODO: parallelize?
 			foreach (var method in methods)
 			{
 				passAgain = PeelObjects.Peel(method, fieldCount) || passAgain;
-			}
-
-			foreach (var method in methods)
-			{
 				passAgain = PeelParameters.Peel(method, methods) || passAgain;
-			}
-
-			foreach (var method in methods)
-			{
 				passAgain = ParameterLoadInlining.Peel(method) || passAgain;
-			}
-
-			foreach (var method in methods)
-			{
 				passAgain = CompileTimeComputing.Optimize(method.Code) || passAgain;
-			}
-
-			foreach (var method in methods)
-			{
 				passAgain = AssignmentInlining.Optimize(method.Code) || passAgain;
-			}
-
-			foreach (var method in methods)
-			{
 				passAgain = UselessVariableRemover.Optimize(method.Code) || passAgain;
+				passAgain = UnecessaryAssignmentRemover.Optimize(method.Code) || passAgain;
 			}
 
 			if (passAgain)

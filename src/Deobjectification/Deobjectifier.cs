@@ -27,11 +27,19 @@ namespace Terumi.Deobjectification
 
 			Log.Stage("DEOBJ", "Deobjectifying flattened code");
 
+			// map each class to have a number identifying their type
+			// the index is their type
+			var classMap = new List<Flattening.Class>();
+
 			// first, we're going to build a giant single global object
 			var map = new List<(ObjectType, string)>();
 
+			map.Add((ObjectType.Number, "<>_breaker_type"));
+
 			foreach (var @class in _flattened.Classes)
 			{
+				classMap.Add(@class);
+
 				foreach (var field in @class.Fields)
 				{
 					var item = (field.Type, field.ToWeirdName());
@@ -55,6 +63,7 @@ namespace Terumi.Deobjectification
 			// need to translate each method
 
 			// first, build up a skeleton of methods
+			var breakerMethods = new List<List<VarCode.Method>>();
 			var skeletonMethods = new List<(VarCode.Method, Flattening.Method)>();
 
 			foreach (var method in _flattened.Methods)
@@ -69,16 +78,87 @@ namespace Terumi.Deobjectification
 
 				var varMethod = new VarCode.Method(returnType, method.Name, parameters.ToList());
 				skeletonMethods.Add((varMethod, method));
+
+				if (method.Owner != null && !method.BoundMethod.IsConstructor)
+				{
+					var breakerName = ToBreakerName(varMethod, method.BoundMethod.Name);
+					if (!breakerMethods.Any(x => x[0].Name == breakerName))
+					{
+						var breakerMethod = new VarCode.Method(varMethod.Returns, breakerName, new List<ObjectType>(varMethod.Parameters));
+
+						// load all parameters into local variables
+						for (var i = 0; i < varMethod.Parameters.Count; i++)
+						{
+							breakerMethod.Code.Add(new VarCode.Instruction.Load.Parameter(i + (breakerMethod.Returns == ObjectType.Void ? 3 : 4), i));
+						}
+
+						// field '0' should be the type
+						breakerMethod.Code.Add(new VarCode.Instruction.GetField(0, (breakerMethod.Returns == ObjectType.Void ? 3 : 4), 0));
+
+						breakerMethods.Add(new List<VarCode.Method>
+					{
+						breakerMethod,
+						varMethod
+					});
+
+						AddComparison(breakerMethod, varMethod, classMap.IndexOf(method.Owner));
+					}
+					else
+					{
+						breakerMethods.First(x => x[0].Name == breakerName).Add(varMethod);
+						AddComparison(breakerMethods.First(x => x[0].Name == breakerName)[0], varMethod, classMap.IndexOf(method.Owner));
+					}
+
+					void AddComparison(VarCode.Method breakerMethod, VarCode.Method sub, int type)
+					{
+						var args = new List<int>();
+
+						var clause = new List<VarCode.Instruction>
+						{
+							new VarCode.Instruction.Call(breakerMethod.Returns == ObjectType.Void ? -1 : 4, sub, args)
+						};
+
+						for (var i = 0; i < breakerMethod.Parameters.Count; i++)
+						{
+							args.Add(i + (breakerMethod.Returns == ObjectType.Void ? 3 : 4));
+						}
+
+						breakerMethod.Code.Add(new VarCode.Instruction.Load.Number(1, new Number(type)));
+						breakerMethod.Code.Add(new VarCode.Instruction.CompilerCall(2, _target.Match(TargetMethodNames.OperatorEqualTo, BuiltinType.Number, BuiltinType.Number), new List<int> { 0, 1 }));
+						breakerMethod.Code.Add(new VarCode.Instruction.If(2, clause));
+					}
+				}
+
+				static string ToBreakerName(VarCode.Method method, string name)
+				{
+					var strb = new StringBuilder();
+
+					strb.Append('r');
+					strb.Append(method.Returns.ToString());
+
+					foreach (var i in method.Parameters)
+					{
+						strb.Append('p');
+						strb.Append(i.ToString());
+					}
+
+					strb.Append('#');
+					strb.Append(name);
+
+					return strb.ToString();
+				}
 			}
 
 			// then, re-interpret the code
 			foreach (var (varMethod, method) in skeletonMethods)
 			{
-				var indv = new IndividualDeobjectifier(skeletonMethods, fieldMap, varMethod, method, _target);
+				var indv = new IndividualDeobjectifier(skeletonMethods, fieldMap, varMethod, method, _target, cls => classMap.IndexOf(cls), breakerMethods);
 				indv.Go();
 
 				newMethods.Add(varMethod);
 			}
+
+			newMethods.AddRange(breakerMethods.Select(x => x[0]));
 
 			Log.StageEnd();
 			objectFields = map.Count;
@@ -145,6 +225,8 @@ namespace Terumi.Deobjectification
 		private readonly int[] _fieldIds;
 		private int[] _methodParams;
 		private VarCode.Instruction[] _loadField;
+		private readonly List<List<VarCode.Method>> _breakers;
+		private readonly Func<Flattening.Class, int> _classToType;
 
 		public IndividualDeobjectifier
 		(
@@ -152,7 +234,9 @@ namespace Terumi.Deobjectification
 			string[] fieldMap,
 			VarCode.Method varMethod,
 			Flattening.Method method,
-			ICompilerTarget target
+			ICompilerTarget target,
+			Func<Flattening.Class, int> classToType,
+			List<List<VarCode.Method>> breakers
 		)
 		{
 			_skeletonMethods = skeletonMethods;
@@ -163,6 +247,8 @@ namespace Terumi.Deobjectification
 			_fieldIds = new int[_fieldMap.Length];
 			_methodParams = new int[method.Parameters.Count];
 			_loadField = new VarCode.Instruction[_fieldIds.Length];
+			_breakers = breakers;
+			_classToType = classToType;
 		}
 
 		private List<VarCode.Instruction> IncreaseScope()
@@ -206,6 +292,13 @@ namespace Terumi.Deobjectification
 				_scope.Set(Flattening.Scope.SGetThis(), new ScopeId(_this));
 
 				_instructions.Add(new VarCode.Instruction.Load.Parameter(_this, 0));
+
+				if (_method.Name.EndsWith("#ctor"))
+				{
+					var tmp = _i++;
+					_instructions.Add(new VarCode.Instruction.Load.Number(tmp, new Number(_classToType(_method.Owner))));
+					_instructions.Add(new VarCode.Instruction.SetField(0, 0, tmp));
+				}
 
 				foreach (var field in _method.Owner.Fields)
 				{
@@ -355,6 +448,15 @@ namespace Terumi.Deobjectification
 						}
 
 						var (targetMethod, calling) = _skeletonMethods.First(x => x.Item2 == o.Calling);
+
+						if (inst != -1 && targetMethod.SimpleName != "ctor")
+						{
+							// call the breaker method  for classes
+							targetMethod = _breakers.First(x => x[0].Returns == targetMethod.Returns
+								&& x[0].Parameters.SequenceEqual(targetMethod.Parameters)
+								&& x[0].SimpleName == targetMethod.SimpleName)[0];
+						}
+
 						_instructions.Add(new VarCode.Instruction.Call(store, targetMethod, args.ToList()));
 					}
 					break;

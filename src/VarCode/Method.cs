@@ -24,6 +24,8 @@ namespace Terumi.VarCode
 		public List<Instruction> Code { get; } = new List<Instruction>();
 		public ObjectType Returns { get; }
 
+		public string SimpleName => Name.Substring(Name.LastIndexOf('#') + 1);
+
 		public bool IsEntryPoint => Name.EndsWith("##main") && Parameters.Count == 0;
 	}
 

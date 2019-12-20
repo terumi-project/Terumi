@@ -245,6 +245,11 @@ namespace Terumi.Lexer
 				peek = _source.Peek(end);
 			}
 
+			if (peek == '\n')
+			{
+				end++;
+			}
+
 			var rawData = _source.Extract(end);
 			var commentData = rawData.Slice(2, rawData.Length - (1 + 2));
 
@@ -577,7 +582,7 @@ namespace Terumi.Lexer
 		[MethodImpl(MaxOpt)]
 		public ReadOnlySpan<char> Extract(int amount)
 		{
-			Debug.Assert(_offset + amount < _source.Length, $"Cannot extract {amount} chars from source - not long enough.");
+			Debug.Assert(_offset + amount <= _source.Length, $"Cannot extract {amount} chars from source - not long enough.");
 
 			var extraction = _source.Slice(_offset, amount);
 

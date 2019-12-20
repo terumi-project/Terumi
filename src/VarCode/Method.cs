@@ -71,8 +71,15 @@ namespace Terumi.VarCode
 	{
 		public const int Nowhere = -1;
 
+		public virtual IEnumerable<int> GetUsedVariables()
+		{
+			yield break;
+		}
+
 		public abstract class Load : Instruction
 		{
+			public abstract int Store { get; }
+
 			public class String : Load, IResultInstruction
 			{
 				public String(int store, string value)
@@ -81,7 +88,7 @@ namespace Terumi.VarCode
 					Value = value;
 				}
 
-				public int Store { get; }
+				public override int Store { get; }
 				public string Value { get; }
 
 				public override string ToString() => $"Load.String(store: {Store}, value: <IM LAZY>)";
@@ -95,7 +102,7 @@ namespace Terumi.VarCode
 					Value = value;
 				}
 
-				public int Store { get; }
+				public override int Store { get; }
 				public Terumi.Number Value { get; }
 
 				public override string ToString() => $"Load.Number(store: {Store}, value: {Value.Value})";
@@ -109,7 +116,7 @@ namespace Terumi.VarCode
 					Value = value;
 				}
 
-				public int Store { get; }
+				public override int Store { get; }
 				public bool Value { get; }
 
 				public override string ToString() => $"Load.Boolean(store: {Store}, value: {Value})";
@@ -123,7 +130,7 @@ namespace Terumi.VarCode
 					ParameterNumber = parameterNumber;
 				}
 
-				public int Store { get; }
+				public override int Store { get; }
 				public int ParameterNumber { get; internal set; }
 
 				public override string ToString() => $"Load.Parameter(store: {Store}, parameterNumber: {ParameterNumber})";
@@ -141,6 +148,11 @@ namespace Terumi.VarCode
 			public int Store { get; }
 			public int Value { get; }
 
+			public override IEnumerable<int> GetUsedVariables()
+			{
+				yield return Value;
+			}
+
 			public override string ToString() => $"Assign(store: {Store}, value: {Value})";
 		}
 
@@ -153,9 +165,11 @@ namespace Terumi.VarCode
 				Arguments = arguments;
 			}
 
-			public int Store { get; }
+			public int Store { get; internal set; }
 			public Method Method { get; }
-			public List<int> Arguments { get; internal set;}
+			public List<int> Arguments { get; internal set; }
+
+			public override IEnumerable<int> GetUsedVariables() => Arguments;
 
 			public override string ToString() => $"Call(store: {Store}, method: '{Method.Name}', arguments: <IM LAZY>)";
 		}
@@ -170,9 +184,11 @@ namespace Terumi.VarCode
 				Arguments = arguments;
 			}
 
-			public int Store { get; }
+			public int Store { get; internal set; }
 			public Binder.CompilerMethod CompilerMethod { get; }
 			public List<int> Arguments { get; }
+
+			public override IEnumerable<int> GetUsedVariables() => Arguments;
 
 			public override string ToString() => $"CompilerCall(store: {Store}, method: '{(CompilerMethod?.Name ?? "null")}', arguments: <IM LAZY>)";
 		}
@@ -190,6 +206,11 @@ namespace Terumi.VarCode
 			public int FieldId { get; }
 			public int ValueId { get; internal set; }
 
+			public override IEnumerable<int> GetUsedVariables()
+			{
+				yield return ValueId;
+			}
+
 			public override string ToString() => $"SetField(variableId: {VariableId}, fieldId: {FieldId}, valueId: {ValueId})";
 		}
 
@@ -205,6 +226,11 @@ namespace Terumi.VarCode
 			public int Store { get; }
 			public int VariableId { get; internal set; }
 			public int FieldId { get; }
+
+			public override IEnumerable<int> GetUsedVariables()
+			{
+				yield return VariableId;
+			}
 
 			public override string ToString() => $"GetField(storeId: {Store}, variableId: {VariableId}, fieldId: {FieldId})";
 		}
@@ -230,6 +256,11 @@ namespace Terumi.VarCode
 
 			public int ValueId { get; internal set; }
 
+			public override IEnumerable<int> GetUsedVariables()
+			{
+				yield return ValueId;
+			}
+
 			public override string ToString() => $"Return(valueId: {ValueId})";
 		}
 
@@ -244,6 +275,11 @@ namespace Terumi.VarCode
 			public int ComparisonId { get; internal set; }
 			public List<Instruction> Clause { get; }
 
+			public override IEnumerable<int> GetUsedVariables()
+			{
+				yield return ComparisonId;
+			}
+
 			public override string ToString() => $"If(variable: {ComparisonId}, clause: <IM LAZY>)";
 		}
 
@@ -257,6 +293,11 @@ namespace Terumi.VarCode
 
 			public int ComparisonId { get; internal set; }
 			public List<Instruction> Clause { get; }
+
+			public override IEnumerable<int> GetUsedVariables()
+			{
+				yield return ComparisonId;
+			}
 
 			public override string ToString() => $"While(comparison: {ComparisonId}, clause: <IM LAZY>)";
 		}

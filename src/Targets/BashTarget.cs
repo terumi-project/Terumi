@@ -68,7 +68,7 @@ namespace Terumi.Targets
 			};
 		}
 
-		private List<string> _run = new List<string>();
+		private List<(string, bool)> _run = new List<(string, bool)>();
 
 		private List<MethodParameter> Match(IType[] arguments)
 			=> arguments.Select((x, i) => new MethodParameter(x, $"p{i}")).ToList();
@@ -89,7 +89,7 @@ namespace Terumi.Targets
 				writer.WriteLine();
 				writer.WriteLine($"function {GetName(method.Id)} {{");
 
-				if (method.IsEntryPoint) _run.Add(GetName(method.Id));
+				if (method.IsEntryPoint) _run.Add((GetName(method.Id), method.Parameters.Count == 1));
 
 				writer.Indent++;
 				Write(writer, method, method.Parameters.Count);
@@ -98,10 +98,16 @@ namespace Terumi.Targets
 				writer.WriteLine('}');
 			}
 
-			foreach (var run in _run)
+			foreach (var (run, hasParam) in _run)
 			{
 				writer.WriteLine();
 				writer.Write(run);
+
+				if (hasParam)
+				{
+					writer.Write(' ');
+					writer.Write("\"$@\"");
+				}
 			}
 		}
 

@@ -7,7 +7,12 @@
 #include <stdint.h> // for 'int32_t' and friends
 #include <stdio.h> // for 'printf'
 #include <string.h> // for 'strcmp', 'strlen', etc.
-#include <stdbool.h> // booleans
+#include <stdbool.h> // OBJ_BOOLEANs
+#include <errno.h> // strtol
+#include <limits.h> // INT_MAX
+
+// compatibility on linux
+#define errno_t int32_t
 
 /*
 NOTICE: partial amounts of this code was written without using size_t & (u)intN_t
@@ -120,30 +125,31 @@ struct List {
 
 // Metadata for the type of an object in Terumi.
 enum ObjectType {
+	// prefixed with OBJ to prevent collision with windows.h
 
 	// 'Unknown' is primarily used to represent newly allocated objects.
-	UNKNOWN = 0,
+	OBJ_UNKNOWN = 0,
 
 	// 'String' is used to represent objects whose data contains a char*
-	STRING = 1,
+	OBJ_STRING = 1,
 
 	// 'Number' is used to represent objects whose data contains a 'struct Number*'
-	NUMBER = 2,
+	OBJ_NUMBER = 2,
 
 	// bool*
-	BOOLEAN = 3,
+	OBJ_BOOLEAN = 3,
 
 	// struct Object*
-	OBJECT = 4,
+	OBJ_OBJECT = 4,
 };
 
 const char* objecttype_to_string(enum ObjectType type) {
 	switch (type) {
-		case UNKNOWN: return "UNKNOWN";
-		case STRING: return "STRING";
-		case NUMBER: return "NUMBER";
-		case BOOLEAN: return "BOOLEAN";
-		case OBJECT: return "OBJECT";
+		case OBJ_UNKNOWN: return "UNKNOWN";
+		case OBJ_STRING: return "STRING";
+		case OBJ_NUMBER: return "NUMBER";
+		case OBJ_BOOLEAN: return "BOOLEAN";
+		case OBJ_OBJECT: return "OBJECT";
 		default: return "N/A";
 	}
 }
@@ -162,7 +168,7 @@ struct Value {
 	// UNKNOWN - uninitialized data
 	// STRING - char* pointer
 	// NUMBER - struct Number* pointer
-	// BOOLEAN - bool* pointer
+	// OBJ_BOOLEAN - bool* pointer
 	// OBJECT - struct Object* pointer
 	void* data;
 };
@@ -191,7 +197,7 @@ struct Number {
 };
 
 // Caches multiple Values that are typically used everywhere. This currently
-// only caches the booleans TRUE, FALSE, and the numbers -1, 0, 1, and 2.
+// only caches the OBJ_BOOLEANs TRUE, FALSE, and the numbers -1, 0, 1, and 2.
 struct ValueCache {
 	bool* true_ptr;
 	bool* false_ptr;
@@ -276,7 +282,7 @@ size_t list_add(struct List* list, void* item);
 struct Value* value_blank(enum ObjectType type);
 // Constructs a Value from a string. Uses the terumi allocator.
 struct Value* value_from_string(char* string);
-// Constructs a Value from a boolean. Reuses a global Value*. Do not mark as
+// Constructs a Value from a OBJ_BOOLEAN. Reuses a global Value*. Do not mark as
 // inactive.
 struct Value* value_from_boolean(bool state);
 // Constructs a Value from a Number. Uses the terumi allocator. Do not free
@@ -315,7 +321,7 @@ size_t run_gc();
 bool should_run_gc();
 // Might run the GC. Returns -1 if it didn't, otherwise it returns the amount
 // of objects the GC collected.
-errno_t maybe_run_gc();
+int32_t maybe_run_gc();
 // registers a Value* to be managed (aka, handheld) by the GC. The caller is
 // expected to set 'active' to 'false' on the returned GC entry once they are
 // no longer going to use the value. Values must be created with the value
@@ -458,14 +464,14 @@ struct Value* value_blank(enum ObjectType type) {
 }
 
 struct Value* value_from_string(char* string) {
-	struct Value* value = value_blank(STRING);
+	struct Value* value = value_blank(OBJ_STRING);
 	value->data = string;
 	return value;
 }
 
 struct Value* value_from_boolean(bool state) {
 	ensure_gc_init();
-	struct Value* v = value_blank(BOOLEAN);
+	struct Value* v = value_blank(OBJ_BOOLEAN);
 
 	if (state) {
 		v->data = gc.cache.true_ptr;
@@ -477,13 +483,13 @@ struct Value* value_from_boolean(bool state) {
 }
 
 struct Value* value_from_number(struct Number* number) {
-	struct Value* value = value_blank(NUMBER);
+	struct Value* value = value_blank(OBJ_NUMBER);
 	value->data = number;
 	return value;
 }
 
 struct Value* value_from_object(struct Object* object) {
-	struct Value* value = value_blank(OBJECT);
+	struct Value* value = value_blank(OBJ_OBJECT);
 	value->data = object;
 	return value;
 }
@@ -492,13 +498,13 @@ void* value_copy(struct Value* source) {
 	ensure_gc_init();
 
 	switch (source->type) {
-		case BOOLEAN: return source->data;
+		case OBJ_BOOLEAN: return source->data;
 		// these will automatically return cached values if necessary
-		case NUMBER: return number_from_int(value_unpack_number(source)->data);
+		case OBJ_NUMBER: return number_from_int(value_unpack_number(source)->data);
 		// make a copy of the string
-		case STRING: return string_copy(value_unpack_string(source));
+		case OBJ_STRING: return string_copy(value_unpack_string(source));
 		// makes a copy of the object
-		case OBJECT: {
+		case OBJ_OBJECT: {
 			struct Object* source_object = source->data;
 			struct Object* copy = object_blank();
 
@@ -518,22 +524,22 @@ void* value_copy(struct Value* source) {
 }
 
 char* value_unpack_string(struct Value* value) {
-	ensure_type(value, STRING);
+	ensure_type(value, OBJ_STRING);
 	return value->data;
 }
 
 bool value_unpack_boolean(struct Value* value) {
-	ensure_type(value, BOOLEAN);
+	ensure_type(value, OBJ_BOOLEAN);
 	return *((bool*)(value->data));
 }
 
 struct Number* value_unpack_number(struct Value* value) {
-	ensure_type(value, NUMBER);
+	ensure_type(value, OBJ_NUMBER);
 	return value->data;
 }
 
 struct Object* value_unpack_object(struct Value* value) {
-	ensure_type(value, OBJECT);
+	ensure_type(value, OBJ_OBJECT);
 	return value->data;
 }
 #pragma endregion
@@ -561,9 +567,9 @@ void ensure_gc_init() {
 	}
 }
 
-errno_t maybe_run_gc() {
+int32_t maybe_run_gc() {
 	ensure_gc_init();
-	errno_t result = should_run_gc() ? run_gc() : -1;
+	int32_t result = should_run_gc() ? run_gc() : -1;
 
 	// GC NOTICE:
 	// if we remove more than 60% of the objects, we will downsize our threshold by half
@@ -586,24 +592,24 @@ void cleanup_value(struct Value* value) {
 	TRACE("cleanup_value");
 
 	switch (value->type) {
-		case UNKNOWN: {
+		case OBJ_UNKNOWN: {
 			printf("[WARN] attempting to free UNKNOWN value. please report this bug.");
 		} break;
-		case BOOLEAN: {
-			// don't free the pointer to the data for a boolean
+		case OBJ_BOOLEAN: {
+			// don't free the pointer to the data for a OBJ_BOOLEAN
 			terumi_free(value);
 		} break;
-		case STRING: {
+		case OBJ_STRING: {
 			// all strings should be allocated with terumi
 			terumi_free(value->data);
 			terumi_free(value);
 		} break;
-		case NUMBER: {
+		case OBJ_NUMBER: {
 			// free the Number & value
 			terumi_free(value->data);
 			terumi_free(value);
 		} break;
-		case OBJECT: {
+		case OBJ_OBJECT: {
 			terumi_free(value->data);
 			terumi_free(value);
 		} break;
@@ -639,7 +645,7 @@ bool mark_referenced(bool* referenced) {
 
 		// has to be an object so we can mark stuff as referenceable
 		struct Value* value = gcentry->value;
-		if (value->type != OBJECT) continue;
+		if (value->type != OBJ_OBJECT) continue;
 
 		struct Object* object = value->data;
 
@@ -677,7 +683,7 @@ void swap_gc(size_t from, size_t to) {
 		struct GCEntry* datai = voidptrarray_at(&gc.list.array, i);
 
 		if (!(datai->alive)) continue;
-		if (datai->value->type != OBJECT) continue;
+		if (datai->value->type != OBJ_OBJECT) continue;
 
 		struct Object* obj = datai->value->data;
 		for (size_t j = 0; j < GC_OBJECT_FIELDS; j++) {
@@ -1094,9 +1100,9 @@ struct GCEntry* instruction_load_parameter(struct GCEntry* parameters, size_t pa
 }
 
 void instruction_assign(struct Value* target, struct Value* source) {
-	ensure_not_type(source, UNKNOWN);
+	ensure_not_type(source, OBJ_UNKNOWN);
 
-	if (target->type == UNKNOWN) {
+	if (target->type == OBJ_UNKNOWN) {
 		target->type = source->type;
 
 		// no need to free target data, there is nothing
@@ -1105,8 +1111,8 @@ void instruction_assign(struct Value* target, struct Value* source) {
 	}
 
 	if (target->type == source->type) {
-		// assigning two booleans doesn't need anything to be freed
-		if (source->type == BOOLEAN) {
+		// assigning two OBJ_BOOLEANs doesn't need anything to be freed
+		if (source->type == OBJ_BOOLEAN) {
 
 			if (value_unpack_boolean(source) == true) {
 				target->data = gc.cache.true_ptr;
@@ -1123,10 +1129,10 @@ void instruction_assign(struct Value* target, struct Value* source) {
 	}
 
 	switch (target->type) {
-		case STRING: {
+		case OBJ_STRING: {
 			switch (source->type) {
 				// number -> string
-				case NUMBER: {
+				case OBJ_NUMBER: {
 					// 12 should be all we need, but we allocate 3x as much just in case :^)
 					const char str_buffer[12 * 3];
 					size_t wrote = sprintf(str_buffer, "%d", ((struct Number*)(source->data))->data);
@@ -1138,10 +1144,10 @@ void instruction_assign(struct Value* target, struct Value* source) {
 				default: break;
 			}
 		} break;
-		case NUMBER: {
+		case OBJ_NUMBER: {
 			switch (source->type) {
 				// string -> number
-				case STRING: {
+				case OBJ_STRING: {
 					long num_val = strtol(source->data, source->data + strlen(source->data), 10);
 
 					if (errno != 0) {
@@ -1169,9 +1175,9 @@ void instruction_assign(struct Value* target, struct Value* source) {
 				default: break;
 			}
 		} break;
-		case BOOLEAN: {
+		case OBJ_BOOLEAN: {
 		} break;
-		case OBJECT: {
+		case OBJ_OBJECT: {
 		} break;
 		default: break;
 	}
@@ -1182,13 +1188,13 @@ void instruction_assign(struct Value* target, struct Value* source) {
 }
 
 void instruction_set_field(struct GCEntry* value, struct Value* object, size_t field_index) {
-	ensure_type(object, OBJECT);
+	ensure_type(object, OBJ_OBJECT);
 	struct Object* data = object->data;
 	data->fields[field_index].object_index = value->index;
 }
 
 struct GCEntry* instruction_get_field(struct Value* object, size_t field_index) {
-	ensure_type(object, OBJECT);
+	ensure_type(object, OBJ_OBJECT);
 	struct Object* data = object->data;
 	int32_t object_index = data->fields[field_index].object_index;
 
@@ -1240,7 +1246,7 @@ struct Value* cc_target_name() {
 }
 
 struct Value* cc_panic(struct Value* message) {
-	ensure_type(message, STRING);
+	ensure_type(message, OBJ_STRING);
 
 	printf("[PANIC] panic in user code: '%s'\n", (char*)(message->data));
 	exit(PANIC);
@@ -1249,7 +1255,7 @@ struct Value* cc_panic(struct Value* message) {
 }
 
 struct Value* cc_is_supported(struct Value* message) {
-	ensure_type(message, STRING);
+	ensure_type(message, OBJ_STRING);
 	char* data = message->data;
 	
 	// TODO: check stuff
@@ -1258,7 +1264,7 @@ struct Value* cc_is_supported(struct Value* message) {
 }
 
 void cc_println(struct Value* input) {
-	ensure_type(input, STRING);
+	ensure_type(input, OBJ_STRING);
 	printf("%s\n", (char*)(input->data));
 }
 
@@ -1283,11 +1289,11 @@ struct Value* cc_operator_equal_to(struct Value* left, struct Value* right) {
 	ensure_type(right, left->type);
 
 	switch (left->type) {
-		case UNKNOWN: return value_from_boolean(true);
-		case STRING: return value_from_boolean(strcmp(value_unpack_string(left), value_unpack_string(right)) != 0);
-		case NUMBER: return value_from_boolean(number_equal(value_unpack_number(left), value_unpack_number(right)));
-		case OBJECT: return value_from_boolean(left->data == right->data); // reference equality for objects
-		case BOOLEAN: return value_from_boolean(value_unpack_boolean(left) == value_unpack_boolean(right));
+		case OBJ_UNKNOWN: return value_from_boolean(true);
+		case OBJ_STRING: return value_from_boolean(strcmp(value_unpack_string(left), value_unpack_string(right)) != 0);
+		case OBJ_NUMBER: return value_from_boolean(number_equal(value_unpack_number(left), value_unpack_number(right)));
+		case OBJ_OBJECT: return value_from_boolean(left->data == right->data); // reference equality for objects
+		case OBJ_BOOLEAN: return value_from_boolean(value_unpack_boolean(left) == value_unpack_boolean(right));
 	}
 
 	printf("[ERR] unable to compare types '%s' and '%s'.", objecttype_to_string(left->type), objecttype_to_string(right->type));
@@ -1317,8 +1323,8 @@ struct Value* cc_operator_greater_than_or_equal_to(struct Value* left, struct Va
 }
 
 struct Value* cc_operator_add(struct Value* left, struct Value* right) {
-	if (left->type == STRING) {
-		ensure_type(right, STRING);
+	if (left->type == OBJ_STRING) {
+		ensure_type(right, OBJ_STRING);
 
 		// concatenation
 		return value_from_string(string_concat(value_unpack_string(left), value_unpack_string(right)));
@@ -1401,8 +1407,12 @@ struct Value* cc_string_length(struct Value* str) {
 // <INJECT__CODE>
 #pragma endregion
 
+char* get_command_line();
+
 int main(int argc, char** argv) {
 	TRACE("main");
+
+	struct GCEntry* command_line = gc_handhold(value_from_string(string_copy(get_command_line(argc, argv))));
 
 	// must be on the first level of indentation
 // <INJECT__RUN>
@@ -1427,4 +1437,35 @@ int main(int argc, char** argv) {
 
 	TRACE_EXIT("main");
 	return 0;
+}
+
+#ifdef _WIN32
+#include <windows.h> // GetCommandLine
+#endif
+
+char* get_command_line(int argc, char** argv) {
+#ifdef _WIN32
+	return (char*)GetCommandLine();
+#else
+	// super naive implementation
+
+	char* start = argv[0];
+
+	for (size_t i = 1; i < argc; i++) {
+		char* tab_concat = string_concat("\t", argv[i]);
+		char* concat = string_concat(start, tab_concat);
+
+		terumi_free(tab_concat);
+
+		// if it's the first time around, we don't want to free argv
+		// otherwise we want to free the previous concatenation
+		if (i != 1) {
+			terumi_free(start);
+		}
+
+		start = concat;
+	}
+
+	return start;
+#endif
 }

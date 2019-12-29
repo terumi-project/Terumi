@@ -57,7 +57,7 @@ namespace Terumi.Targets
 			};
 		}
 
-		private List<string> _run = new List<string>();
+		private List<(string, bool)> _run = new List<(string, bool)>();
 
 		private List<MethodParameter> Match(IType[] arguments)
 			=> arguments.Select((x, i) => new MethodParameter(x, $"p{i}")).ToList();
@@ -77,7 +77,7 @@ namespace Terumi.Targets
 				writer.WriteLine();
 				writer.Write($"function {GetName(method.Id)}");
 
-				if (method.IsEntryPoint) _run.Add(GetName(method.Id));
+				if (method.IsEntryPoint) _run.Add((GetName(method.Id), method.Parameters.Count == 1));
 
 				if (method.Parameters.Count > 0)
 				{
@@ -106,10 +106,26 @@ namespace Terumi.Targets
 				writer.WriteLine('}');
 			}
 
-			foreach (var run in _run)
+			bool didGetCommandLine = false;
+
+			foreach (var (run, hasParam) in _run)
 			{
 				writer.WriteLine();
+
+				if (hasParam && !didGetCommandLine)
+				{
+					writer.WriteLine($@"$command_line_obj = Get-CimInstance Win32_Process -Filter ""ProcessId like '$pid'"" | Select CommandLine
+$command_line = $command_line_obj.CommandLine");
+					didGetCommandLine = true;
+				}
+
 				writer.Write(run);
+
+				if (hasParam)
+				{
+					writer.Write(' ');
+					writer.Write("$command_line");
+				}
 			}
 		}
 

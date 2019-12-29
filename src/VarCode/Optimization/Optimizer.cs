@@ -15,11 +15,11 @@ namespace Terumi.VarCode.Optimization
 			foreach (var method in methods)
 			{
 				passAgain = PeelObjects.Peel(method, fieldCount) || passAgain;
-				passAgain = PeelParameters.Peel(method, methods) || passAgain;
+				// passAgain = PeelParameters.Peel(method, methods) || passAgain;
 				passAgain = ParameterLoadInlining.Peel(method) || passAgain;
 				passAgain = CompileTimeComputing.Optimize(method.Code) || passAgain;
 				passAgain = AssignmentInlining.Optimize(method.Code) || passAgain;
-				passAgain = UselessVariableRemover.Optimize(method.Code) || passAgain;
+				// passAgain = UselessVariableRemover.Optimize(method.Code) || passAgain;
 				passAgain = UnecessaryAssignmentRemover.Optimize(method.Code) || passAgain;
 			}
 

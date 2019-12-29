@@ -102,7 +102,7 @@ namespace Terumi.Targets
 				{
 					foreach(var method in run)
 					{
-						writer.WriteLine($"{method}(0);");
+						writer.WriteLine($"{method}(&command_line);");
 					}
 				}
 				else

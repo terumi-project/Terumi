@@ -26,7 +26,7 @@ namespace Terumi.VarCode
 
 		public string SimpleName => Name.Substring(Name.LastIndexOf('#') + 1);
 
-		public bool IsEntryPoint => Name.EndsWith("##main") && Parameters.Count == 0;
+		public bool IsEntryPoint => Name.EndsWith("##main") && (Parameters.Count == 0 || (Parameters.Count == 1 && Parameters[0] == ObjectType.String));
 	}
 
 	public static class InstrExctsnsnsnsndasidnioasdioasinjADSJIODSAJIODIJOSA

@@ -267,6 +267,11 @@ namespace Terumi.Binder
 			Debug.Assert(type is Class);
 			var @class = (Class)type;
 
+			if (@class.Name == "JsonValue")
+			{
+				Console.WriteLine("yep");
+			}
+
 			return TryFindMethod(@class.Methods, "ctor", parameters);
 		}
 
@@ -292,6 +297,14 @@ namespace Terumi.Binder
 					}
 
 					goto nopeNotThisOneChief;
+				}
+
+				if (name == "ctor" && method.Parameters.Count == 1
+					&& method is Method
+					&& method.Parameters[0].Type == BuiltinType.String
+					&& method.Parameters[0].Name == "value")
+				{
+					Console.WriteLine("look into this one");
 				}
 
 				return method;

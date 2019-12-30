@@ -1199,7 +1199,7 @@ struct GCEntry* instruction_get_field(struct Value* object, size_t field_index) 
 	int32_t object_index = data->fields[field_index].object_index;
 
 	if (object_index == -1) {
-		printf("[ERR] unable to get field '%d' from object when field isn't initialized.\n", object_index);
+		printf("[ERR] unable to get field '%d' from object when field isn't initialized.\n", field_index);
 		print_err();
 		exit(IMPOSSIBLE);
 	}
@@ -1290,7 +1290,7 @@ struct Value* cc_operator_equal_to(struct Value* left, struct Value* right) {
 
 	switch (left->type) {
 		case OBJ_UNKNOWN: return value_from_boolean(true);
-		case OBJ_STRING: return value_from_boolean(strcmp(value_unpack_string(left), value_unpack_string(right)) != 0);
+		case OBJ_STRING: return value_from_boolean(strcmp(value_unpack_string(left), value_unpack_string(right)) == 0);
 		case OBJ_NUMBER: return value_from_boolean(number_equal(value_unpack_number(left), value_unpack_number(right)));
 		case OBJ_OBJECT: return value_from_boolean(left->data == right->data); // reference equality for objects
 		case OBJ_BOOLEAN: return value_from_boolean(value_unpack_boolean(left) == value_unpack_boolean(right));

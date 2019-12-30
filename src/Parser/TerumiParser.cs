@@ -1499,7 +1499,7 @@ namespace Terumi.Parser
 			{
 				if (error)
 				{
-					Error("Expected identifier");
+					Error($"Expected identifier, got '{_type}'");
 				}
 				else
 				{

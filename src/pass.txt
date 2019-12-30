@@ -1,2 +1,2 @@
-test
-compile -t powershell
+json
+compile -t c

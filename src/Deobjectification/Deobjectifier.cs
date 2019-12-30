@@ -118,6 +118,11 @@ namespace Terumi.Deobjectification
 							new VarCode.Instruction.Call(breakerMethod.Returns == ObjectType.Void ? -1 : 4, sub, args)
 						};
 
+						if (breakerMethod.Returns != ObjectType.Void)
+						{
+							clause.Add(new VarCode.Instruction.Return(4));
+						}
+
 						for (var i = 0; i < breakerMethod.Parameters.Count; i++)
 						{
 							args.Add(i + (breakerMethod.Returns == ObjectType.Void ? 3 : 4));

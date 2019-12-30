@@ -146,6 +146,9 @@ namespace Terumi.Binder
 		{
 			if (mustBe == tryingToPoseAs) return CompareDecision.Success;
 
+			if (BuiltinType.IsBuiltinType(mustBe))
+				return mustBe == tryingToPoseAs ? CompareDecision.Success : CompareDecision.Failure;
+
 			// check if method names & fields are similar
 			foreach (var field in mustBe.Fields)
 			{

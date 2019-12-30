@@ -141,77 +141,7 @@ namespace Terumi.Binder
 		}
 
 		internal bool CanUseTypeAsType(IType supposeToBe, IType tryingToUse)
-		{
-			bool result = TypeSimilarity.MayBeUsedAs(supposeToBe, tryingToUse);
-			return result;
-
-			// TODO: delete code
-			// may be necessary...?
-
-			// make sure they're not builtin types
-			// if they're built in types they're not replaceable
-			if (BuiltinType.IsBuiltinType(supposeToBe) || BuiltinType.IsBuiltinType(tryingToUse))
-			{
-				// if they're builtin types, we check if they're equal by reference only
-				return IType.ReferenceEquals(supposeToBe, tryingToUse);
-			}
-
-			if (IType.ReferenceEquals(supposeToBe, tryingToUse))
-			{
-				return true;
-			}
-
-			if (supposeToBe.Fields.Count != tryingToUse.Fields.Count)
-			{
-				return false;
-			}
-
-			if (supposeToBe.Methods.Count != tryingToUse.Methods.Count)
-			{
-				return false;
-			}
-
-			for (var i = 0; i < supposeToBe.Fields.Count; i++)
-			{
-				var src = supposeToBe.Fields[i];
-				var target = tryingToUse.Fields[i];
-
-				if (src.Name == target.Name
-					&& CanUseTypeAsType(src.Type, target.Type))
-				{
-					continue;
-				}
-
-				return false;
-			}
-
-			for (var i = 0; i < supposeToBe.Methods.Count; i++)
-			{
-				var src = supposeToBe.Methods[i];
-				var target = tryingToUse.Methods[i];
-
-				if (src.Name == target.Name
-					&& CanUseTypeAsType(src.ReturnType, target.ReturnType)
-					&& src.Parameters.Count == target.Parameters.Count)
-				{
-					for (var p = 0; p < src.Parameters.Count; p++)
-					{
-						if (CanUseTypeAsType(src.Parameters[p].Type, target.Parameters[p].Type))
-						{
-							continue;
-						}
-
-						return false;
-					}
-
-					continue;
-				}
-
-				return false;
-			}
-
-			return true;
-		}
+			=> TypeSimilarity.MayBeUsedAs(supposeToBe, tryingToUse);
 
 		internal IType FindImmediateType(string? name, SourceFile source)
 		{
@@ -267,11 +197,6 @@ namespace Terumi.Binder
 			Debug.Assert(type is Class);
 			var @class = (Class)type;
 
-			if (@class.Name == "JsonValue")
-			{
-				Console.WriteLine("yep");
-			}
-
 			return TryFindMethod(@class.Methods, "ctor", parameters);
 		}
 
@@ -297,14 +222,6 @@ namespace Terumi.Binder
 					}
 
 					goto nopeNotThisOneChief;
-				}
-
-				if (name == "ctor" && method.Parameters.Count == 1
-					&& method is Method
-					&& method.Parameters[0].Type == BuiltinType.String
-					&& method.Parameters[0].Name == "value")
-				{
-					Console.WriteLine("look into this one");
 				}
 
 				return method;

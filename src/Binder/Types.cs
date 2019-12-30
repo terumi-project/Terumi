@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Text;
 
 namespace Terumi.Binder
@@ -267,6 +269,15 @@ namespace Terumi.Binder
 		public CodeBody Body { get; set; }
 
 		public bool IsConstructor => Name == "ctor";
+
+		public override string ToString() => $"{ReturnType.TypeName} {Name}({ToStrParams()})";
+
+		private string ToStrParams()
+		{
+			if (Parameters.Count > 2) return Parameters.Select(x => $"{x.Type.TypeName} {x.Name}").Aggregate((a, b) => $"{a}, {b}");
+			else if (Parameters.Count == 1) return Parameters[0].Type.TypeName + " " + Parameters[0].Name;
+			else return "";
+		}
 	}
 
 	public class MethodParameter

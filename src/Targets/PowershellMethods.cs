@@ -146,7 +146,7 @@ $command_line = $command_line_obj.CommandLine");
 			{
 				case Instruction.Load.String o:
 				{
-					writer.WriteLine($"${GetName(o.Store)} = \"{o.Value}\"");
+					writer.WriteLine($"${GetName(o.Store)} = \"{Escape(o.Value)}\"");
 				}
 				break;
 
@@ -264,6 +264,24 @@ $command_line = $command_line_obj.CommandLine");
 			}
 
 			string GetName(int id) => PowershellTarget.GetName(id + offset);
+		}
+
+		public static string Escape(string input)
+		{
+			var strb = new StringBuilder(input.Length + 10);
+
+			foreach (var i in input)
+			{
+				switch (i)
+				{
+					case '"': strb.Append('`').Append('"'); break;
+					case '\n': strb.Append('`').Append('n'); break;
+					case '\t': strb.Append('`').Append('t'); break;
+					default: strb.Append(i); break;
+				}
+			}
+
+			return strb.ToString();
 		}
 
 		private static string GetName(int id)

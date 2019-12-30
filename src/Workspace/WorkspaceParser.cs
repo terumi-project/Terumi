@@ -61,10 +61,12 @@ namespace Terumi.Workspace
 				return false;
 			}
 
+			// don't cleanup parsed crud, because since equality is by reference, we should be fine most of the time
+
 			// cleanup parsed crud, incase we have duplicates
-			parsed.IndirectDependencies = parsed.IndirectDependencies
-				.Distinct(BoundFile.FilePathComparer)
-				.ToList();
+			// parsed.IndirectDependencies = parsed.IndirectDependencies
+			//	.Distinct(BoundFile.FilePathComparer)
+			//	.ToList();
 
 			// direct dependencies should be ok
 

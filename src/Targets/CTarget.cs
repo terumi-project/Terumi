@@ -173,7 +173,7 @@ namespace Terumi.Targets
 				{
 					case VarCode.Instruction.Load.String o:
 						EnsureVarExists(o.Store);
-						writer.WriteLine($"{GetVarName(o.Store)} = gc_handhold(instruction_load_string(\"{o.Value}\"));");
+						writer.WriteLine($"{GetVarName(o.Store)} = gc_handhold(instruction_load_string(\"{Escape(o.Value)}\"));");
 						break;
 
 					case VarCode.Instruction.Load.Number o:
@@ -392,5 +392,23 @@ namespace Terumi.Targets
 
 		private static string GetName(int id)
 			=> $"__terumi_{id}";
+
+		public static string Escape(string input)
+		{
+			var strb = new StringBuilder(input.Length + 10);
+
+			foreach (var i in input)
+			{
+				switch (i)
+				{
+					case '"': strb.Append('\\').Append('"'); break;
+					case '\n': strb.Append('\\').Append('n'); break;
+					case '\t': strb.Append('\\').Append('t'); break;
+					default: strb.Append(i); break;
+				}
+			}
+
+			return strb.ToString();
+		}
 	}
 }

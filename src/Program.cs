@@ -252,7 +252,7 @@ bin
 			Log.Info($"Could compile project: {Compile(compilerTarget)}");
 		}
 
-		private static async Task InstallProject(string packageName, string? version, string? sourceUrl)
+		private static async Task InstallProject(string packageName, string? version, string? source)
 		{
 			Log.Stage("LOAD", "Loading project");
 
@@ -264,15 +264,15 @@ bin
 
 			Log.StageEnd();
 
-			Source source = Source.Instance;
+			Source sourceRepo = Source.Instance;
 
-			if (sourceUrl != null)
+			if (source != null)
 			{
-				source = new Source(package => new Uri(sourceUrl.Replace("{?}", package)));
+				sourceRepo = new Source(package => new Uri(source.Replace("{?}", package).Trim('"')));
 			}
 
 			Log.Stage("PULL", "Downloading package from repository");
-			var package = await source.Fetch(packageName);
+			var package = await sourceRepo.Fetch(packageName);
 
 			if (package == null)
 			{

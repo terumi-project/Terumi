@@ -340,7 +340,7 @@ namespace Terumi.Binder
 
 					if (method == null)
 					{
-						throw new CodeBinderException(p, "Unable to find method call");
+						throw new CodeBinderException(p, "Unable to find method call " + p.Name);
 					}
 
 					return new Expression.Access(o, left, new Expression.MethodCall(p, method, exprs));

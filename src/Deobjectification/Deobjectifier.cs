@@ -480,7 +480,14 @@ namespace Terumi.Deobjectification
 
 					case Instruction.Return o:
 					{
-						_instructions.Add(new VarCode.Instruction.Return(ScopeGet(o.ReturnVariable)));
+						if (o.ReturnVariable == null)
+						{
+							_instructions.Add(new VarCode.Instruction.Return(-1));
+						}
+						else
+						{
+							_instructions.Add(new VarCode.Instruction.Return(ScopeGet(o.ReturnVariable)));
+						}
 					}
 					break;
 

@@ -294,6 +294,7 @@ namespace Terumi.Targets
 						if (o.ValueId == -1)
 						{
 							writer.WriteLine("return;");
+							break;
 						}
 
 						writer.WriteLine($"{GetVarName(o.ValueId)}->active = true;");
@@ -397,7 +398,7 @@ namespace Terumi.Targets
 		{
 			var strb = new StringBuilder(input.Length + 10);
 
-			foreach (var i in input)
+			foreach (var i in input.Replace("\r\n", "\n").Replace('\r', '\n'))
 			{
 				switch (i)
 				{

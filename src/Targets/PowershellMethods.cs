@@ -29,6 +29,9 @@ namespace Terumi.Targets
 				case TargetMethodNames.Println: return ReturnMethod(BuiltinType.Void, a => $"Write-Host {a[0]}");
 				case TargetMethodNames.Command: return ReturnMethod(BuiltinType.Void, a => $"iex \"& {a[0]}\"");
 
+				case TargetMethodNames.OperatorAnd: return ReturnMethod(BuiltinType.Boolean, a => $"{a[0]} -And {a[1]}");
+				case TargetMethodNames.OperatorOr: return ReturnMethod(BuiltinType.Boolean, a => $"{a[0]} -Or {a[1]}");
+
 				case TargetMethodNames.OperatorNot: return ReturnMethod(BuiltinType.Boolean, a => $"-Not {a[0]}");
 
 				case TargetMethodNames.OperatorEqualTo: return ReturnMethod(BuiltinType.Boolean, a => $"{a[0]} -eq {a[1]}");

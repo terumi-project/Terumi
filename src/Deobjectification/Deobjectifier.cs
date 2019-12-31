@@ -79,6 +79,8 @@ namespace Terumi.Deobjectification
 				var varMethod = new VarCode.Method(returnType, method.Name, parameters.ToList());
 				skeletonMethods.Add((varMethod, method));
 
+//============================================================================================================================== SKELETON METHODS (i keep not knowing where this is)
+
 				if (method.Owner != null && !method.BoundMethod.IsConstructor)
 				{
 					var breakerName = ToBreakerName(varMethod, method.BoundMethod.Name);
@@ -121,6 +123,10 @@ namespace Terumi.Deobjectification
 						if (breakerMethod.Returns != ObjectType.Void)
 						{
 							clause.Add(new VarCode.Instruction.Return(4));
+						}
+						else
+						{
+							clause.Add(new VarCode.Instruction.Return(-1));
 						}
 
 						for (var i = 0; i < breakerMethod.Parameters.Count; i++)

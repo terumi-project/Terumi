@@ -202,6 +202,36 @@ namespace Terumi.Binder
 
 		public IMethod? TryFindMethod(IEnumerable<IMethod> methods, string name, List<Expression> parameters)
 		{
+			// try to find exact signatrues first
+			foreach (var method in methods)
+			{
+				if (method.Name != name)
+				{
+					continue;
+				}
+
+				if (method.Parameters.Count != parameters.Count)
+				{
+					continue;
+				}
+
+				for (var i = 0; i < method.Parameters.Count; i++)
+				{
+					if (method.Parameters[i].Type == parameters[i].Type)
+					{
+						continue;
+					}
+
+					goto nopeNotThisOneChief;
+				}
+
+				return method;
+
+			nopeNotThisOneChief:
+				continue;
+			}
+
+			// similar ones next
 			foreach (var method in methods)
 			{
 				if (method.Name != name)
@@ -249,6 +279,24 @@ namespace Terumi.Binder
 				return false;
 			}
 
+			// exact types first
+			foreach (var method in methods)
+			{
+				if (method.Name != name) continue;
+				if (method.Parameters.Count != arguments.Count) continue;
+
+				for (var i = 0; i < method.Parameters.Count; i++)
+				{
+					if (method.Parameters[i].Type != arguments[i].Type) goto fail;
+				}
+
+				targetMethod = method;
+				return true;
+
+			fail:;
+			}
+
+			// similarity next
 			foreach (var method in methods)
 			{
 				if (method.Name != name) continue;

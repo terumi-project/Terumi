@@ -193,7 +193,7 @@ namespace Terumi.Targets
 						break;
 
 					case VarCode.Instruction.Assign o:
-						EnsureVarExists(o.Store, true);
+						EnsureVarExists(o.Store, true, dontMarkInactive: true);
 						writer.WriteLine($"instruction_assign({GetVarName(o.Store)}->value, {GetVarName(o.Value)}->value);");
 						break;
 
@@ -362,10 +362,10 @@ namespace Terumi.Targets
 				index++;
 			}
 
-			void EnsureVarExists(int ensure, bool alloc = false) => this.EnsureVarExists(writer, ensure, decl, alloc);
+			void EnsureVarExists(int ensure, bool alloc = false, bool dontMarkInactive = false) => this.EnsureVarExists(writer, ensure, decl, alloc, dontMarkInactive);
 		}
 
-		private void EnsureVarExists(IndentedTextWriter writer, int ensure, List<int> decl, bool alloc)
+		private void EnsureVarExists(IndentedTextWriter writer, int ensure, List<int> decl, bool alloc, bool dontMarkInactive)
 		{
 			var allocated = false;
 
@@ -384,7 +384,12 @@ namespace Terumi.Targets
 			{
 				// probably about to set it to a new value
 				// tell the GC that we don't want to keep track of this one
-				writer.WriteLine($"{GetVarName(ensure)}->active = false;");
+
+				// if we use instruction_assign we're not going to change the GCEntry, just the value
+				if (!dontMarkInactive)
+				{
+					writer.WriteLine($"{GetVarName(ensure)}->active = false;");
+				}
 			}
 		}
 

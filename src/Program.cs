@@ -91,7 +91,6 @@ namespace Terumi
 	"Going to execute the command in pass.txt");
 				var info = File.ReadAllLines("pass.txt");
 				Directory.SetCurrentDirectory(info[0]);
-				Compile(new PowershellTarget());
 				return rootCommand.Invoke(info[1].Split(' '));
 			}
 #endif

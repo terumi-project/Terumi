@@ -173,20 +173,11 @@ struct Value {
 	void* data;
 };
 
-// A 'ValuePtr' is an index in the GC to a GCEntry, which contains a Value.
-// These are used instead of pointers to Value. The GC, on collection, will
-// update all 'Value's that are 'Object's with "old value pointers". These
-// are particularly useful to gain immediate access to the GCEntry of a value
-// in the GC.
-struct ValuePtr {
-	int32_t object_index;
-};
-
 // An 'Object' is used to represent a series of fields, with values. This is
 // represented with pointers to values.
 struct Object {
 	// An array of ValuePtrs to values used by a given object.
-	struct ValuePtr fields[GC_OBJECT_FIELDS];
+	struct GCEntry* fields[GC_OBJECT_FIELDS];
 };
 
 // Terumi's number system may expand in the future to floating point operations
@@ -231,7 +222,7 @@ struct GCEntry {
 	// A pointer to the value this GCEntry holds.
 	struct Value* value;
 
-	// The index of this GCEntry in the GC. Useful for 'ValuePtr's.
+	// The index of this GCEntry in the GC.
 	size_t index;
 };
 
@@ -508,9 +499,7 @@ void* value_copy(struct Value* source) {
 			struct Object* source_object = source->data;
 			struct Object* copy = object_blank();
 
-			for (size_t i = 0; i < GC_OBJECT_FIELDS; i++) {
-				copy->fields[i].object_index = source_object->fields[i].object_index;
-			}
+			memcpy(copy->fields, source_object->fields, sizeof(struct GCEntry) * GC_OBJECT_FIELDS);
 
 			return copy;
 		}
@@ -651,8 +640,10 @@ bool mark_referenced(bool* referenced) {
 
 		// mark each object the referenced object references as referenced.
 		for (size_t j = 0; j < GC_OBJECT_FIELDS; j++) {
+			struct GCEntry* entry = object->fields[j];
+			if (entry == NULL) continue;
 
-			size_t index = object->fields[j].object_index;
+			size_t index = entry->index;
 
 			if (!referenced[index]) {
 				modified = true;
@@ -678,24 +669,6 @@ void swap_gc(size_t from, size_t to) {
 	voidptrarray_set(&gc.list.array, to, at_from);
 	voidptrarray_set(&gc.list.array, from, at_to);
 
-	// update all references in the GC
-	for (size_t i = 0; i < gc.list.elements; i++) {
-		struct GCEntry* datai = voidptrarray_at(&gc.list.array, i);
-
-		if (!(datai->alive)) continue;
-		if (datai->value->type != OBJ_OBJECT) continue;
-
-		struct Object* obj = datai->value->data;
-		for (size_t j = 0; j < GC_OBJECT_FIELDS; j++) {
-			int32_t index = obj->fields[j].object_index;
-
-			if (index == from) {
-				obj->fields[j].object_index = to;
-			} else if (index == to) {
-				obj->fields[j].object_index = from;
-			}
-		}
-	}
 	TRACE_EXIT("swap_gc");
 }
 
@@ -968,7 +941,7 @@ bool terumi_free(void* data) {
 	int8_t* mem_preamble = data - 1;
 
 	if (!mem_preamble[0]) {
-		printf("[WARN] attempting to free a pointer to data that is already freed.\n");
+		printf("[WARN] attempting to free a pointer to data that is already freed (ptr: '%zu').\n", data);
 		return true;
 	}
 
@@ -1034,7 +1007,7 @@ struct Object* object_blank() {
 
 	// TODO: might be able to use memset
 	for (size_t i = 0; i < GC_OBJECT_FIELDS; i++) {
-		object->fields[i].object_index = -1;
+		object->fields[i] = NULL;
 	}
 
 	return object;
@@ -1190,21 +1163,20 @@ void instruction_assign(struct Value* target, struct Value* source) {
 void instruction_set_field(struct GCEntry* value, struct Value* object, size_t field_index) {
 	ensure_type(object, OBJ_OBJECT);
 	struct Object* data = object->data;
-	data->fields[field_index].object_index = value->index;
+	data->fields[field_index] = value;
 }
 
 struct GCEntry* instruction_get_field(struct Value* object, size_t field_index) {
 	ensure_type(object, OBJ_OBJECT);
 	struct Object* data = object->data;
-	int32_t object_index = data->fields[field_index].object_index;
+	struct GCEntry* entry = data->fields[field_index];
 
-	if (object_index == -1) {
+	if (entry == NULL) {
 		printf("[ERR] unable to get field '%d' from object when field isn't initialized.\n", field_index);
 		print_err();
 		exit(IMPOSSIBLE);
 	}
 
-	struct GCEntry* entry = voidptrarray_at(&gc.list.array, object_index);
 	return entry;
 }
 

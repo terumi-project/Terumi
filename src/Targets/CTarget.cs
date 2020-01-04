@@ -376,7 +376,7 @@ namespace Terumi.Targets
 
 				if (alloc)
 				{
-					writer.WriteLine($"{GetVarName(ensure)} = gc_handhold(value_blank(UNKNOWN));");
+					writer.WriteLine($"{GetVarName(ensure)} = gc_handhold(value_blank(OBJ_UNKNOWN));");
 					allocated = true;
 				}
 			}

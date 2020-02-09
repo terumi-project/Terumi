@@ -1,0 +1,116 @@
+//! This document follows the same guideliens as stated in parser_tree.rs
+//
+// For a simple reference on LALRPOP grammar files, I find this to be nice:
+// https://github.com/tcr/oasis/blob/1774274488f9034f3b93ad7907b9276c07ea4b59/src/lisp.lalrpop
+
+use std::str::FromStr;
+use crate::parser_tree::*;
+
+grammar;
+
+// http://lalrpop.github.io/lalrpop/tutorial/006_macros.html
+Comma<T>: Vec<T> = { // (1)
+    <v:(<T> ",")*> <e:T?> => match e { // (2)
+        None => v,
+        Some(e) => {
+            let mut v = v;
+            v.push(e);
+            v
+        }
+    },
+};
+
+pub CompilationUnit: Vec<TopLevelUnit> = {
+    <v:(<TopLevelUnit>)*> => v,
+};
+
+pub TopLevelUnit: TopLevelUnit = {
+    "use" <p:PackageLevel> => TopLevelUnit::Use(p),
+    "package" <p:PackageLevel> => TopLevelUnit::Package(p),
+    "class" <n:Identifier> "{" <e:ClassEntry*> "}" => TopLevelUnit::Class(Class {
+        name: n,
+        members: e,
+    }),
+    "contract" <name:Identifier> "{" <e:ContractEntry*> "}" => TopLevelUnit::Contract(Contract {
+        name: name,
+        members: e,
+    }),
+    <f:FunctionDeclaration> => TopLevelUnit::Function(f),
+};
+
+pub PackageLevel: PackageLevel = {
+    <p:PackageLevel> "." <i:Identifier> => PackageLevel::Scoped(Box::new(p), i),
+    <i:Identifier> => PackageLevel::Root(i),
+};
+
+pub ClassEntry: ClassEntry = {
+    <field_type:Type> <name:Identifier> => ClassEntry::Field(Field {
+        name: name,
+        field_type: field_type
+    }),
+    <fdecl:FunctionDeclaration> => ClassEntry::Function(fdecl),
+};
+
+pub FunctionDeclaration: Function = {
+    <return_type:Type?> <name:Identifier>
+    "(" <parameters:Parameters> ")"
+    <statements:Statements> => Function {
+        return_type: match return_type {
+            Some(return_type) => return_type,
+            None => Type::Void,
+        },
+        name: name,
+        parameters: parameters,
+        statements: statements,
+    },
+};
+
+pub ContractEntry: ContractEntry = {
+    <field_type:Type> <name:Identifier> => ContractEntry::Field(Field {
+        name: name,
+        field_type: field_type
+    }),
+    <fdecl:SkeletonFunction> => ContractEntry::Function(fdecl),
+};
+
+// TODO: i dislike the copy and paste nature of this but oh well
+pub SkeletonFunction: SkeletonFunction = {
+    <return_type:Type?> <name:Identifier>
+    "(" <parameters:Parameters> ")" => SkeletonFunction {
+        return_type: match return_type {
+            Some(return_type) => return_type,
+            None => Type::Void,
+        },
+        name: name,
+        parameters: parameters,
+    },
+};
+
+pub Parameters = Comma<Parameter>;
+pub Parameter: Parameter = {
+    <parameter_type:Type> <name:Identifier> => Parameter {
+        name: name,
+        parameter_type: parameter_type,
+    },
+};
+
+pub Statements: Vec<Statement> = {
+    <s:Statement> => vec![s],
+    "{" <v:(<Statement>)*> "}" => v,
+};
+
+pub Statement: Statement = {
+    <n:Number> => Statement::Number(n),
+};
+
+pub Type: Type = {
+    "string" => Type::String,
+    "number" => Type::Number,
+    "bool" => Type::Bool,
+    <t:Identifier> "<" <generics:Comma<Type>> ">" => Type::Generics(t, generics),
+    <p:PackageLevel> "::" <t:Type> => Type::Qualified(p, Box::new(t)),
+    <t:Identifier> => Type::User(t),
+}
+
+Number: i32 = <s:r"[0-9]+"> => i32::from_str(s).unwrap();
+Identifier: String = <s:r"[A-Za-z_][A-Za-z0-9_]*"> => String::from(s);

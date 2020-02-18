@@ -1,0 +1,651 @@
+// PARSE TREE GUIDELINES:
+// ALL COMMENTS PRIMARILY RELATE TO ORDERING OF MEMBERS IN THIS DOCUMENT AND
+// NEW NAMES GIVEN ARE NOT MEANT TO BE USED ELSEWHERE, AS THEY ONLY RELATE TO
+// THE STRUCTURE OF THE DOCUMENT.
+//
+// The order and layout of members should be as they are parsed in a file.
+//
+// The ordering and layout of enums/structs should be as they are parsed in a file,
+// with any "dependencies" following afterwords.
+//
+// e.g.
+// TopLevelUnit:
+// - Use <PackageLevel>
+// - Package <PackageLevel>
+// - Class <Class>
+//
+// PackageLevel: // dependency of 'Use', must be introduced here
+// // 'Package' already has PackageLevel defined, it's fine
+//
+// Class: // dependency of 'Class'
+// - Name // class Name { ... }
+// - Vec<Member> { members here }
+//
+// Enums are used when there are different kinds of acceptable inputs in a scope.
+// Class members, Statements, and Expressions are enums.
+//
+// Structs are used when data needs to be held, eg. Class name & member list, etc.
+//
+// Exceptions to the guidelines:
+// - Separation of 'Code' and 'Skeleton'
+//   Skeleton declarations are first to actual Code declarations.
+//   This is because Skeleton declarations are rather light in their footprint,
+//   and Code declarations require much more information based on statements.
+//   Therefore, they are explicitly after the 'Code' comment point.
+
+// Span - metadata for where certain keywords/tokens start and end at. Used for
+// telling the user where they made mistakes. At the top as an exception
+#[derive(Debug, PartialEq)]
+pub struct Span {
+	pub start: usize,
+	pub end: usize,
+}
+
+impl Span {
+	pub fn from(start: usize, end: usize) -> Span {
+		Span {
+			start: start,
+			end: end
+		}
+	}
+}
+
+// Another exception - Identifier
+#[derive(Debug, PartialEq)]
+pub struct Identifier<'a> {
+	pub span: Span,
+	pub value: &'a str,
+}
+
+impl<'a> Identifier<'a> {
+	pub fn from3(data: &'a str, start: usize, end: usize) -> Identifier<'a> {
+		Identifier {
+			span: Span::from(start, end),
+			value: data
+		}
+	}
+
+	pub fn from2(data: &'a str, start: usize) -> Identifier<'a> {
+		Identifier::from3(data, start, data.len() + start)
+	}
+
+	pub fn from1(data: &'a str) -> Identifier<'a> {
+		Identifier::from2(data, 0)
+	}
+}
+
+#[derive(Debug, PartialEq)]
+pub enum TopLevelUnit<'a> {
+	Use(PackageLevel<'a>),
+	Package(PackageLevel<'a>),
+	Class(Class<'a>),
+	Contract(Contract<'a>),
+	Function(Function<'a>),
+}
+
+// TODO: struct based on guidelines above?
+#[derive(Debug, PartialEq)]
+pub enum PackageLevel<'a> {
+	Root(Identifier<'a>),
+	Scoped(Box<PackageLevel<'a>>, Identifier<'a>),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Class<'a> {
+	pub span: Span,
+	pub name: Identifier<'a>,
+	pub members: Vec<ClassEntry<'a>>,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ClassEntry<'a> {
+	Field(Span, Field<'a>),
+	Function(Span, Function<'a>),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Field<'a> {
+	pub span: Span,
+	pub field_type: Type<'a>,
+	pub name: Identifier<'a>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Contract<'a> {
+	pub span: Span,
+	pub name: Identifier<'a>,
+	pub members: Vec<ContractEntry<'a>>
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ContractEntry<'a> {
+	Field(Field<'a>), // no need to make a SkeletonField
+	Function(SkeletonFunction<'a>),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct SkeletonFunction<'a> {
+	pub span: Span,
+	pub return_type: Type<'a>,
+	pub name: Identifier<'a>,
+	pub parameters: Vec<Parameter<'a>>,
+}
+
+// debatable if a Skeleton or Code, but seeing as Field is a skeleton,
+// so are functions
+#[derive(Debug, PartialEq)]
+pub struct Function<'a> {
+	pub span: Span,
+	pub return_type: Type<'a>,
+	pub name: Identifier<'a>,
+	pub parameters: Vec<Parameter<'a>>,
+	pub statements: Vec<Statement<'a>>,
+}
+
+// Code // ====================================================================
+
+// TODO: exceptions in guidelines for this
+#[derive(Debug, PartialEq)]
+pub enum Type<'a> {
+	Void(Span),
+	String(Span),
+	Number(Span),
+	Bool(Span),
+
+	// when the user makes a type, like a class or contract
+	User(Identifier<'a>),
+
+	Qualified(PackageLevel<'a>, Box<Type<'a>>),
+
+	//       Type    <Different, Types>
+	Generics(Identifier<'a>, Vec<Type<'a>>),
+
+	Array(Identifier<'a>, Box<Type<'a>>)
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Parameter<'a> {
+	pub span: Span,
+	pub parameter_type: Type<'a>,
+	pub name: Identifier<'a>,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Statement<'a> {
+	Number(Span, i32),
+	Identifier(Span, Identifier<'a>)
+}
+
+// Tests
+
+lalrpop_mod!(pub terumi);
+
+fn arrows<'a>(input: &'a str) -> Vec<usize> {
+	let mut results: Vec<usize> = vec![];
+	let mut current_position: usize = 0;
+	
+	for character in input.chars() {
+		if character == '↓' {
+			results.push(current_position);
+		} else {
+			current_position += 1;
+		}
+	}
+
+	results
+}
+
+fn process<'a>(input: &'a str) -> String {
+	let mut post_processed: Vec<char> = vec![];
+
+	for character in input.chars() {
+		if character != '↓' {
+			post_processed.push(character);
+		}
+	}
+
+	post_processed.into_iter().collect()
+}
+
+// types
+#[test]
+fn type_parses_string() {
+	let type_string = terumi::TypeParser::new().parse("string").unwrap();
+	assert_eq!(type_string, Type::String(Span::from(0, 6)));
+}
+
+#[test]
+fn type_parses_number() {
+	let type_string = terumi::TypeParser::new().parse("number").unwrap();
+	assert_eq!(type_string, Type::Number(Span::from(0, 6)));
+}
+
+#[test]
+fn type_parses_bool() {
+	let type_string = terumi::TypeParser::new().parse("bool").unwrap();
+	assert_eq!(type_string, Type::Bool(Span::from(0, 4)));
+}
+
+#[test]
+fn type_parses_user_type() {
+	let type_string = terumi::TypeParser::new().parse("JsonParser").unwrap();
+	assert_eq!(type_string, Type::User(Identifier::from1("JsonParser")));
+}
+
+#[test]
+fn type_parses_single_generic() {
+	let type_string = terumi::TypeParser::new().parse("SingleGeneric<string>").unwrap();
+	assert_eq!(type_string, Type::Generics(Identifier::from1("SingleGeneric"), vec![Type::String(Span::from(14, 20))]));
+}
+
+#[test]
+fn type_parses_two_generics() {
+	let type_string = terumi::TypeParser::new().parse("TwoGenerics<string, number>").unwrap();
+	assert_eq!(type_string, Type::Generics(Identifier::from1("TwoGenerics"), vec![Type::String(Span::from(12, 18)), Type::Number(Span::from(20, 26))]));
+}
+
+#[test]
+fn type_parses_lots_of_generics() {
+	let type_string = terumi::TypeParser::new().parse("A<B<C, D, E>, F<G<H>>, I<string, number, J>>").unwrap();
+	assert_eq!(type_string, Type::Generics(
+		Identifier::from1("A"),
+		vec![
+			Type::Generics(
+				Identifier::from2("B", 2),
+				vec![
+					Type::User(Identifier::from2("C", 4)),
+					Type::User(Identifier::from2("D", 7)),
+					Type::User(Identifier::from2("E", 10)),
+				]
+			),
+			Type::Generics(
+				Identifier::from2("F", 14),
+				vec![
+					Type::Generics(Identifier::from2("G", 16), vec![Type::User(Identifier::from2("H", 18))])
+				]
+			),
+			Type::Generics(
+				Identifier::from2("I", 23),
+				vec![
+					Type::String(Span::from(25, 25 + 6)),
+					Type::Number(Span::from(33, 33 + 6)),
+					Type::User(Identifier::from2("J", 41))
+				]
+			)
+		]
+	));
+}
+
+#[test]
+fn fully_qualified_type() {
+	let type_string = terumi::TypeParser::new().parse("fully.qualified::Type").unwrap();
+	assert_eq!(type_string, Type::Qualified(
+		PackageLevel::Scoped(
+			Box::new(PackageLevel::Root(Identifier::from1("fully"))),
+			Identifier::from2("qualified", 6)
+		),
+		Box::new(Type::User(Identifier::from2("Type", 17)))
+	));
+}
+
+#[test]
+fn parses_array_type() {
+	let type_string = terumi::TypeParser::new().parse("number[]").unwrap();
+	assert_eq!(type_string,
+		Type::Array(
+			Identifier::from1("number[]"),
+			Box::new(
+				Type::Number(
+					Span::from(0, 6)
+				)
+			)
+		)
+	);
+}
+
+#[test]
+fn parses_array_of_array() {
+	let type_string = terumi::TypeParser::new().parse("number[][]").unwrap();
+	assert_eq!(type_string,
+		Type::Array(
+			Identifier::from1("number[][]"),
+			Box::new(
+				Type::Array(
+					Identifier::from1("number[]"),
+					Box::new(
+						Type::Number(
+							Span::from(0, 6)
+						)
+					)
+				)
+			)
+		)
+	);
+}
+
+#[test]
+fn parses_generic_qualified_array() {
+	let type_string = terumi::TypeParser::new().parse("fully.qualified::Type<number>[]").unwrap();
+	assert_eq!(type_string, Type::Qualified(
+		PackageLevel::Scoped(
+			Box::new(PackageLevel::Root(Identifier::from1("fully"))),
+			Identifier::from2("qualified", 6)
+		),
+		Box::new(Type::User(Identifier::from2("Type", 17)))
+	));
+}
+
+// parameters
+
+#[test]
+fn parameter_parses() {
+	let result = terumi::ParameterParser::new().parse("SomeType parameter_name").unwrap();
+	assert_eq!(result, Parameter {
+		span: Span::from(0, 23),
+		parameter_type: Type::User(Identifier::from1("SomeType")),
+		name: Identifier::from2("parameter_name", 9),
+	})
+}
+
+#[test]
+fn sample_generic_parameter() {
+	let result = terumi::ParameterParser::new().parse("Some<Generic, Parameter, string> name").unwrap();
+	assert_eq!(result, Parameter {
+		span: Span::from(0, 37),
+		parameter_type: Type::Generics(Identifier::from1("Some"), vec![
+			Type::User(Identifier::from2("Generic", 5)),
+			Type::User(Identifier::from2("Parameter", 14)),
+			Type::String(Span::from(25, 31)),
+		]),
+		name: Identifier::from2("name", 33),
+	})
+}
+
+// functions
+
+#[test]
+fn function_declaration_no_return_type_no_parameters_no_code() {
+	let result = terumi::FunctionDeclarationParser::new().parse("no_return_type_no_parameters_no_code() { }").unwrap();
+	assert_eq!(result, Function {
+		span: Span::from(0, 42),
+		return_type: Type::Void(Span::from(0, 0)),
+		name: Identifier::from1("no_return_type_no_parameters_no_code"),
+		parameters: vec![],
+		statements: vec![]
+	})
+}
+
+#[test]
+fn function_declaration_no_return_type_one_parameter_no_code() {
+	let result = terumi::FunctionDeclarationParser::new().parse("no_return_type_one_parameter_no_code(string some_parameter) { }").unwrap();
+	assert_eq!(result, Function {
+		span: Span::from(0, 63),
+		return_type: Type::Void(Span::from(0, 0)),
+		name: Identifier::from1("no_return_type_one_parameter_no_code"),
+		parameters: vec![Parameter {
+			span: Span::from(37, 58),
+			parameter_type: Type::String(Span::from(37, 43)),
+			name: Identifier::from2("some_parameter", 44)
+		}],
+		statements: vec![]
+	})
+}
+
+#[test]
+fn function_declaration_no_return_type_plural_parameters_no_code() {
+	let input = "↓no_return_type_plural_parameters_no_code↓(↓string↓ ↓some_parameter↓, ↓number↓ ↓another↓, ↓And<↓Another↓>↓ ↓one↓) { }↓";
+	let locs = arrows(input);
+
+	let processed = process(input);
+	let parser_input = processed.as_str();
+
+	let result = terumi::FunctionDeclarationParser::new().parse(parser_input).unwrap();
+	assert_eq!(result, Function {
+		span: Span::from(locs[0], locs[16]),
+		return_type: Type::Void(Span::from(locs[0], locs[0])),
+		name: Identifier::from2("no_return_type_plural_parameters_no_code", locs[0]),
+		parameters: vec![
+			Parameter {
+				span: Span::from(locs[2], locs[5]),
+				parameter_type: Type::String(Span::from(locs[2], locs[3])),
+				name: Identifier::from2("some_parameter", locs[4])
+			},
+			Parameter {
+				span: Span::from(locs[6], locs[9]),
+				parameter_type: Type::Number(Span::from(locs[6], locs[7])),
+				name: Identifier::from2("another", locs[8]),
+			},
+			Parameter {
+				span: Span::from(locs[10], locs[15]),
+				parameter_type: Type::Generics(
+					Identifier::from2("And", locs[10]),
+					vec![Type::User(Identifier::from2("Another", locs[11]))]
+				),
+				name: Identifier::from2("one", locs[14])
+			},
+		],
+		statements: vec![]
+	})
+}
+
+
+#[test]
+fn function_declaration_has_return_type() {
+	let input = "↓string↓ ↓func() { }↓";
+	let locs = arrows(input);
+	let processed = process(input);
+
+	let result = terumi::FunctionDeclarationParser::new().parse(processed.as_str()).unwrap();
+	assert_eq!(result, Function {
+		span: Span::from(locs[0], locs[3]),
+		return_type: Type::String(Span::from(locs[0], locs[1])),
+		name: Identifier::from2("func", locs[2]),
+		parameters: vec![],
+		statements: vec![]
+	})
+}
+
+// contracts
+
+fn parse_contract<'a>(input: &'a str) -> Contract {
+	match terumi::TopLevelUnitParser::new().parse(input).unwrap() {
+		TopLevelUnit::Contract(contract) => contract,
+		_ => panic!("Expected contract")
+	}
+}
+
+#[test]
+fn contract_nothing() {
+	let input = "contract ↓Contract { }↓";
+	let locs = arrows(input);
+	let processed = process(input);
+	let result = parse_contract(processed.as_str());
+
+	assert_eq!(result, Contract {
+		span: Span::from(0, locs[1]),
+		name: Identifier::from2("Contract", locs[0]),
+		members: vec![]
+	})
+}
+
+#[test]
+fn contract_field() {
+	let input = "contract ↓Contract {
+	↓string↓ ↓string_field↓
+}↓";
+	let locs = arrows(input);
+	let processed = process(input);
+	let result = parse_contract(processed.as_str());
+
+	assert_eq!(result, Contract {
+		span: Span::from(0, locs[5]),
+		name: Identifier::from2("Contract", locs[0]),
+		members: vec![
+			ContractEntry::Field(Field {
+				span: Span::from(locs[1], locs[4]),
+				field_type: Type::String(Span::from(locs[1], locs[2])),
+				name: Identifier::from2("string_field", locs[3])
+			})
+		]
+	})
+}
+
+#[test]
+fn contract_fields() {
+	let input = 
+"contract ↓Contract
+{
+	↓string↓ ↓string_field↓
+	↓A<↓Type↓>↓ ↓_jaisod↓
+}↓
+";
+	let locs = arrows(input);
+	let processed = process(input);
+	let result = parse_contract(processed.as_str());
+
+	assert_eq!(result, Contract {
+		span: Span::from(0, locs[11]),
+		name: Identifier::from2("Contract", locs[0]),
+		members: vec![
+			ContractEntry::Field(Field {
+				span: Span::from(locs[1], locs[4]),
+				field_type: Type::String(Span::from(locs[1], locs[2])),
+				name: Identifier::from2("string_field", locs[3]),
+			}),
+			ContractEntry::Field(Field {
+				span: Span::from(locs[5], locs[10]),
+				field_type: Type::Generics(
+					Identifier::from2("A", locs[5]),
+					vec![
+						Type::User(Identifier::from2("Type", locs[6]))
+					]
+				),
+				name: Identifier::from2("_jaisod", locs[9])
+			}),
+		]
+	})
+}
+/*
+#[test]
+fn contract_function() {
+	let result = match terumi::TopLevelUnitParser::new().parse("contract Contract {
+	hello_world()
+}").unwrap() {
+		TopLevelUnit::Contract(contract) => contract,
+		_ => panic!("Expected contract")
+	};
+	assert_eq!(result, Contract {
+		name: "Contract".to_string(),
+		members: vec![
+			ContractEntry::Function(SkeletonFunction {
+				return_type: Type::Void,
+				name: "hello_world".to_string(),
+				parameters: vec![],
+			}),
+		]
+	})
+}
+
+#[test]
+fn complex_contract() {
+	let result = match terumi::TopLevelUnitParser::new().parse("contract Contract {
+	number some_field
+	string with_return_type(number parameter)
+}").unwrap() {
+		TopLevelUnit::Contract(contract) => contract,
+		_ => panic!("Expected contract")
+	};
+	assert_eq!(result, Contract {
+		name: "Contract".to_string(),
+		members: vec![
+			ContractEntry::Field(Field {
+				field_type: Type::Number,
+				name: "some_field".to_string()
+			}),
+			ContractEntry::Function(SkeletonFunction {
+				return_type: Type::String,
+				name: "with_return_type".to_string(),
+				parameters: vec![Parameter {
+					parameter_type: Type::Number,
+					name: "parameter".to_string()
+				}],
+			}),
+		]
+	})
+}
+
+// classes
+
+#[test]
+fn class_simple() {
+	let result = match terumi::TopLevelUnitParser::new().parse("class Class { }").unwrap() {
+		TopLevelUnit::Class(class) => class,
+		_ => panic!("Expected class")
+	};
+	assert_eq!(result, Class {
+		name: "Class".to_string(),
+		members: vec![],
+	})
+}
+
+#[test]
+fn class_fields() {
+	let result = match terumi::TopLevelUnitParser::new().parse("class Class {
+	string class_field
+	string _private_field
+}").unwrap() {
+		TopLevelUnit::Class(class) => class,
+		_ => panic!("Expected class")
+	};
+	assert_eq!(result, Class {
+		name: "Class".to_string(),
+		members: vec![
+			ClassEntry::Field(Field {
+				field_type: Type::String,
+				name: "class_field".to_string()
+			}),
+			ClassEntry::Field(Field {
+				field_type: Type::String,
+				name: "_private_field".to_string()
+			}),
+		],
+	})
+}
+
+#[test]
+fn class_functions() {
+	let result = match terumi::TopLevelUnitParser::new().parse("class Class {
+	number function_with_body() {
+	}
+}").unwrap() {
+		TopLevelUnit::Class(class) => class,
+		_ => panic!("Expected class")
+	};
+	assert_eq!(result, Class {
+		name: "Class".to_string(),
+		members: vec![
+			ClassEntry::Function(Function {
+				return_type: Type::Number,
+				name: "function_with_body".to_string(),
+				parameters: vec![],
+				statements: vec![],
+			}),
+		],
+	})
+}
+
+// use/package
+
+#[test]
+fn parse_use_and_packages() {
+	let result = terumi::CompilationUnitParser::new().parse("use some_package
+use name.space
+
+package my_package").unwrap();
+	assert_eq!(result, vec![
+		TopLevelUnit::Use(PackageLevel::Root("some_package".to_string())),
+		TopLevelUnit::Use(PackageLevel::Scoped(Box::new(PackageLevel::Root("name".to_string())), "space".to_string())),
+		TopLevelUnit::Package(PackageLevel::Root("my_package".to_string())),
+	])
+}
+*/

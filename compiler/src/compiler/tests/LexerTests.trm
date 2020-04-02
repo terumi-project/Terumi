@@ -34,9 +34,7 @@ class LexerTests
 		assert(token.source.equals("asdfgh"))
 		
 		// add whitespace checking
-		lexer = new Lexer("
-            
-	 hello")
+		lexer = new Lexer("		 	     	  hello")
 		token = lexer.next_token()
 		assert(token.token_type == IDENTIFIER_TOKEN)
 		assert(token.source.equals("hello"))
@@ -48,9 +46,7 @@ class LexerTests
 		assert(token.source.equals("12345"))
 		
 		// with whitespace tests
-		lexer = new Lexer("
-			
-	  420")
+		lexer = new Lexer("  			 	 	 	  	420")
 		token = lexer.next_token()
 		assert(token.token_type == NUMBER_TOKEN)
 		assert(token.source.equals("420"))
@@ -62,9 +58,7 @@ class LexerTests
 		assert(token.source.equals("."))
 		
 		// with whitespace
-		lexer = new Lexer("
-		
-		  ;")
+		lexer = new Lexer(" 	 	 	  	 			   ;")
 		token = lexer.next_token()
 		assert(token.token_type == SPECIAL_TOKEN)
 		assert(token.source.equals(";"))
@@ -76,11 +70,7 @@ class LexerTests
 		assert(token.source.equals(""))
 		
 		// whitespace
-		lexer = new Lexer("
-					
-	  
-	                 
-				")
+		lexer = new Lexer(" 		  		 	 	 	 	 	 ")
 		token = lexer.next_token()
 		assert(token.token_type == EOF_TOKEN)
 		assert(token.source.equals(""))

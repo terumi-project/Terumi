@@ -38,10 +38,15 @@ Token new_eof_token(Text text) {
 	return new Token(4, text)
 }
 
+Token new_newline_token(Text text) {
+	return new Token(5, text)
+}
+
 string _token_type_to_string(number type) {
 	if (type == 1) return "Identifier"
 	if (type == 2) return "Special"
 	if (type == 3) return "Number"
 	if (type == 4) return "EOF"
+	if (type == 5) return "Newline"
 	@panic("unexpected token type '{to_string(type)}'")
 }

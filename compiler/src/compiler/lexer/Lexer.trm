@@ -19,7 +19,7 @@ class Lexer
 		Text current = text.skip(_next_token)
 		
 		// whitespace is irrelevant
-		current = current.skip_whitespace()
+		current = current.skip(new DelegateStringSkipWhitespaceNotNewline())
 		
 		if (current.length == 0) {
 			return new_eof_token(current)
@@ -29,6 +29,15 @@ class Lexer
 		
 		// next, we'll use the "skip" feature to try skip characters. if we're successful,
 		// we can calssify all the characters we skipped as whatever
+		
+		DelegateStringSkipNewline newline_skip = new DelegateStringSkipNewline()
+		Text skip_newline = current.skip(newline_skip)
+		
+		if (skip_newline.offset != current.offset) {
+			current = text.substring(current.offset, skip_newline.offset - current.offset)
+			_next_token = skip_newline.offset
+			return new_newline_token(current)
+		}
 		
 		DelegateStringSkipDigit digit_skip = new DelegateStringSkipDigit()
 		Text skip_digit = current.skip(digit_skip)

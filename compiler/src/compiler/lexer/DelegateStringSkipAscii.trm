@@ -13,8 +13,7 @@ class DelegateStringSkipAscii
 		return true
 	}
 
-	bool is_skippable(String char)
-	{
+	bool is_skippable(String char) {
 		string chr = char.to_string()
 		
 		// this hurts

@@ -2,12 +2,10 @@ use std
 
 class DelegateStringSkipDigit
 {
-	ctor()
-	{
+	ctor() {
 	}
 
-	bool is_skippable(String char)
-	{
+	bool is_skippable(String char) {
 		string chr = char.to_string()
 		
 		if (chr == "0") return true

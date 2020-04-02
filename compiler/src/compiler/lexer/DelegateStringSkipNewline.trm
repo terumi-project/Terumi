@@ -1,4 +1,6 @@
-class DelegateStringSkipWhitespace
+use std
+
+class DelegateStringSkipNewline
 {
 	ctor() {
 	}
@@ -8,8 +10,6 @@ class DelegateStringSkipWhitespace
 		
 		// TODO: ||
 		// TOOD: \r \n \t
-		if (chr == " ") return true
-		if (chr == "	") return true
 		if (chr == "") return true
 		if (chr == "
 ") return true

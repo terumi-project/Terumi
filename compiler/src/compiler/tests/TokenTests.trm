@@ -1,0 +1,42 @@
+use std
+use compiler
+use compiler.lexer
+
+class TokenTests
+{
+	string test_group
+	Runner runner
+
+	ctor(Runner param_runner) {
+		test_group = "Token"
+		runner = param_runner
+	}
+	
+	begin(string name) {
+		runner.begin(name)
+	}
+	
+	assert(bool condition) {
+		runner.assert(condition)
+	}
+	
+	test() {
+		begin("ctor(number, Text)")
+		Token token = new Token(1, new Text("test"))
+		assert(token.token_type == 1)
+		assert(token.source.equals_text(new Text("test")))
+		
+		begin("to_string()")
+		token = new Token(1, new Text("one"))
+		assert(token.to_string() == "Identifier: 'one'")
+		
+		token = new Token(2, new Text("two"))
+		assert(token.to_string() == "Special: 'two'")
+		
+		token = new Token(3, new Text("3"))
+		assert(token.to_string() == "Number: '3'")
+		
+		token = new Token(4, new Text("four"))
+		assert(token.to_string() == "EOF: 'four'")
+	}
+}

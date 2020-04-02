@@ -15,6 +15,13 @@ class Token
 		token_type = param_token_type
 		source = param_source
 	}
+	
+	bool equals(Token other) {
+		if (token_type != other.token_type) return false
+		return source.equals_text(other.source)
+	}
+	
+	string to_string() return "{_token_type_to_string(token_type)}: '{source.to_string()}'"
 }
 
 Token new_identifier_token(Text text) 
@@ -29,4 +36,12 @@ Token new_number_token(Text text)
 // TODO: for some reason this one has to be surrounded in curly braces
 Token new_eof_token(Text text) {
 	return new Token(4, text)
+}
+
+string _token_type_to_string(number type) {
+	if (type == 1) return "Identifier"
+	if (type == 2) return "Special"
+	if (type == 3) return "Number"
+	if (type == 4) return "EOF"
+	@panic("unexpected token type '{to_string(type)}'")
 }

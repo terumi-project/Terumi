@@ -9,6 +9,7 @@ run_tests()
 	runner.run(new StringTests(runner))
 	runner.run(new TextTests(runner))
 	runner.run(new LexerTests(runner))
+	runner.run(new TokenTests(runner))
 }
 
 class TestInfo

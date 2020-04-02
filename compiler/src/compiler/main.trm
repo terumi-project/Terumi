@@ -6,8 +6,11 @@ use compiler.lexer
 
 main()
 {
-	// run unit tests (lol)
-	run_tests()
+	bool should_run_tests = true
+	
+	if (should_run_tests) {
+		run_tests()
+	}
 
 	Lexer lexer = new Lexer(new Text("
 use terumi

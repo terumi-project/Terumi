@@ -3,9 +3,21 @@ use terumi
 
 run_tests()
 {
+	println("
+[Terumi Compiler Tests]
+
+The Terumi Compiler tests as much of its code as it can, at runtime, when you
+run it. The reason tests are ran not at compile time, is because there is no
+infrastructure setup.
+
+If you're seeing this message, chances are, you explicitly enabled testing - or
+the project is still in its infancy.
+")
+
 	Runner runner = new Runner()
 	runner.self = runner
 	
+	runner.run(new MetaTests(runner))
 	runner.run(new StringTests(runner))
 	runner.run(new TextTests(runner))
 	runner.run(new LexerTests(runner))
@@ -27,27 +39,19 @@ class TestInfo
 
 class Runner
 {
-	ctor()
-	{
-		_called_being = false
-		_called_done = false
-		
-		println("
-[Terumi Compiler Tests]
-
-The Terumi Compiler tests as much of its code as it can, at runtime, when you
-run it. The reason tests are ran not at compile time, is because there is no
-infrastructure setup.
-
-If you're seeing this message, chances are, you explicitly enabled testing - or
-the project is still in its infancy.
-")
-	}
-	
 	Runner self
+	
+	// _test-info is in another class because otherwise the compiler errors out
 	TestInfo _test_info
-	bool _called_being
+	
+	// these two are used to auto call begin()/done() for the test methods
+	bool _called_begin
 	bool _called_done
+	
+	ctor() {
+		_called_begin = false
+		_called_done = false
+	}
 	
 	run(ContractTestable suite) {
 		println("[{suite.test_group}]")
@@ -56,9 +60,9 @@ the project is still in its infancy.
 	}
 	
 	begin(string test_name) {
-		if (_called_being) if (!_called_done) done()
+		if (_called_begin) if (!_called_done) done()
 		
-		_called_being = true
+		_called_begin = true
 		_called_done = false
 	
 		_test_info = new TestInfo(test_name)
@@ -74,21 +78,9 @@ the project is still in its infancy.
 		}
 	}
 	
-	assert(string description, bool condition) {
-		assert(condition)
-	}
-	
 	done() {
 		_called_done = true
 		@println("{_tab_or_failed(_test_info.failed)}{_test_info.test_name} - {_bool_to_passed_or_not(_test_info.failed)}, {_info_assertions()}")
-	}
-	
-	string _tab_or_failed(bool failed) {
-		if (failed) {
-			return "X	"
-		}
-		
-		return "	"
 	}
 	
 	string _info_assertions() {
@@ -103,6 +95,14 @@ the project is still in its infancy.
 string _bool_to_passed_or_not(bool failed) {
 	if (!failed) return "passed"
 	return "FAILED"
+}
+
+string _tab_or_failed(bool failed) {
+	if (failed) {
+		return "X	"
+	}
+
+	return "	"
 }
 
 class ContractTestable

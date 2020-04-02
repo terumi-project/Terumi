@@ -1,9 +1,33 @@
 use terumi
 use std
 use compiler.tests
+use compiler
+use compiler.lexer
 
 main()
 {
 	// run unit tests (lol)
 	run_tests()
+
+	Lexer lexer = new Lexer(new Text("
+use terumi
+use std
+use compiler.tests
+use compiler
+
+main()
+\{
+	// run unit tests (lol)
+	run_tests()
+\}
+	"))
+	
+	Token token = lexer.next_token()
+	
+	while (token.token_type != 4) { // EOF == 4
+		println(token)
+		token = lexer.next_token()
+	}
+
+	println(token)
 }

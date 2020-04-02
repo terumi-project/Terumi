@@ -1,6 +1,9 @@
 # FULL DISCLAIMER
 **TERUMI IS CURRENTLY PRE-ALPHA. THIS MEANS THAT I RESERVE THE EXCLUSIVE RIGHT TO ABSOLUTELY DESTROY ALL COMPATIBILITY DURING THE PROCESS OF MAKING TERUMI, AND YOU ARE ENTITLED TO ABSOLUTELY NO GUARENTEES.**
 
+# This Branch
+This branch is `terumi-rewrite`. This is the rewrite of the compiler, written in pure Terumi. However, the compiler used is the C# compiler (with minor modifications, as can be seen in this branch). This means that the resulting code will not perfectly model the ideas Terumi has in mind, however, it'll be a start. With a compiler written in Terumi, the compiler can begin to be boostrapped to itself once it makes significant progress.
+
 # Terumi [![Discord Server](https://img.shields.io/discord/652702761665691658?label=Discord&style=flat-square)](https://discord.gg/NpDXYev)
 ```
 main()

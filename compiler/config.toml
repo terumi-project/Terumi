@@ -1,0 +1,12 @@
+name = "compiler"
+
+[[libs]]
+project_path = ""
+git_url = "https://github.com/terumi-project/terumi_std"
+branch = "master"
+commit = "725a0c5ee2c2c7f2d92cce09be5b4292db6e3b44"
+[[libs]]
+project_path = ""
+git_url = "https://github.com/terumi-project/terumi_std"
+branch = "master"
+commit = "725a0c5ee2c2c7f2d92cce09be5b4292db6e3b44"

@@ -1,0 +1,93 @@
+use std
+
+// TODO: performing // */ is a hacky workaround
+
+/**
+ * A wrapper over String, that provides location aware string information.
+// */
+class Text
+{
+	/** The entire string that @paramref text is from // */
+	String source
+	
+	/** The current text this Text wraps over // */
+	String text
+	
+	/** The offset in the @paramref source string that this @paramref text lies // */
+	number offset
+	
+	number length
+
+	/** Constructs a new 'Text', using param_source as both the source and text. // */
+	ctor(string param_source) {
+		ctor(new String(param_source))
+	}
+
+	/** Constructs a new 'Text', using param_source as both the source and text. // */
+	ctor(String param_source) {
+		source = param_source
+		text = param_source
+		offset = 0
+		length = text.length
+	}
+	
+	/** Constructs a new 'Text' as a subset of some source Text // */
+	ctor(string param_source, number param_offset, number param_length) {
+		ctor(new String(param_source), param_offset, param_length)
+	}
+	
+	/** Constructs a new 'Text' as a subset of some source Text // */
+	ctor(String param_source, number param_offset, number param_length) {
+		source = param_source
+		offset = param_offset
+		length = param_length
+		
+		text = source.substring(offset, length)
+	}
+	
+	// make Text similar to String
+	Text skip(number chars) return substring(chars, length - chars)
+	Text take(number chars) return substring(0, chars)
+	Text take_end(number chars) return substring(length - chars, chars)
+	
+	Text substring(number index, number count) return new Text(source, offset + index, count)
+	
+	Text clone() return new Text(source, offset, length)
+
+	/** Compares the 'text' in view only // */
+	bool equals(string value) return text.equals(value)
+	bool equals(String value) return text.equals(value)
+	
+	// TODO: because of hacky methods to pick out which method is better, 
+	// String.equals(String) is picked instead of Text.equals(Text). This is so
+	// the compiler definitely does not choose String.equals(String)
+	/** Fully compares the two Texts // */
+	bool equals_text(Text other) {
+		if (offset != other.offset) return false
+		if (length != other.length) return false
+		if (!source.equals(other.source)) return false
+		if (!text.equals(other.text)) return false
+		return true
+	}
+	
+	string to_string() return text.to_string()
+	
+	Text skip_whitespace() return skip(new DelegateStringSkipWhitespace())
+	Text skip(DelegateStringSkip delegate) {
+		Text result = clone()
+		
+		if (result.text.length == 0) {
+			return result
+		}
+		
+		while (delegate.is_skippable(result.take(1).text)) {
+			result = result.skip(1)
+		
+			if (result.text.length == 0) {
+				return result
+			}
+		}
+		
+		return result
+	}
+}

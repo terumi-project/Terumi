@@ -1,0 +1,7 @@
+class DelegateStringSkip
+{
+	bool is_skippable(String character)
+	{
+		@panic("Delegate 'DelegateStringSkip' may not be used.")
+	}
+}

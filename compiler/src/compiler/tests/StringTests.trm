@@ -1,0 +1,65 @@
+use std
+
+class StringTests
+{
+	string test_group
+	Runner runner
+
+	ctor(Runner param_runner) {
+		test_group = "String"
+		runner = param_runner
+	}
+	
+	begin(string name) {
+		runner.begin(name)
+	}
+	
+	assert(bool condition) {
+		runner.assert(condition)
+	}
+	
+	test() {
+		begin("ctor(string)")
+		String str = new String("Hello, World!")
+		assert(str._raw_string == "Hello, World!")
+		
+		begin("skip(number)")
+		assert(str.skip(7).equals("World!"))
+		
+		begin("take(number)")
+		assert(str.take(7).equals("Hello, ")))
+		
+		begin("take_end(number)")
+		assert(str.take_end(6).equals("World!"))
+		
+		begin("substring(number, number)")
+		assert(str.substring(3, 3).equals("lo,"))
+		
+		begin("concat(string)")
+		assert(str.concat("!!").equals("Hello, World!!!"))
+		
+		begin("concat(String)")
+		assert(str.concat(str).equals("Hello, World!Hello, World!"))
+		
+		begin("equals(string)")
+		assert(str.equals("Hello, World!"))
+		assert(!str.equals("Goodbye, World!"))
+		
+		begin("equals(String)")
+		assert(str.equals(str))
+		assert(!str.equals(new String("Goodbye, World!")))
+		
+		begin("to_string()")
+		assert(str.to_string() == "Hello, World!")
+		
+		begin("skip_whitespace()")
+		assert(new String("
+		       
+			   
+
+		
+	").concat(str).skip_whitespace().equals(str))
+	
+		assert(new String("     ").skip_whitespace().equals(""))
+	}
+}

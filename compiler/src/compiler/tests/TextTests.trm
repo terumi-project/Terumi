@@ -1,0 +1,153 @@
+use compiler
+use std
+
+class TextTests
+{
+	string test_group
+	Runner runner
+
+	ctor(Runner param_runner) {
+		test_group = "Text"
+		runner = param_runner
+	}
+	
+	begin(string name) {
+		runner.begin(name)
+	}
+	
+	assert(bool condition) {
+		runner.assert(condition)
+	}
+	
+	test() {
+		begin("ctor(string)")
+		Text txt = new Text("Hello, World!")
+		assert(txt.source.equals("Hello, World!"))
+		assert(txt.text.equals("Hello, World!"))
+		assert(txt.offset == 0)
+		assert(txt.length == 13)
+		
+		String hello = new String("Hello, World!")
+		
+		begin("ctor(String)")
+		txt = new Text(hello)
+		assert(txt.source.equals(hello))
+		assert(txt.text.equals(hello))
+		assert(txt.offset == 0)
+		assert(txt.length == hello.length)
+		
+		begin("ctor(string, number, number)")
+		txt = new Text("Hello, World!", 3, 7)
+		assert(txt.source.equals(hello))
+		assert(txt.text.equals("lo, Wor"))
+		assert(txt.offset == 3)
+		assert(txt.length == 7)
+		
+		begin("ctor(String, number, number)")
+		txt = new Text(hello, 3, 7)
+		assert(txt.source.equals(hello))
+		assert(txt.text.equals(new String("lo, Wor")))
+		assert(txt.offset == 3)
+		assert(txt.length == 7)
+		
+		txt = new Text(hello)
+		begin("skip(number)")
+		Text it = txt.skip(7)
+		assert(it.source.equals(hello))
+		assert(it.text.equals("World!"))
+		assert(it.offset == 7)
+		assert(it.length == (13 - 7))
+		
+		begin("take(number)")
+		it = txt.take(7)
+		assert(it.source.equals(hello))
+		assert(it.text.equals("Hello, "))
+		assert(it.offset == 0)
+		assert(it.length == 7)
+		
+		begin("take_end(number)")
+		it = txt.take_end(6)
+		assert(it.source.equals(hello))
+		assert(it.text.equals("World!"))
+		assert(it.offset == 7)
+		assert(it.length == 6)
+		
+		begin("substring(number, number)")
+		it = txt.substring(2, 13 - (2 + 2))
+		assert(it.source.equals(hello))
+		assert(it.text.equals("llo, Worl"))
+		assert(it.offset == 2)
+		assert(it.length == 9)
+		
+		it = it.substring(2, it.length - (2 + 2))
+		assert(it.source.equals(hello))
+		assert(it.text.equals("o, Wo"))
+		assert(it.offset == 4)
+		assert(it.length == 5)
+		
+		it = it.substring(3, 1)
+		assert(it.source.equals(hello))
+		assert(it.text.equals("W"))
+		assert(it.offset == 7)
+		assert(it.length == 1)
+		
+		begin("clone()")
+		it = txt.clone()
+		//assert(txt.equals(it))
+		//assert(it.equals(txt))
+		
+		// should just equals 'text'
+		begin("equals(string)")
+		txt = new Text(hello).skip(7)
+		assert(txt.equals("World!"))
+		assert(!txt.equals("Hello, World!"))
+		
+		begin("equals(String)")
+		txt = new Text(hello).skip(7)
+		assert(txt.equals(new String("World!")))
+		assert(!txt.equals(new String("Hello, World!")))
+		
+		// does a full, deep, equality
+		begin("equals_text(Text)")
+		txt = new Text(hello).skip(7)
+		assert(txt.equals_text(txt))
+		assert(txt.equals_text(new Text("Hello, World!", 7, 6)))
+		assert(new Text("Hello, World!", 7, 6).equals_text(txt))
+		
+		Text different_offset = new Text(hello).skip(6)
+		assert(!txt.equals_text(different_offset))
+		assert(!different_offset.equals_text(txt))
+		
+		// ensure offsets are same, just length is diff
+		Text different_length = new Text(hello.to_string() + " abc").skip(7)
+		assert(!txt.equals_text(different_length))
+		assert(!different_length.equals_text(txt))
+		
+		// ensure offset and length are the same, just different 'text'
+		Text different_text = new Text("Hello, WORLD!")
+		assert(!txt.equals_text(different_text))
+		assert(!different_text.equals_text(txt))
+		
+		// ensure text is same, but source is not
+		Text different_source = new Text("HELLO, World!")
+		assert(!txt.equals_text(different_source))
+		assert(!different_source.equals_text(txt))
+		
+		begin("to_string()")
+		it = new Text(hello).substring(2, 9)
+		assert(it.to_string() == "llo, Worl")
+		
+		begin("skip_whitespace()")
+		txt = new Text("
+
+				
+		      
+                               
+							 
+			
+	cool")
+		it = txt.skip_whitespace()
+		assert(it.text.equals("cool"))
+		assert(new Text("     ").skip_whitespace().equals(""))
+	}
+}

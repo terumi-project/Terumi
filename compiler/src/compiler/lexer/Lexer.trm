@@ -1,0 +1,57 @@
+use compiler
+use std
+
+class Lexer
+{
+	Text text
+	number _next_token
+	
+	ctor(string input) {
+		ctor(new Text(input))
+	}
+
+	ctor(Text param_text) {
+		text = param_text
+		_next_token = 0
+	}
+	
+	Token next_token() {
+		Text current = text.skip(_next_token)
+		
+		// whitespace is irrelevant
+		current = current.skip_whitespace()
+		
+		if (current.length == 0) {
+			return new_eof_token(current)
+		}
+		
+		// TODO: skip comments too
+		
+		// next, we'll use the "skip" feature to try skip characters. if we're successful,
+		// we can calssify all the characters we skipped as whatever
+		
+		DelegateStringSkipDigit digit_skip = new DelegateStringSkipDigit()
+		Text skip_digit = current.skip(digit_skip)
+		
+		if (skip_digit.offset != current.offset) {
+			// found digits
+			current = text.substring(current.offset, skip_digit.offset - current.offset)
+			_next_token = skip_digit.offset
+			return new_number_token(current)
+		}
+
+		DelegateStringSkipAscii ascii_skip = new DelegateStringSkipAscii()
+		Text skip_ascii = current.skip(ascii_skip)
+		
+		if (skip_ascii.offset != current.offset) {
+			// found text
+			current = text.substring(current.offset, skip_ascii.offset - current.offset)
+			_next_token = skip_ascii.offset
+			return new_identifier_token(current)
+		}
+		
+		// something special?
+		_next_token = current.offset + 1
+		return new_special_token(current.take(1))
+	}
+}

@@ -1,0 +1,91 @@
+use std
+
+class DelegateStringSkipAscii
+{
+	bool has_passed
+
+	ctor() {
+		has_passed = false
+	}
+	
+	bool yes() {
+		has_passed = true
+		return true
+	}
+
+	bool is_skippable(String char)
+	{
+		string chr = char.to_string()
+		
+		// this hurts
+		if (chr == "q") return yes()
+		if (chr == "w") return yes()
+		if (chr == "e") return yes()
+		if (chr == "r") return yes()
+		if (chr == "t") return yes()
+		if (chr == "y") return yes()
+		if (chr == "u") return yes()
+		if (chr == "i") return yes()
+		if (chr == "o") return yes()
+		if (chr == "p") return yes()
+		if (chr == "a") return yes()
+		if (chr == "s") return yes()
+		if (chr == "d") return yes()
+		if (chr == "f") return yes()
+		if (chr == "g") return yes()
+		if (chr == "h") return yes()
+		if (chr == "j") return yes()
+		if (chr == "k") return yes()
+		if (chr == "l") return yes()
+		if (chr == "z") return yes()
+		if (chr == "x") return yes()
+		if (chr == "c") return yes()
+		if (chr == "v") return yes()
+		if (chr == "b") return yes()
+		if (chr == "n") return yes()
+		if (chr == "m") return yes()
+		if (chr == "Q") return yes()
+		if (chr == "W") return yes()
+		if (chr == "E") return yes()
+		if (chr == "R") return yes()
+		if (chr == "T") return yes()
+		if (chr == "Y") return yes()
+		if (chr == "U") return yes()
+		if (chr == "I") return yes()
+		if (chr == "O") return yes()
+		if (chr == "P") return yes()
+		if (chr == "A") return yes()
+		if (chr == "S") return yes()
+		if (chr == "D") return yes()
+		if (chr == "F") return yes()
+		if (chr == "G") return yes()
+		if (chr == "H") return yes()
+		if (chr == "J") return yes()
+		if (chr == "K") return yes()
+		if (chr == "L") return yes()
+		if (chr == "Z") return yes()
+		if (chr == "X") return yes()
+		if (chr == "C") return yes()
+		if (chr == "V") return yes()
+		if (chr == "B") return yes()
+		if (chr == "N") return yes()
+		if (chr == "M") return yes()
+		if (chr == "_") return yes()
+		
+		// if we've passed at least once, we can include numbers too
+		if (has_passed) {
+			if (chr == "0") return true
+			if (chr == "1") return true
+			if (chr == "2") return true
+			if (chr == "3") return true
+			if (chr == "4") return true
+			if (chr == "5") return true
+			if (chr == "6") return true
+			if (chr == "7") return true
+			if (chr == "8") return true
+			if (chr == "9") return true
+		}
+		
+		return false
+	}
+}

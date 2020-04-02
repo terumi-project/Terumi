@@ -1,0 +1,32 @@
+use compiler
+use std
+
+// because Terumi does not have any polymorphism, we must
+// hack our way around it.
+
+// because of the lack of polymorphism, i am NOT going to include comments or whitespace
+// as tokens. :)
+class Token
+{
+	number token_type
+	Text source
+	
+	ctor(number param_token_type, Text param_source) {
+		token_type = param_token_type
+		source = param_source
+	}
+}
+
+Token new_identifier_token(Text text) 
+	return new Token(1, text)
+
+Token new_special_token(Text text)
+	return new Token(2, text)
+
+Token new_number_token(Text text)
+	return new Token(3, text)
+
+// TODO: for some reason this one has to be surrounded in curly braces
+Token new_eof_token(Text text) {
+	return new Token(4, text)
+}

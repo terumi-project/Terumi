@@ -1,0 +1,88 @@
+use std
+use compiler
+use compiler.lexer
+
+class LexerTests
+{
+	string test_group
+	Runner runner
+
+	ctor(Runner param_runner) {
+		test_group = "Lexer"
+		runner = param_runner
+	}
+	
+	begin(string name) {
+		runner.begin(name)
+	}
+	
+	assert(bool condition) {
+		runner.assert(condition)
+	}
+	
+	test() {
+		number IDENTIFIER_TOKEN = 1
+		number SPECIAL_TOKEN = 2
+		number NUMBER_TOKEN = 3
+		number EOF_TOKEN = 4
+
+		begin("next_token() yields identifier")
+		Lexer lexer = new Lexer("asdfgh")
+		Token token = lexer.next_token()
+		
+		assert(token.token_type == IDENTIFIER_TOKEN)
+		assert(token.source.equals("asdfgh"))
+		
+		// add whitespace checking
+		lexer = new Lexer("
+            
+	 hello")
+		token = lexer.next_token()
+		assert(token.token_type == IDENTIFIER_TOKEN)
+		assert(token.source.equals("hello"))
+		
+		begin("next_token() yields number")
+		lexer = new Lexer("12345")
+		token = lexer.next_token()
+		assert(token.token_type == NUMBER_TOKEN)
+		assert(token.source.equals("12345"))
+		
+		// with whitespace tests
+		lexer = new Lexer("
+			
+	  420")
+		token = lexer.next_token()
+		assert(token.token_type == NUMBER_TOKEN)
+		assert(token.source.equals("420"))
+		
+		begin("next_token() yields special")
+		lexer = new Lexer(".")
+		token = lexer.next_token()
+		assert(token.token_type == SPECIAL_TOKEN)
+		assert(token.source.equals("."))
+		
+		// with whitespace
+		lexer = new Lexer("
+		
+		  ;")
+		token = lexer.next_token()
+		assert(token.token_type == SPECIAL_TOKEN)
+		assert(token.source.equals(";"))
+		
+		begin("next_token() yields eof")
+		lexer = new Lexer("")
+		token = lexer.next_token()
+		assert(token.token_type == EOF_TOKEN)
+		assert(token.source.equals(""))
+		
+		// whitespace
+		lexer = new Lexer("
+					
+	  
+	                 
+				")
+		token = lexer.next_token()
+		assert(token.token_type == EOF_TOKEN)
+		assert(token.source.equals(""))
+	}
+}

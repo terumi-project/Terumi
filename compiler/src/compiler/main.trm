@@ -1,0 +1,9 @@
+use terumi
+use std
+use compiler.tests
+
+main()
+{
+	// run unit tests (lol)
+	run_tests()
+}

@@ -1,26 +1,22 @@
 use std
 use compiler
 use compiler.lexer
+use compiler.testing
 
 class LexerTests
 {
 	string test_group
-	Runner runner
+	ContractTestHelper runner
 
-	ctor(Runner param_runner) {
+	ctor() {
 		test_group = "Lexer"
-		runner = param_runner
 	}
 	
-	begin(string name) {
-		runner.begin(name)
-	}
+	begin(string name) runner.begin(name)
+	assert(bool condition) runner.assert(condition)
 	
-	assert(bool condition) {
-		runner.assert(condition)
-	}
-	
-	test() {
+	test(ContractTestHelper test_runner) {
+		runner = test_runner
 		number IDENTIFIER_TOKEN = 1
 		number SPECIAL_TOKEN = 2
 		number NUMBER_TOKEN = 3

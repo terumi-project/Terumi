@@ -1,0 +1,23 @@
+use compiler.testing
+
+class MetaTests
+{
+	string test_group
+	ContractTestHelper runner
+
+	ctor() {
+		test_group = "Meta Tests"
+	}
+	
+	begin(string name) runner.begin(name)
+	assert(bool condition) runner.assert(condition)
+	
+	test(ContractTestHelper test_runner) {
+		runner = test_runner
+		begin("assert(true)")
+		assert(true)
+		
+		begin("assert(false)")
+		assert(false)
+	}
+}

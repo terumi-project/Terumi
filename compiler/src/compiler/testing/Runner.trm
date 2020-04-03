@@ -1,5 +1,6 @@
 use std
 use terumi
+use compiler.testing.tests
 
 run_tests()
 {
@@ -17,11 +18,11 @@ the project is still in its infancy.
 	Runner runner = new Runner()
 	runner.self = runner
 	
-	runner.run(new MetaTests(runner))
-	runner.run(new StringTests(runner))
-	runner.run(new TextTests(runner))
-	runner.run(new LexerTests(runner))
-	runner.run(new TokenTests(runner))
+	runner.run(new MetaTests())
+	runner.run(new StringTests())
+	runner.run(new TextTests())
+	runner.run(new LexerTests())
+	runner.run(new TokenTests())
 }
 
 class TestInfo
@@ -34,6 +35,16 @@ class TestInfo
 		test_name = param_test_name
 		assertions = 0
 		failed = false
+	}
+}
+
+class TestSection
+{
+	ctor() {
+	}
+	
+	begin(string test) {
+		
 	}
 }
 
@@ -55,7 +66,7 @@ class Runner
 	
 	run(ContractTestable suite) {
 		println("[{suite.test_group}]")
-		suite.test()
+		suite.test(self)
 		done()
 	}
 	
@@ -105,11 +116,16 @@ string _tab_or_failed(bool failed) {
 	return "	"
 }
 
+class ContractTestHelper
+{
+	begin(string name) @panic("Contract 'ContractTestHelper' may not be used.")
+	assert(bool condition) @panic("Contract 'ContractTestHelper' may not be used.")
+	done() @panic("Contract 'ContractTestHelper' may not be used.")
+}
+
 class ContractTestable
 {
 	string test_group
 
-	test() {
-		@panic("Contract 'ContractTestable' may not be used.")
-	}
+	test(ContractTestHelper test_runner) @panic("Contract 'ContractTestable' may not be used.")
 }

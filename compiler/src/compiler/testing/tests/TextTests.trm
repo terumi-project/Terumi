@@ -1,25 +1,21 @@
 use compiler
 use std
+use compiler.testing
 
 class TextTests
 {
 	string test_group
-	Runner runner
+	ContractTestHelper runner
 
-	ctor(Runner param_runner) {
+	ctor() {
 		test_group = "Text"
-		runner = param_runner
 	}
 	
-	begin(string name) {
-		runner.begin(name)
-	}
+	begin(string name) runner.begin(name)
+	assert(bool condition) runner.assert(condition)
 	
-	assert(bool condition) {
-		runner.assert(condition)
-	}
-	
-	test() {
+	test(ContractTestHelper test_runner) {
+		runner = test_runner
 		begin("ctor(string)")
 		Text txt = new Text("Hello, World!")
 		assert(txt.source.equals("Hello, World!"))

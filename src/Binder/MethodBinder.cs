@@ -476,12 +476,12 @@ namespace Terumi.Binder
 
 	public class CodeBinderException : Exception
 	{
-		public CodeBinderException(Parser.Statement stmt, string message) : base(message)
+		public CodeBinderException(Parser.Statement stmt, string message) : base(message + " at " + stmt.ToString())
 		{
 			Stmt = stmt;
 		}
 
-		public CodeBinderException(Parser.Expression expr, string message) : base(message)
+		public CodeBinderException(Parser.Expression expr, string message) : base(message + " at " + expr.ToString())
 		{
 			Expr = expr;
 		}

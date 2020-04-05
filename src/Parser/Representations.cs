@@ -84,6 +84,16 @@ namespace Terumi.Parser
 		protected Statement(ConsumedTokens consumed) => Consumed = consumed;
 		public ConsumedTokens Consumed { get; }
 
+		public override string ToString()
+		{
+			if (Consumed.Tokens.Length > 0)
+			{
+				return Consumed.Tokens.Span[^1].ToString();
+			}
+
+			return base.ToString();
+		}
+
 		public class Declaration : Statement
 		{
 			public Declaration(ConsumedTokens consumed, string? type, string name, Expression? value) : base(consumed)
@@ -207,6 +217,17 @@ namespace Terumi.Parser
 	{
 		protected Expression(ConsumedTokens consumed) => Consumed = consumed;
 		public ConsumedTokens Consumed { get; }
+
+		public override string ToString()
+		{
+			if (Consumed.Tokens.Length > 0)
+			{
+				return Consumed.Tokens.Span[^1].ToString();
+			}
+
+			return base.ToString();
+		}
+
 
 		public class Assignment : Expression
 		{

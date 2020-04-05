@@ -1,0 +1,123 @@
+use std
+use compiler
+use compiler.lexer
+
+/**
+ * This will parse only the header of the function, such that there is precisely
+ * enough information to determine only if we should be parsing a function next.
+// */
+ParseFunctionMetaResult parse_function_meta(ContractLexer lexer)
+{
+	// primary: may be the type, or name of the function
+	Token primary_part = lexer_next_significant(lexer)
+	
+	if (primary_part.is_eof()) {
+		return new ParseFunctionMetaResult()
+	}
+	
+	// primary_part *must* be an identifier
+	if (!primary_part.is_identifier()) {
+		return new ParseFunctionMetaResult(false)
+	}
+	
+	// secondary: may be the name, or open parenthesis of the function
+	Token secondary_part = lexer_next_significant(lexer)
+	
+	if (secondary_part.is_eof()) {
+		return new ParseFunctionMetaResult()
+	}
+	
+	// tertiary: may be an open parenthesis, or first paramter type, or closing parenthesis
+	Token tertiary_part = lexer_next_significant(lexer)
+	
+	if (tertiary_part.is_eof()) {
+		return new ParseFunctionMetaResult()
+	}
+	
+	// CODEWISE: this part isn't exactly clean
+	// but whatever :p
+	bool has_type = secondary_part.is_identifier()
+	Token function_type = primary_part
+	Token function_name = secondary_part
+	Token open_parenthesis = tertiary_part
+	
+	// if secondary_part is an identifier, then primary_part is the type
+	if (has_type) {
+
+		// then tertiary_part *must* be a (
+		if (!tertiary_part.is_special("(")) {
+			return new ParseFunctionMetaResult(false)
+		}
+		
+		open_parenthesis = tertiary_part
+	} else {
+		
+		// secondary_part is not an identifier, it must be the ( instead
+		if (!secondary_part.is_special("(")) {
+			return new ParseFunctionMetaResult(false)
+		}
+		
+		open_parenthesis = secondary_part
+		function_name = primary_part
+	}
+	
+	// now we have exactly enough information to know that "yeah, we should be
+	// parsing a function"
+	//
+	// the terumi spec only allows `use`, `class`, `contract`, `package`, or `function`s
+	// in the top level. `function`s are the only one with a parenthesis. we can
+	// confidently say that a function must be parsed
+	if (has_type) {
+		FunctionMeta meta = new FunctionMeta(function_type, function_name, open_parenthesis)
+		return new ParseFunctionMetaResult(true, meta)
+	} else {
+		FunctionMeta meta = new FunctionMeta(function_name, open_parenthesis)
+		return new ParseFunctionMetaResult(true, meta)
+	}
+}
+
+class ParseFunctionMetaResult
+{
+	number state
+	bool success
+	FunctionMeta data
+
+	// EOF
+	ctor() {
+		state = 1
+	}
+	
+	// failed
+	ctor(bool param_success) {
+		state = 2
+		success = param_success
+	}
+	
+	// success
+	ctor(bool param_success, FunctionMeta param_data) {
+		state = 2
+		success = param_success
+		data = param_data
+	}
+}
+
+class FunctionMeta
+{
+	bool has_type
+	Token function_type
+	Token function_name
+	Token open_parenthesis
+	
+	ctor(Token param_function_name, Token param_open_parenthesis) {
+		has_type = false
+		function_name = param_function_name
+		open_parenthesis = param_open_parenthesis
+	}
+	
+	ctor(Token param_function_type, Token param_function_name, Token param_open_parenthesis) {
+		has_type = true
+		function_type = param_function_type
+		function_name = param_function_name
+		open_parenthesis = param_open_parenthesis
+	}
+}

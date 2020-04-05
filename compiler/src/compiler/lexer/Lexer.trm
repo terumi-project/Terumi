@@ -1,6 +1,12 @@
 use compiler
 use std
 
+class ContractLexer
+{
+	Token next_token() @panic("Contract 'ContractLexer' may not be used.")
+	scan_to(Token token) @panic("Contract 'ContractLexer' may not be used.")
+}
+
 class Lexer
 {
 	Text text
@@ -63,4 +69,25 @@ class Lexer
 		_next_token = current.offset + 1
 		return new_special_token(current.take(1))
 	}
+	
+	scan_to(Token token) {
+		_next_token = token.source.offset
+	}
+}
+
+/**
+ * Yields the next non-newline token.
+// */
+Token lexer_next_significant(ContractLexer lexer) {
+	Token token = lexer.next_token()
+
+	while (token_is_newline(token)) {
+		if (token_is_eof(token)) {
+			return token
+		}
+			
+		token = lexer.next_token()
+	}
+	
+	return token
 }

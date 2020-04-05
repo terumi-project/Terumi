@@ -3,6 +3,7 @@ use std
 use compiler.tests
 use compiler
 use compiler.lexer
+use compiler.parser
 
 main()
 {
@@ -25,12 +26,50 @@ main()
 \}
 	"))
 	
-	Token token = lexer.next_token()
-	
-	while (token.token_type != 4) { // EOF == 4
-		println(token)
-		token = lexer.next_token()
-	}
-
-	println(token)
+	Parser parser = new Parser(lexer)
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
+	parser.next_element()
 }

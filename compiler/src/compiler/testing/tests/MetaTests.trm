@@ -6,7 +6,7 @@ class MetaTests
 	ContractTestHelper runner
 
 	ctor() {
-		test_group = "Meta Tests"
+		test_group = "Meta"
 	}
 	
 	begin(string name) runner.begin(name)

@@ -52,7 +52,9 @@ class DelegateStringSkipComment
 		if (_parse_singleline) {
 			// DelegateStringSkipNewline will skip newlines
 			// so if the char is skippable, we want to end the skipping
-			return !(new DelegateStringSkipNewline().is_skippable(char))
+			DelegateStringSkipNewline skip_newline = new DelegateStringSkipNewline()
+			bool newline_is_skippable = skip_newline.is_skippable(char)
+			return @operator_not(newline_is_skippable)
 		}
 		
 		if (_parse_multiline) {

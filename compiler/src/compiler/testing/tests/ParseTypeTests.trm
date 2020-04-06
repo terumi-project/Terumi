@@ -9,7 +9,7 @@ class ParseTypeTests
 	ContractTestHelper runner
 
 	ctor() {
-		test_group = "parse_type Tests"
+		test_group = "parse_type"
 	}
 	
 	begin(string name) runner.begin(name)

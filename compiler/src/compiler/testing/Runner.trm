@@ -15,8 +15,7 @@ If you're seeing this message, chances are, you explicitly enabled testing - or
 the project is still in its infancy.
 ")
 
-	Runner runner = new Runner()
-	runner.self = runner
+	TestRunner runner = new TestRunner(false)
 	
 	runner.run(new MetaTests())
 	runner.run(new StringTests())
@@ -26,97 +25,204 @@ the project is still in its infancy.
 	runner.run(new LinkedParsedTypeListTests())
 	runner.run(new ParseTypeTests())
 	runner.run(new ParseGenericsTests())
+	
+	@println("== TESTS == {to_string(runner._passed)} passed, {to_string(runner._failed)} failed")
+	@println(runner._log_pass)
+	@println(runner._log_failed)
 }
 
-class TestInfo
+/**
+ * Class used for running tests. Allows for minimal configuration.
+ */
+class TestRunner
 {
-	string test_name
-	number assertions
-	bool failed
+	bool _show_success
+	string _log_pass
+	string _log_failed
+	number _passed
+	number _failed
 
-	ctor(string param_test_name) {
-		test_name = param_test_name
-		assertions = 0
-		failed = false
-	}
-}
-
-class TestSection
-{
-	ctor() {
-	}
-	
-	begin(string test) {
-		
-	}
-}
-
-class Runner
-{
-	Runner self
-	
-	// _test-info is in another class because otherwise the compiler errors out
-	TestInfo _test_info
-	
-	// these two are used to auto call begin()/done() for the test methods
-	bool _called_begin
-	bool _called_done
-	
-	ctor() {
-		_called_begin = false
-		_called_done = false
+	ctor(bool show_success) {
+		_show_success = show_success
+		_log_pass = ""
+		_log_failed = ""
+		_passed = 0
+		_failed = 0
 	}
 	
 	run(ContractTestable suite) {
-		println("[{suite.test_group}]")
-		suite.test(self)
-		done()
+		string all = "[{suite.test_group}] - " // include stats about run
+		
+		RunnerImpl impl = new RunnerImpl(_show_success)
+		suite.test(new RunnerWrapper(impl))
+		impl.done()
+		
+		_passed = _passed + impl.passed_assertions
+		_failed = _failed + impl.failed_assertions
+		
+		all = "{all}{to_string(impl.passed_assertions)} passed, {to_string(impl.failed_assertions)} failed"
+		
+		string print_log = all
+		
+		if (@string_length(impl.log) > 0) {
+			print_log = "{print_log}
+{@string_substring(impl.log, 1, @string_length(impl.log) - 1))}"
+		}
+		
+		if (impl.failed_assertions > 0) {
+			_log_failed = "{_log_failed}
+{print_log}"
+		} else {
+			_log_pass = "{_log_pass}
+{print_log}"
+		}
+	}
+}
+
+// TODO: rename to ContractRunner or something
+class Runner
+{
+	begin(string section_name) @panic("Contract 'ContractRunner' may not be used.")
+	assert(bool condition) @panic("Contract 'ContractRunner' may not be used.")
+	done() @panic("Contract 'ContractRunner' may not be used.")
+}
+
+/**
+ * Wraps over any 'Runner' to provide ease of use to the caller.
+ * It does this by:
+ * - calling 'begin' will automatically call done
+ * - repeat calls to 'done' won't be registered
+ */
+class RunnerWrapper
+{
+	Runner _runner
+	bool _has_begun
+
+	ctor(Runner runner) {
+		_runner = runner
+		_has_begun = false
 	}
 	
-	begin(string test_name) {
-		if (_called_begin) if (!_called_done) done()
+	begin(string section_name) {
+		if (_has_begun) {
+			done()
+		}
 		
-		_called_begin = true
-		_called_done = false
-	
-		_test_info = new TestInfo(test_name)
+		if (!_has_begun) {
+			_has_begun = true
+			_runner.begin(section_name)
+		}
 	}
 	
 	assert(bool condition) {
-		if (!_test_info.failed) {
-			_test_info.assertions = _test_info.assertions + 1
+		if (!_has_begun) {
+			@panic("Cannot call 'assert' outside of a 'begin'")
+		}
+		
+		_runner.assert(condition)
+	}
+	
+	done() {
+		if (_has_begun) {
+			_has_begun = false
+			_runner.done()
+		}
+	}
+}
+
+/**
+ * Implements 'Runner' to the spec with logs and all.
+ */
+class RunnerImpl
+{
+	string _log_header
+	string _log_body
+	bool _has_been_failure
+	bool _show_success
+	number _assertions
+	
+	number passed_assertions
+	number failed_assertions
+	string log
+	
+	number segment_passed_assertions
+	number segment_failed_assertions
+	
+	ctor(bool show_success) {
+		_show_success = show_success
+		passed_assertions = 0
+		failed_assertions = 0
+		log = ""
+	}
+	
+	begin(string section_name) {
+		_log_header = "	{section_name}:"
+		_log_body = ""
+		_assertions = 0
+		_has_been_failure = false
+		segment_passed_assertions = 0
+		segment_failed_assertions = 0
+	}
+	
+	assert(bool condition) {
+		_assertions = _assertions + 1
+		
+		if (condition) {
+			passed_assertions = passed_assertions + 1
+			segment_passed_assertions = segment_passed_assertions + 1
 		}
 		
 		if (!condition) {
-			_test_info.failed = true
+			failed_assertions = failed_assertions + 1
+			segment_failed_assertions = segment_failed_assertions + 1
+		}
+		
+		if (!condition) {
+			_has_been_failure = true
+			_log_body = "{_log_body}, {to_string(_assertions)}"
 		}
 	}
 	
 	done() {
-		_called_done = true
-		@println("{_tab_or_failed(_test_info.failed)}{_test_info.test_name} - {_bool_to_passed_or_not(_test_info.failed)}, {_info_assertions()}")
-	}
+		// in this specific circumstance we will not need to show any 
+		if (!_show_success) {
+			if (!_has_been_failure) {
+				// log = ""
+				return
+			}
+		}
 	
-	string _info_assertions() {
-		if (_test_info.failed) {
-			return "failed on assertion {to_string(_test_info.assertions)}"
+		// time to format the log
+		if (_has_been_failure) {
+			// prepend an 'X' to show failure
+			_log_header = "X{_log_header}"
+			
+			string test_or_tests = "condition"
+			if (segment_failed_assertions != 1) {
+				test_or_tests = "conditions"
+			}
+			
+			// if there has been a failure, _log_body will start with a comma
+			// remove the comma and space now
+			_log_body = @string_substring(_log_body, 2, @string_length(_log_body) - 2)
+			_log_body = "{test_or_tests} FAILED on assertion {_log_body}"
+		} else {
+			_log_body = "passed"
 		}
 		
-		return "{to_string(_test_info.assertions)} assertions"
+		_log_header = "{_log_header} "
+		
+		// we want to show how many assertions failed if at least one failed,
+		// or how many passed if all passed
+		if (_has_been_failure) {
+			_log_header = "{_log_header}{to_string(failed_assertions)} "
+		} else {
+			_log_header = "{_log_header}{to_string(passed_assertions)} "
+		}
+		
+		log = "{log}
+{_log_header}{_log_body}"
 	}
-}
-
-string _bool_to_passed_or_not(bool failed) {
-	if (!failed) return "passed"
-	return "FAILED"
-}
-
-string _tab_or_failed(bool failed) {
-	if (failed) {
-		return "X	"
-	}
-
-	return "	"
 }
 
 class ContractTestHelper

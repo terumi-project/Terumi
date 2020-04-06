@@ -9,7 +9,7 @@ class ParseGenericsTests
 	ContractTestHelper runner
 
 	ctor() {
-		test_group = "parse_generics Tests"
+		test_group = "parse_generics"
 	}
 	
 	begin(string name) runner.begin(name)

@@ -17,6 +17,8 @@ class LinkedParsedTypeList
 		
 		_head = new_head
 	}
+	
+	bool has_any() return _tail.has_next
 }
 
 class LinkedParsedTypeNode

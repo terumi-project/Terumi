@@ -1,0 +1,61 @@
+use std
+use compiler
+use compiler.lexer
+
+/**
+ * This will attempt to parse multiple comma delimited types, surrounded by
+ * angled brackets.
+ */
+ParseGenericsResult parse_generics(ContractLexer lexer)
+{
+	Token open_angled_bracket = lexer_next_significant(lexer)
+	
+	// parsing generics is optional
+	if (!open_angled_bracket.is_special("<")) {
+		lexer.scan_to(open_angled_bracket)
+		return new ParseGenericsResult(true)
+	}
+	
+	// declare variable (and assign it to just something)
+	Token next = open_angled_bracket
+
+	LinkedParsedTypeList generics = new LinkedParsedTypeList()
+	
+	do {
+		// need to parse generics
+		ParseTypeResult result = parse_type(lexer)
+		
+		if (!result.success) {
+			lexer.scan_to(open_angled_bracket)
+			return new ParseGenericsResult(false)
+		}
+
+		generics.add(result.data)
+		
+		next = lexer_next_significant(lexer)
+	}
+	while (next.is_special(","))
+	
+	if (!next.is_special(">")) {
+		lexer.scan_to(open_angled_bracket)
+		return new ParseGenericsResult(false)
+	}
+
+	return new ParseGenericsResult(generics)
+}
+
+class ParseGenericsResult
+{
+	bool success
+	LinkedParsedTypeList generics
+	
+	ctor(bool param_success) {
+		success = param_success
+		generics = new LinkedParsedTypeList()
+	}
+	
+	ctor(LinkedParsedTypeList param_generics) {
+		success = true
+		generics = param_generics
+	}
+}

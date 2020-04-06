@@ -20,46 +20,25 @@ ParseTypeResult parse_type(ContractLexer lexer)
 		return new ParseTypeResult(false)
 	}
 	
-	// now, parse the other possible tokens
-	Token next = lexer_next_significant(lexer)
-	
+	// now, parse generics
 	LinkedParsedTypeList generics = new LinkedParsedTypeList()
 	bool is_generic = false
 	
-	if (next.is_special("<")) {
-		is_generic = true
-
-		// need to parse generics
-		ParseTypeResult result = parse_type(lexer)
-		
-		if (!result.success) {
-			return new ParseTypeResult(false)
-		}
-		
-		generics.add(result.data)
-		
-		next = lexer_next_significant(lexer)
-		
-		while (next.is_special(",")) {
-			result = parse_type(lexer)
-			
-			if (!result.success) {
-				return new ParseTypeResult(false)
-			}
-			
-			generics.add(result.data)
-			
-			next = lexer_next_significant(lexer)
-		}
-		
-		if (!next.is_special(">")) {
-			return new ParseTypeResult(false)
-		}
-		
-		next = lexer_next_significant(lexer)
-	}
+	ParseGenericsResult generics_result = parse_generics(lexer)
 	
+	if (!generics_result.success) {
+		return new ParseTypeResult(false)
+	}
+
+	is_generic = generics_result.generics.has_any()
+	
+	if (is_generic) {
+		generics = generics_result.generics
+	}
+
 	bool is_array = false
+	
+	Token next = lexer_next_significant(lexer)
 	
 	if (next.is_special("[")) {
 		is_array = true

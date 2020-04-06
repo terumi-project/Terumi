@@ -25,6 +25,7 @@ the project is still in its infancy.
 	runner.run(new TokenTests())
 	runner.run(new LinkedParsedTypeListTests())
 	runner.run(new ParseTypeTests())
+	runner.run(new ParseGenericsTests())
 }
 
 class TestInfo

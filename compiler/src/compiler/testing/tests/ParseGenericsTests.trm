@@ -1,0 +1,68 @@
+use compiler
+use compiler.lexer
+use compiler.parser
+use compiler.testing
+
+class ParseGenericsTests
+{
+	string test_group
+	ContractTestHelper runner
+
+	ctor() {
+		test_group = "parse_generics Tests"
+	}
+	
+	begin(string name) runner.begin(name)
+	assert(bool condition) runner.assert(condition)
+	
+	test(ContractTestHelper test_runner) {
+		runner = test_runner
+		
+		begin("parse_generics() '<T>'")
+		Lexer lexer = _gen_lexer("<T>")
+		ParseGenericsResult result = parse_generics(lexer)
+		assert(result.success)
+		assert(result.generics.has_any() == true)
+		assert(result.generics._tail.value.is_array == false)
+		assert(result.generics._tail.value.is_generic == false)
+		assert(result.generics._tail.value.name.equals("T"))
+		
+		begin("parse_generics() '<T'")
+		lexer = _gen_lexer("<T")
+		result = parse_generics(lexer)
+		assert(result.success == false)
+		
+		begin("parse_generics() 'asdf'")
+		lexer = _gen_lexer("asdf")
+		result = parse_generics(lexer)
+		assert(result.success == true)
+		assert(result.generics.has_any() == false)
+		
+		begin("parse_generics() '<T[]>'")
+		lexer = _gen_lexer("<T[]>")
+		result = parse_generics(lexer)
+		assert(result.generics.has_any() == true)
+		assert(result.generics._tail.value.is_array == true)
+		assert(result.generics._tail.value.is_generic == false)
+		assert(result.generics._tail.value.name.equals("T"))
+
+		
+		begin("parse_generics() '<T1, T2, T3>'")
+		lexer = _gen_lexer("<T1, T2, T3>")
+		result = parse_generics(lexer)
+		assert(result.generics.has_any() == true)
+		assert(result.generics._tail.value.is_array == false)
+		assert(result.generics._tail.value.is_generic == false)
+		assert(result.generics._tail.value.name.equals("T1"))
+		assert(result.generics._tail.has_next == true)
+		assert(result.generics._tail.next.value.is_array == false)
+		assert(result.generics._tail.next.value.is_generic == false)
+		assert(result.generics._tail.next.value.name.equals("T2"))
+		assert(result.generics._tail.next.has_next == true)
+		assert(result.generics._tail.next.next.value.is_array == false)
+		assert(result.generics._tail.next.next.value.is_generic == false)
+		assert(result.generics._tail.next.next.value.name.equals("T3"))
+	}
+	
+	Lexer _gen_lexer(string source) return new Lexer(new Text(source))
+}

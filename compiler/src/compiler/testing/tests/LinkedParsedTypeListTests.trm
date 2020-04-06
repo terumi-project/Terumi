@@ -51,5 +51,12 @@ class LinkedParsedTypeListTests
 		assert(list._tail.next.next == list._head)
 		assert(list._head.has_previous == true)
 		assert(list._head.has_next == false)
+		
+		begin("has_any()")
+		assert(list.has_any() == true)
+		list = new LinkedParsedTypeList()
+		assert(list.has_any() == false)
+		list.add(element_one)
+		assert(list.has_any() == true)
 	}
 }

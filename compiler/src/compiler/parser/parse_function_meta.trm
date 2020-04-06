@@ -5,7 +5,7 @@ use compiler.lexer
 /**
  * This will parse only the header of the function, such that there is precisely
  * enough information to determine only if we should be parsing a function next.
-// */
+ */
 ParseFunctionMetaResult parse_function_meta(ContractLexer lexer)
 {
 	// primary: may be the type, or name of the function

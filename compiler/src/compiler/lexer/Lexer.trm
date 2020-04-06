@@ -77,7 +77,7 @@ class Lexer
 
 /**
  * Yields the next non-newline token.
-// */
+ */
 Token lexer_next_significant(ContractLexer lexer) {
 	Token token = lexer.next_token()
 

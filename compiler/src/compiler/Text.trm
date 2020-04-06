@@ -1,29 +1,27 @@
 use std
 
-// TODO: performing // */ is a hacky workaround
-
 /**
  * A wrapper over String, that provides location aware string information.
-// */
+ */
 class Text
 {
-	/** The entire string that @paramref text is from // */
+	/** The entire string that @paramref text is from */
 	String source
 	
-	/** The current text this Text wraps over // */
+	/** The current text this Text wraps over */
 	String text
 	
-	/** The offset in the @paramref source string that this @paramref text lies // */
+	/** The offset in the @paramref source string that this @paramref text lies */
 	number offset
 	
 	number length
 
-	/** Constructs a new 'Text', using param_source as both the source and text. // */
+	/** Constructs a new 'Text', using param_source as both the source and text. */
 	ctor(string param_source) {
 		ctor(new String(param_source))
 	}
 
-	/** Constructs a new 'Text', using param_source as both the source and text. // */
+	/** Constructs a new 'Text', using param_source as both the source and text. */
 	ctor(String param_source) {
 		source = param_source
 		text = param_source
@@ -31,12 +29,12 @@ class Text
 		length = text.length
 	}
 	
-	/** Constructs a new 'Text' as a subset of some source Text // */
+	/** Constructs a new 'Text' as a subset of some source Text */
 	ctor(string param_source, number param_offset, number param_length) {
 		ctor(new String(param_source), param_offset, param_length)
 	}
 	
-	/** Constructs a new 'Text' as a subset of some source Text // */
+	/** Constructs a new 'Text' as a subset of some source Text */
 	ctor(String param_source, number param_offset, number param_length) {
 		source = param_source
 		offset = param_offset
@@ -54,14 +52,14 @@ class Text
 	
 	Text clone() return new Text(source, offset, length)
 
-	/** Compares the 'text' in view only // */
+	/** Compares the 'text' in view only */
 	bool equals(string value) return text.equals(value)
 	bool equals(String value) return text.equals(value)
 	
 	// TODO: because of hacky methods to pick out which method is better, 
 	// String.equals(String) is picked instead of Text.equals(Text). This is so
 	// the compiler definitely does not choose String.equals(String)
-	/** Fully compares the two Texts // */
+	/** Fully compares the two Texts */
 	bool equals_text(Text other) {
 		if (offset != other.offset) return false
 		if (length != other.length) return false

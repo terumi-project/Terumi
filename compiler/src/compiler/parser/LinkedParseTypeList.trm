@@ -1,0 +1,48 @@
+class LinkedParseTypeList
+{
+	LinkedParseTypeNode _tail
+	LinkedParseTypeNode _head
+
+	ctor() {
+		_tail = new LinkedParseTypeNode()
+		_head = _tail
+	}
+	
+	add(ParseType element) {
+		_head.value = element
+		
+		LinkedParseTypeNode new_head = new LinkedParseTypeNode()
+		new_head.set_previous(_head)
+		_head.set_next(new_head)
+		
+		_head = new_head
+	}
+}
+
+class LinkedParseTypeNode
+{
+	ParseType value
+	
+	bool has_previous
+	LinkedParseTypeNode previous
+	
+	bool has_next
+	LinkedParseTypeNode next
+	
+	set_next() has_next = false
+	set_next(LinkedParseTypeNode node) {
+		has_next = true
+		next = node
+	}
+	
+	set_previous() has_previous = false
+	set_previous(LinkedParseTypeNode node) {
+		has_previous = true
+		previous = node
+	}
+	
+	ctor() {
+		has_previous = false
+		has_next = false
+	}
+}

@@ -66,6 +66,16 @@ class Lexer
 			return new_identifier_token(current)
 		}
 		
+		DelegateStringSkipString string_skip = new DelegateStringSkipString()
+		Text skip_string = current.skip(string_skip)
+		
+		if (skip_string.offset != current.offset) {
+			// found "a string"
+			current = text.substring(current.offset, skip_string.offset - current.offset)
+			_next_token = skip_string.offset
+			return new_string_token(current)
+		}
+		
 		// something special?
 		_next_token = current.offset + 1
 		return new_special_token(current.take(1))

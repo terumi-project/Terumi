@@ -21,6 +21,7 @@ class TokenTests
 		number NUMBER_TOKEN = 3
 		number EOF_TOKEN = 4
 		number NEWLINE_TOKEN = 5
+		number STRING_TOKEN = 6
 		
 		runner = test_runner
 		begin("ctor(number, Text)")
@@ -46,6 +47,9 @@ class TokenTests
 "))
 		assert(token.to_string() == "Newline: '
 '")
+
+		token = new Token(STRING_TOKEN, new Text("six"))
+		assert(token.to_string() == "String: 'six'")
 		
 		begin("is_identifier()")
 		assert(new Token(IDENTIFIER_TOKEN, new Text("")).is_identifier() == true)
@@ -71,6 +75,10 @@ class TokenTests
 		begin("is_newline()")
 		assert(new Token(NEWLINE_TOKEN, new Text("")).is_newline() == true)
 		assert(new Token(EOF_TOKEN, new Text("")).is_newline() == false)
+		
+		begin("is_string()")
+		assert(new Token(STRING_TOKEN, new Text("")).is_string() == true)
+		assert(new Token(EOF_TOKEN, new Text("")).is_string() == false)
 		
 		begin("equals()")
 		assert(new Token(IDENTIFIER_TOKEN, new Text("asdfg")).equals(new Token(IDENTIFIER_TOKEN, new Text("asdfg"))))

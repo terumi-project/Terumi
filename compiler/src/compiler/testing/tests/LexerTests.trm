@@ -21,6 +21,7 @@ class LexerTests
 		number SPECIAL_TOKEN = 2
 		number NUMBER_TOKEN = 3
 		number EOF_TOKEN = 4
+		number STRING_TOKEN = 6
 
 		begin("next_token() yields identifier")
 		Lexer lexer = new Lexer("asdfgh")
@@ -70,6 +71,28 @@ class LexerTests
 		token = lexer.next_token()
 		assert(token.token_type == EOF_TOKEN)
 		assert(token.source.equals(""))
+		
+		begin("next_token() yields string")
+		lexer = new Lexer("{get_quotation_mark()}a really cool string{get_quotation_mark()}")
+		token = lexer.next_token()
+		assert(token.token_type == STRING_TOKEN)
+		assert(token.source.equals("{get_quotation_mark()}a really cool string{get_quotation_mark()}"))
+		
+		// whitespace
+		lexer = new Lexer(" 		  		 	 	 	 	 	 {get_quotation_mark()}a cool string{get_quotation_mark()}")
+		token = lexer.next_token()
+		assert(token.token_type == STRING_TOKEN)
+		assert(token.source.equals("{get_quotation_mark()}a cool string{get_quotation_mark()}"))
+		
+		lexer = new Lexer("{get_quotation_mark()}escape {get_backslash()}{get_quotation_mark()}{get_quotation_mark()}")
+		token = lexer.next_token()
+		assert(token.token_type == STRING_TOKEN)
+		assert(token.source.equals("{get_quotation_mark()}escape {get_backslash()}{get_quotation_mark()}{get_quotation_mark()}"))
+		
+		lexer = new Lexer("{get_quotation_mark()}escape {get_backslash()}{get_backslash()}{get_backslash()}{get_quotation_mark()}{get_quotation_mark()}")
+		token = lexer.next_token()
+		assert(token.token_type == STRING_TOKEN)
+		assert(token.source.equals("{get_quotation_mark()}escape {get_backslash()}{get_backslash()}{get_backslash()}{get_quotation_mark()}{get_quotation_mark()}"))
 		
 		begin("scan_to() rescans token")
 		lexer = new Lexer("asdf ghjk")

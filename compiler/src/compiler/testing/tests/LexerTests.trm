@@ -79,20 +79,40 @@ class LexerTests
 		assert(token.source.equals("{get_quotation_mark()}a really cool string{get_quotation_mark()}"))
 		
 		// whitespace
-		lexer = new Lexer(" 		  		 	 	 	 	 	 {get_quotation_mark()}a cool string{get_quotation_mark()}")
+		lexer = new Lexer(" 		  		 	 	 	 	 	 {get_quotation_mark()}a cool string{get_quotation_mark()}hfdshheh3h34hd")
 		token = lexer.next_token()
 		assert(token.token_type == STRING_TOKEN)
 		assert(token.source.equals("{get_quotation_mark()}a cool string{get_quotation_mark()}"))
 		
-		lexer = new Lexer("{get_quotation_mark()}escape {get_backslash()}{get_quotation_mark()}{get_quotation_mark()}")
+		lexer = new Lexer("{get_quotation_mark()}escape {get_backslash()}{get_quotation_mark()}{get_quotation_mark()}dsfgfdsgfsd")
 		token = lexer.next_token()
 		assert(token.token_type == STRING_TOKEN)
 		assert(token.source.equals("{get_quotation_mark()}escape {get_backslash()}{get_quotation_mark()}{get_quotation_mark()}"))
 		
-		lexer = new Lexer("{get_quotation_mark()}escape {get_backslash()}{get_backslash()}{get_backslash()}{get_quotation_mark()}{get_quotation_mark()}")
+		lexer = new Lexer("{get_quotation_mark()}escape {get_backslash()}{get_backslash()}{get_backslash()}{get_quotation_mark()}{get_quotation_mark()}asefasdf")
 		token = lexer.next_token()
 		assert(token.token_type == STRING_TOKEN)
 		assert(token.source.equals("{get_quotation_mark()}escape {get_backslash()}{get_backslash()}{get_backslash()}{get_quotation_mark()}{get_quotation_mark()}"))
+		
+		begin("next_token() skips comments")
+		lexer = new Lexer("// singleline comment
+
+")
+		token = lexer.next_token()
+		assert(token.is_newline())
+		lexer = new Lexer("/*
+	multline
+	comment
+	*/asdf
+")
+		token = lexer.next_token()
+		assert(token.is_identifier())
+		
+		lexer = new Lexer("        /* whitespace
+	and comments */                // intermixed
+")
+		token = lexer.next_token()
+		assert(token.is_newline())
 		
 		begin("scan_to() rescans token")
 		lexer = new Lexer("asdf ghjk")

@@ -23,6 +23,8 @@ the project is still in its infancy.
 	runner.run(new TextTests())
 	runner.run(new LexerTests())
 	runner.run(new TokenTests())
+	runner.run(new LinkedParsedTypeListTests())
+	runner.run(new ParseTypeTests())
 }
 
 class TestInfo

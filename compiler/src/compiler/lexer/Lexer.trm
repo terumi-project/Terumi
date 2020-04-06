@@ -5,6 +5,7 @@ class ContractLexer
 {
 	Token next_token() @panic("Contract 'ContractLexer' may not be used.")
 	scan_to(Token token) @panic("Contract 'ContractLexer' may not be used.")
+	scan_after(Token token) @panic("Contract 'ContractLexer' may not be used.")
 }
 
 class Lexer
@@ -72,6 +73,10 @@ class Lexer
 	
 	scan_to(Token token) {
 		_next_token = token.source.offset
+	}
+	
+	scan_after(Token token) {
+		_next_token = token.source.offset + token.source.length
 	}
 }
 

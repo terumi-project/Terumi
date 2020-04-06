@@ -70,5 +70,22 @@ class LexerTests
 		token = lexer.next_token()
 		assert(token.token_type == EOF_TOKEN)
 		assert(token.source.equals(""))
+		
+		begin("scan_to() rescans token")
+		lexer = new Lexer("asdf ghjk")
+		token = lexer.next_token()
+		lexer.scan_to(token)
+		Token other_token = lexer.next_token()
+		assert(token.token_type == other_token.token_type)
+		assert(token.source.equals_text(other_token.source))
+		
+		begin("scan_after() scans next token")
+		lexer = new Lexer("asdf ghjk")
+		token = lexer.next_token()
+		Token temp = lexer.next_token()
+		lexer.scan_after(token)
+		other_token = lexer.next_token()
+		assert(token.source.equals("asdf"))
+		assert(other_token.source.equals("ghjk"))
 	}
 }

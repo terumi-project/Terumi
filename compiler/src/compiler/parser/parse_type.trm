@@ -23,6 +23,7 @@ ParseTypeResult parse_type(ContractLexer lexer)
 	// now, parse the other possible tokens
 	Token next = lexer_next_significant(lexer)
 	
+	LinkedParsedTypeList generics = new LinkedParsedTypeList()
 	bool is_generic = false
 	
 	if (next.is_special("<")) {
@@ -31,19 +32,28 @@ ParseTypeResult parse_type(ContractLexer lexer)
 		// need to parse generics
 		ParseTypeResult result = parse_type(lexer)
 		
+		if (!result.success) {
+			return new ParseTypeResult(false)
+		}
+		
+		generics.add(result.data)
+		
 		next = lexer_next_significant(lexer)
 		
 		while (next.is_special(",")) {
 			result = parse_type(lexer)
 			
-			// TODO: stop parsing if failure
-			// TODO: add parsed type to list if successful
+			if (!result.success) {
+				return new ParseTypeResult(false)
+			}
+			
+			generics.add(result.data)
 			
 			next = lexer_next_significant(lexer)
 		}
 		
 		if (!next.is_special(">")) {
-			// TODO: fail parsing
+			return new ParseTypeResult(false)
 		}
 		
 		next = lexer_next_significant(lexer)
@@ -53,13 +63,20 @@ ParseTypeResult parse_type(ContractLexer lexer)
 	
 	if (next.is_special("[")) {
 		is_array = true
+		
+		next = lexer_next_significant(lexer)
+		
 		// we must have a closing ]
-		if (!lexer_next_significant(lexer).is_special("]")) {
+		if (!next.is_special("]")) {
 			// TODO: fail parsing
+			return new ParseTypeResult(false)
 		}
+		
+		next = lexer_next_significant(lexer)
 	}
 	
-	
+	lexer.scan_to(next)
+	return new ParseTypeResult(new ParsedType(is_array, is_generic, generics, primary_part.source))
 }
 
 class ParseTypeResult
@@ -79,4 +96,21 @@ class ParseTypeResult
 
 class ParsedType
 {
+	bool is_array
+	bool is_generic
+	LinkedParsedTypeList generics
+	Text name
+
+	ctor(bool param_is_array, Text param_name) {
+		is_array = param_is_array
+		is_generic = false
+		name = param_name
+	}
+
+	ctor(bool param_is_array, bool param_is_generic, LinkedParsedTypeList param_generics, Text param_name) {
+		is_array = param_is_array
+		is_generic = param_is_generic
+		generics = param_generics
+		name = param_name
+	}
 }

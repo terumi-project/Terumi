@@ -1,17 +1,17 @@
-class LinkedParseTypeList
+class LinkedParsedTypeList
 {
-	LinkedParseTypeNode _tail
-	LinkedParseTypeNode _head
+	LinkedParsedTypeNode _tail
+	LinkedParsedTypeNode _head
 
 	ctor() {
-		_tail = new LinkedParseTypeNode()
+		_tail = new LinkedParsedTypeNode()
 		_head = _tail
 	}
 	
-	add(ParseType element) {
+	add(ParsedType element) {
 		_head.value = element
 		
-		LinkedParseTypeNode new_head = new LinkedParseTypeNode()
+		LinkedParsedTypeNode new_head = new LinkedParsedTypeNode()
 		new_head.set_previous(_head)
 		_head.set_next(new_head)
 		
@@ -19,24 +19,24 @@ class LinkedParseTypeList
 	}
 }
 
-class LinkedParseTypeNode
+class LinkedParsedTypeNode
 {
-	ParseType value
+	ParsedType value
 	
 	bool has_previous
-	LinkedParseTypeNode previous
+	LinkedParsedTypeNode previous
 	
 	bool has_next
-	LinkedParseTypeNode next
+	LinkedParsedTypeNode next
 	
 	set_next() has_next = false
-	set_next(LinkedParseTypeNode node) {
+	set_next(LinkedParsedTypeNode node) {
 		has_next = true
 		next = node
 	}
 	
 	set_previous() has_previous = false
-	set_previous(LinkedParseTypeNode node) {
+	set_previous(LinkedParsedTypeNode node) {
 		has_previous = true
 		previous = node
 	}

@@ -1,0 +1,101 @@
+use compiler
+use compiler.lexer
+use compiler.parser
+use compiler.testing
+
+class ParseTypeTests
+{
+	string test_group
+	ContractTestHelper runner
+
+	ctor() {
+		test_group = "parse_type Tests"
+	}
+	
+	begin(string name) runner.begin(name)
+	assert(bool condition) runner.assert(condition)
+	
+	test(ContractTestHelper test_runner) {
+		runner = test_runner
+		
+		begin("parse_type() 'SomeType'")
+		Lexer lexer = _gen_lexer("SomeType")
+		ParseTypeResult result = parse_type(lexer)
+		assert(result.success)
+		assert(result.data.is_array == false)
+		assert(result.data.is_generic == false)
+		assert(result.data.name.equals("SomeType"))
+		
+		begin("parse_type() 'SomeType[]'")
+		lexer = _gen_lexer("SomeType[]")
+		result = parse_type(lexer)
+		assert(result.success)
+		assert(result.data.is_array == true)
+		assert(result.data.is_generic == false)
+		assert(result.data.name.equals("SomeType"))
+		
+		begin("parse_type() 'SomeType['")
+		lexer = _gen_lexer("SomeType[")
+		result = parse_type(lexer)
+		assert(result.success == false)
+		
+		begin("parse_type() 'SomeType<T>'")
+		lexer = _gen_lexer("SomeType<T>")
+		result = parse_type(lexer)
+		assert(result.success)
+		assert(result.data.is_array == false)
+		assert(result.data.is_generic == true)
+		assert(result.data.name.equals("SomeType"))
+		assert(result.data.generics._tail.value.is_array == false)
+		assert(result.data.generics._tail.value.is_generic == false)
+		assert(result.data.generics._tail.value.name.equals("T"))
+		
+		begin("parse_type() 'SomeType<T'")
+		lexer = _gen_lexer("SomeType<T")
+		result = parse_type(lexer)
+		assert(result.success == false)
+		
+		begin("parse_type() 'SomeType<T>[]'")
+		lexer = _gen_lexer("SomeType<T>[]")
+		result = parse_type(lexer)
+		assert(result.success)
+		assert(result.data.is_array == true)
+		assert(result.data.is_generic == true)
+		assert(result.data.name.equals("SomeType"))
+		assert(result.data.generics._tail.value.is_array == false)
+		assert(result.data.generics._tail.value.is_generic == false)
+		assert(result.data.generics._tail.value.name.equals("T"))
+		
+		begin("parse_type() 'SomeType<T[]>[]'")
+		lexer = _gen_lexer("SomeType<T[]>[]")
+		result = parse_type(lexer)
+		assert(result.success)
+		assert(result.data.is_array == true)
+		assert(result.data.is_generic == true)
+		assert(result.data.name.equals("SomeType"))
+		assert(result.data.generics._tail.value.is_array == true)
+		assert(result.data.generics._tail.value.is_generic == false)
+		assert(result.data.generics._tail.value.name.equals("T"))
+		
+		begin("parse_type() 'SomeType<T1, T2, T3>'")
+		lexer = _gen_lexer("SomeType<T1, T2, T3>")
+		result = parse_type(lexer)
+		assert(result.success)
+		assert(result.data.is_array == false)
+		assert(result.data.is_generic == true)
+		assert(result.data.name.equals("SomeType"))
+		assert(result.data.generics._tail.value.is_array == false)
+		assert(result.data.generics._tail.value.is_generic == false)
+		assert(result.data.generics._tail.value.name.equals("T1"))
+		assert(result.data.generics._tail.has_next)
+		assert(result.data.generics._tail.next.value.is_array == false)
+		assert(result.data.generics._tail.next.value.is_generic == false)
+		assert(result.data.generics._tail.next.value.name.equals("T2"))
+		assert(result.data.generics._tail.next.has_next)
+		assert(result.data.generics._tail.next.next.value.is_array == false)
+		assert(result.data.generics._tail.next.next.value.is_generic == false)
+		assert(result.data.generics._tail.next.next.value.name.equals("T3"))
+	}
+	
+	Lexer _gen_lexer(string source) return new Lexer(new Text(source))
+}

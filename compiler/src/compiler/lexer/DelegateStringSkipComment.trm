@@ -58,8 +58,6 @@ class DelegateStringSkipComment
 		}
 		
 		if (_parse_multiline) {
-			_last_char_was_asterisk = char.equals("*")
-			
 			if (_last_char_was_forward_slash) {
 				// done parsing
 				return false
@@ -67,9 +65,11 @@ class DelegateStringSkipComment
 		
 			if (_last_char_was_asterisk) {
 				_last_char_was_forward_slash = char.equals("/")
+				_last_char_was_asterisk = char.equals("*")
 				return true
 			}
 			
+			_last_char_was_asterisk = char.equals("*")
 			return true
 		}
 		

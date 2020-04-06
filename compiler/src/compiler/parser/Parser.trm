@@ -15,7 +15,7 @@ class Parser
 		// first: grab a non whitespace token
 		Token token = lexer_next_significant(_lexer)
 		
-		if (token_is_eof(token)) {
+		if (token.is_eof()) {
 			return new ParseResult()
 		}
 		

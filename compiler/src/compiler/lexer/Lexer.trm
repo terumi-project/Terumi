@@ -86,8 +86,8 @@ class Lexer
 Token lexer_next_significant(ContractLexer lexer) {
 	Token token = lexer.next_token()
 
-	while (token_is_newline(token)) {
-		if (token_is_eof(token)) {
+	while (token.is_newline()) {
+		if (token.is_eof()) {
 			return token
 		}
 			

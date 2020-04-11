@@ -62,6 +62,12 @@ class ParseGenericsTests
 		assert(result.generics._tail.next.next.value.is_array == false)
 		assert(result.generics._tail.next.next.value.is_generic == false)
 		assert(result.generics._tail.next.next.value.name.equals("T3"))
+		
+		begin ("parse_generics() ''")
+		lexer = _gen_lexer("")
+		result = parse_generics(lexer)
+		assert(result.success == true)
+		assert(result.generics.has_any() == false)
 	}
 	
 	Lexer _gen_lexer(string source) return new Lexer(new Text(source))

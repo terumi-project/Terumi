@@ -130,5 +130,26 @@ class LexerTests
 		other_token = lexer.next_token()
 		assert(token.source.equals("asdf"))
 		assert(other_token.source.equals("ghjk"))
+		
+		begin("next_token() for interpolated string")
+		
+		// expressions should be parsed inside of interpolations, no matter if they're invalid or not
+		lexer = new Lexer("{get_quotation_mark()}some \{1234\} text{get_quotation_mark()}")
+		token = lexer.next_token()
+		assert(token.token_type == STRING_TOKEN)
+		assert(token.source.equals("{get_quotation_mark()}some \{1234\} text{get_quotation_mark()}"))
+		
+		// a string is an expression, should be handled
+		lexer = new Lexer("{get_quotation_mark()}some \{{get_quotation_mark()}inner string{get_quotation_mark()}\} text{get_quotation_mark()}")
+		token = lexer.next_token()
+		assert(token.token_type == STRING_TOKEN)
+		assert(token.source.equals("{get_quotation_mark()}some \{{get_quotation_mark()}inner string{get_quotation_mark()}\} text{get_quotation_mark()}"))
+		
+		// a string is an expression, should be handled (with inner strings too)
+		// TODO: make test pass in far future
+		lexer = new Lexer("{get_quotation_mark()}some \{{get_quotation_mark()}inner string{get_quotation_mark()}\} text{get_quotation_mark()}")
+		token = lexer.next_token()
+		assert(token.token_type == STRING_TOKEN)
+		assert(token.source.equals("{get_quotation_mark()}some \{{get_quotation_mark()}inner \{{get_quotation_mark()}inner string{get_quotation_mark()}\} string{get_quotation_mark()}\} text{get_quotation_mark()}"))
 	}
 }

@@ -48,7 +48,9 @@ class Lexer
 			}
 		} while (do_again)
 		
-		// TODO: skip comments too
+		if (current.length == 0) {
+			return new_eof_token(current)
+		}
 		
 		// next, we'll use the "skip" feature to try skip characters. if we're successful,
 		// we can calssify all the characters we skipped as whatever
@@ -80,6 +82,62 @@ class Lexer
 			current = text.substring(current.offset, skip_ascii.offset - current.offset)
 			_next_token = skip_ascii.offset
 			return new_identifier_token(current)
+		}
+		
+		// STRING SKIPPING CODE
+		// TODO: put this into its own class, it's too large
+		if (current.take(1).equals(get_quotation_mark())) {
+			number offset = 1
+			
+			do {
+				Text temp = current.skip(offset)
+				if (temp.length == 0) {
+					// hit EOF too soon
+					// let's just pretend it's all a string i guess
+					Text string_data = current.take(offset)
+					_next_token = offset
+					return new_string_token(string_data)
+				}
+				
+				if (temp.take(1).equals("\{")) {
+					// TODO: parse out an expression
+					do {
+						offset = offset + 1
+						
+						if (current.skip(offset).length == 0) {
+							// hit EOF too soon
+							// pretend it's a string i guess?
+							Text string_data = current.take(offset)
+							_next_token = offset
+							return new_string_token(string_data)
+						}
+					} while (!current.skip(offset).take(1).equals("\}"))
+					
+					// consume string end curly brace
+					offset = offset + 1
+				}
+				
+				// TODO: length checks (considering above ^)
+				
+				if (temp.take(1).equals(get_backslash())) {
+					// no continue statement
+					// so we use else if
+					
+					// ignore the current character and the next one
+					offset = offset + 2
+				} else {
+					if (temp.take(1).equals(get_quotation_mark())) {
+						offset = offset + 1 // consume ending quotation mark
+					
+						Text string_data = current.take(offset)
+						_next_token = offset
+						return new_string_token(string_data)
+					}
+					
+					offset = offset + 1
+				}
+			} while (true)
+			
 		}
 		
 		DelegateStringSkipString string_skip = new DelegateStringSkipString()

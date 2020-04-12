@@ -25,6 +25,7 @@ the project is still in its infancy.
 	runner.run(new LinkedParsedTypeListTests())
 	runner.run(new ParseTypeTests())
 	runner.run(new ParseGenericsTests())
+	runner.run(new ParseFunctionMetaTests())
 	
 	@println("== TESTS == {to_string(runner._passed)} passed, {to_string(runner._failed)} failed")
 	@println(runner._log_pass)
@@ -197,15 +198,10 @@ class RunnerImpl
 			// prepend an 'X' to show failure
 			_log_header = "X{_log_header}"
 			
-			string test_or_tests = "condition"
-			if (segment_failed_assertions != 1) {
-				test_or_tests = "conditions"
-			}
-			
 			// if there has been a failure, _log_body will start with a comma
 			// remove the comma and space now
 			_log_body = @string_substring(_log_body, 2, @string_length(_log_body) - 2)
-			_log_body = "{test_or_tests} FAILED on assertion {_log_body}"
+			_log_body = "FAILED on assertion {_log_body}"
 		} else {
 			_log_body = "passed"
 		}
@@ -215,9 +211,9 @@ class RunnerImpl
 		// we want to show how many assertions failed if at least one failed,
 		// or how many passed if all passed
 		if (_has_been_failure) {
-			_log_header = "{_log_header}{to_string(failed_assertions)} "
+			_log_header = "{_log_header}{to_string(segment_failed_assertions)} "
 		} else {
-			_log_header = "{_log_header}{to_string(passed_assertions)} "
+			_log_header = "{_log_header}{to_string(segment_passed_assertions)} "
 		}
 		
 		log = "{log}

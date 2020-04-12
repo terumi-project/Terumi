@@ -26,11 +26,11 @@ class Parser
 		
 		@println("Parse Function Meta Result:")
 		
-		if (meta_result.state == 1) {
+		if (meta_result.success == false) {
 			@println("	EOF")
 		}
 		
-		if (meta_result.state == 2) {
+		if (meta_result.success == true) {
 			@println("	RESULT")
 			@println("	{to_string(meta_result.success)}")
 			

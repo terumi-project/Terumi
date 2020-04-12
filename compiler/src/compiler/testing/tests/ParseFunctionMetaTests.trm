@@ -1,0 +1,82 @@
+use compiler.testing
+use compiler.lexer
+use compiler.parser
+
+class ParseFunctionMetaTests
+{
+	string test_group
+	ContractTestHelper runner
+
+	ctor() {
+		test_group = "parse_function_meta"
+	}
+	
+	begin(string name) runner.begin(name)
+	assert(bool condition) runner.assert(condition)
+	
+	test(ContractTestHelper test_runner) {
+		runner = test_runner
+		
+		begin("fails on ''")
+		ParseFunctionMetaResult result = parse_function_meta(new Lexer(""))
+		assert(result.success == false)
+		
+		begin("fails on 'IncompleteType<T function_name()'")
+		result = parse_function_meta(new Lexer("IncompleteType<T function_name()"))
+		assert(result.success == false)
+		
+		begin("fails on 'incomplete_generics<T()'")
+		result = parse_function_meta(new Lexer("incomplete_generics<T()"))
+		assert(result.success == false)
+		
+		begin("fails on 'IncompleteType<T incomplete_generics<T()'")
+		result = parse_function_meta(new Lexer("IncompleteType<T incomplete_generics<T()"))
+		assert(result.success == false)
+		
+		begin("fails on '1 function_name()'")
+		result = parse_function_meta(new Lexer("1 function_name()"))
+		assert(result.success == false)
+		
+		begin("parses 'my_function()'")
+		result = parse_function_meta(new Lexer("my_function()"))
+		assert(result.success)
+		
+		begin("parses 'my_function<T>()'")
+		result = parse_function_meta(new Lexer("my_function<T>()"))
+		assert(result.success)
+		
+		begin("parses 'number my_function()'")
+		result = parse_function_meta(new Lexer("number my_function()"))
+		assert(result.success)
+		
+		begin("parses 'number my_function<T>()'")
+		result = parse_function_meta(new Lexer("number my_function<T>()"))
+		assert(result.success)
+		
+		begin("parses 'GenericType<string> my_function()'")
+		result = parse_function_meta(new Lexer("GenericType<string> my_function()"))
+		assert(result.success)
+		
+		begin("parses 'GenericType<T> my_function<T>()'")
+		result = parse_function_meta(new Lexer("GenericType<T> my_function<T>()"))
+		assert(result.success)
+		
+		begin("handles whitespace")
+		result = parse_function_meta(new Lexer("GenericType        
+		
+			 <
+			 
+	 T       
+	         >
+			                      my_function
+		 <
+		 K
+		 
+		 
+		 ,L
+		 
+		 >
+		      ("))
+		assert(result.success)
+	}
+}

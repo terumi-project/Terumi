@@ -66,6 +66,11 @@ class LexerTests
 		assert(token.token_type == EOF_TOKEN)
 		assert(token.source.equals(""))
 		
+		// should continue to yield EOF
+		token = lexer.next_token()
+		assert(token.token_type == EOF_TOKEN)
+		assert(token.source.equals(""))
+		
 		// whitespace
 		lexer = new Lexer(" 		  		 	 	 	 	 	 ")
 		token = lexer.next_token()

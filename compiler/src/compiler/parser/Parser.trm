@@ -35,7 +35,7 @@ class Parser
 			@println("	{to_string(meta_result.success)}")
 			
 			if (meta_result.success) {
-				@println("	{meta_result.data.function_name.to_string()}")
+				@println("	{meta_result.data.name.to_string()}")
 			}
 		}
 		

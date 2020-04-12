@@ -8,8 +8,83 @@ use compiler.lexer
  */
 ParseFunctionMetaResult parse_function_meta(ContractLexer lexer)
 {
-	ParseFunctionMetaResult result = new ParseFunctionMetaResult()
-	return result
+	// use positional_token to scan back in time at any point
+	Token positional_token = lexer_next_significant(lexer)
+	
+	if (positional_token.is_eof()) {
+		return new ParseFunctionMetaResult()
+	}
+	
+	lexer.scan_to(positional_token)
+	ParseFunctionMetaResult result = parse_function_meta_with_type(lexer)
+	
+	if (result.success) {
+		return result
+	}
+	
+	lexer.scan_to(positional_token)
+	result = parse_function_meta_without_type(lexer)
+	
+	if (result.success) {
+		return result
+	}
+	
+	lexer.scan_to(positional_token)
+	ParseFunctionMetaResult failed = new ParseFunctionMetaResult()
+	return failed
+}
+
+ParseFunctionMetaResult parse_function_meta_with_type(ContractLexer lexer)
+{
+	ParseFunctionMetaResult failed = new ParseFunctionMetaResult()
+	
+	ParseTypeResult type = parse_type(lexer)
+	Token name = lexer_next_significant(lexer)
+	ParseGenericsResult generics = parse_generics(lexer)
+	Token open_parenthesis = lexer_next_significant(lexer)
+	
+	if (open_parenthesis.is_eof()) {
+		return failed
+	}
+	
+	if (!open_parenthesis.is_special("(")) {
+		return failed
+	}
+	
+	if (!generics.success) {
+		return failed
+	}
+	
+	if (!type.success) {
+		return failed
+	}
+	
+	FunctionMeta data = new FunctionMeta(type.data, name, generics.generics, open_parenthesis)
+	return new ParseFunctionMetaResult(data)
+}
+
+ParseFunctionMetaResult parse_function_meta_without_type(ContractLexer lexer)
+{
+	ParseFunctionMetaResult failed = new ParseFunctionMetaResult()
+	
+	Token name = lexer_next_significant(lexer)
+	ParseGenericsResult generics = parse_generics(lexer)
+	Token open_parenthesis = lexer_next_significant(lexer)
+	
+	if (open_parenthesis.is_eof()) {
+		return failed
+	}
+	
+	if (!open_parenthesis.is_special("(")) {
+		return failed
+	}
+	
+	if (!generics.success) {
+		return failed
+	}
+	
+	FunctionMeta data = new FunctionMeta(name, generics.generics, open_parenthesis)
+	return new ParseFunctionMetaResult(data)
 }
 
 class ParseFunctionMetaResult
@@ -32,8 +107,23 @@ class ParseFunctionMetaResult
 class FunctionMeta
 {
 	bool has_type
-	ParseTypeResult function_type
-	Token function_name
-	ParseGenericsResult function_generics
+	ParsedType type
+	Token name
+	LinkedParsedTypeList generics
 	Token open_parenthesis
+	
+	ctor(ParsedType param_type, Token param_name, LinkedParsedTypeList param_generics, Token param_open_parenthesis) {
+		has_type = true
+		type = param_type
+		name = param_name
+		generics = param_generics
+		open_parenthesis = param_open_parenthesis
+	}
+	
+	ctor(Token param_name, LinkedParsedTypeList param_generics, Token param_open_parenthesis) {
+		has_type = false
+		name = param_name
+		generics = param_generics
+		open_parenthesis = param_open_parenthesis
+	}
 }

@@ -43,6 +43,14 @@ class LinkedParsedTypeNode
 		previous = node
 	}
 	
+	bool has_another_generic() {
+		if (has_next) {
+			return next.has_next
+		}
+		
+		return false
+	}
+	
 	ctor() {
 		has_previous = false
 		has_next = false

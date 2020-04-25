@@ -1,0 +1,54 @@
+use std
+use compiler
+use compiler.lexer
+
+/**
+ * This will parse exactly one parameter of a method, and start on the next parameter.
+ */
+ParseParameterMetaResult parse_parameter_meta(ContractLexer lexer)
+{
+	ParseTypeResult parameter_type = parse_type(lexer)
+	
+	if (!parameter_type.success) {
+		@println("failed parsing parameter_type")
+		return new ParseParameterMetaResult()
+	}
+	
+	Token name = lexer_next_significant(lexer)
+	
+	if (!name.is_identifier()) {
+		@println("failed parsing identyifier")
+		return new ParseParameterMetaResult()
+	}
+	
+	Token end = lexer_next_significant(lexer)
+	
+	if (@operator_and(@operator_not(end.is_special(",")), @operator_not(end.is_special(")")))) {
+		return new ParseParameterMetaResult()
+	}
+	
+	return new ParseParameterMetaResult(parameter_type.data, name, end)
+}
+
+class ParseParameterMetaResult
+{
+	bool success
+	ParsedType type
+	Token name
+	
+	Token end
+	bool should_be_more
+
+	ctor(ParsedType param_type, Token param_name, Token param_end) {
+		success = true
+		type = param_type
+		name = param_name
+		end = param_end
+		should_be_more = end.is_special(",")
+	}
+	
+	ctor() {
+		success = false
+		should_be_more = false
+	}
+}

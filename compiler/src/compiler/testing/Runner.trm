@@ -27,6 +27,8 @@ the project is still in its infancy.
 	runner.run(new ParseGenericsTests())
 	runner.run(new ParseFunctionMetaTests())
 	runner.run(new ParseParameterMetaTests())
+	runner.run(new ParseStatementTests())
+	runner.run(new ParseExpressionTests())
 	
 	@println("== TESTS == {to_string(runner._passed)} passed, {to_string(runner._failed)} failed")
 	@println(runner._log_pass)

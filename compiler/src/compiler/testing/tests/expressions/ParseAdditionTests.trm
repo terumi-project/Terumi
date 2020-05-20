@@ -18,7 +18,7 @@ class ParseAdditionTests
 		runner = test_runner
 		
 		begin("fails on ''")
-		ParseAdditionResult result = parse_addition(new Lexer(""))
+		ParseExpressionResult result = parse_addition(new Lexer(""))
 		assert(result.success == false)
 		
 		begin("fails on '1'")
@@ -35,7 +35,7 @@ class ParseAdditionTests
 		assert(result.expression.equals(
 			addition(
 				numerical(1),
-				numerical(1),
+				numerical(1)
 			)
 		))
 		
@@ -45,7 +45,7 @@ class ParseAdditionTests
 		assert(result.expression.equals(
 			addition(
 				numerical(749182),
-				numerical(6789152),
+				numerical(6789152)
 			)
 		))
 		
@@ -55,7 +55,7 @@ class ParseAdditionTests
 		assert(result.expression.equals(
 			addition(
 				numerical(1),
-				negate(numerical(1)),
+				negate(numerical(1))
 			)
 		))
 		
@@ -65,7 +65,7 @@ class ParseAdditionTests
 		assert(result.expression.equals(
 			addition(
 				negate(numerical(1)),
-				numerical(1),
+				numerical(1)
 			)
 		))
 		
@@ -77,7 +77,7 @@ class ParseAdditionTests
 				numerical(1),
 				parenthetical(
 					numerical(1)
-				),
+				)
 			)
 		))
 		
@@ -89,15 +89,15 @@ class ParseAdditionTests
 				parenthetical(
 					addition(
 						numerical(1),
-						numerical(1),
+						numerical(1)
 					)
 				),
 				parenthetical(
 					addition(
 						numerical(1),
-						numerical(1),
+						numerical(1)
 					)
-				),
+				)
 			)
 		))
 	}

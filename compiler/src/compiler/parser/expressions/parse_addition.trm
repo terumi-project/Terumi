@@ -2,41 +2,27 @@ use std
 use compiler
 use compiler.lexer
 use compiler.parser
+use compiler.parser.expressions
 
-ParseAdditionResult parse_addition(ContractLexer lexer)
+ParseExpressionResult parse_addition(ContractLexer lexer)
 {
 	Token left = lexer_next_significant(lexer)
 	
 	if (!left.is_number()) {
-		return new ParseAdditionResult()
+		return new ParseExpressionResult()
 	}
 	
 	Token plus = lexer_next_significant(lexer)
 	
 	if (!plus.is_special("+")) {
-		return new ParseAdditionResult()
+		return new ParseExpressionResult()
 	}
 	
 	Token right = lexer_next_significant(lexer)
 	
 	if (!right.is_number()) {
-		return new ParseAdditionResult()
+		return new ParseExpressionResult()
 	}
 	
-	return new ParseAdditionResult(addition(numerical(left), numerical(right)))
-}
-
-class ParseAdditionResult
-{
-	bool success
-	Expression expression
-
-	ctor() {
-		success = false
-	}
-	
-	ctor(Expression param_expression) {
-		success = true
-		expression = param_expression
-	}
+	return new ParseExpressionResult(addition(numerical(left.source), numerical(right.source)))
 }

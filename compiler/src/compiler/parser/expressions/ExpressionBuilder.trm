@@ -97,4 +97,6 @@ Expression numerical(Text numerical_text) return new Expression(numerical_text, 
 Expression addition(Expression left, Expression right) return new Expression(left, right)
 Expression parenthetical(Expression expression) return new Expression(expression, 1)
 
-Expression negate(Expression expression) return new Expression(expression, 2)
+Expression negate(Expression expression) {
+	return new Expression(expression, 2)
+}

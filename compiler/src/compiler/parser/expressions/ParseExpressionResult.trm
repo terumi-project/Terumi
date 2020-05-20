@@ -1,0 +1,19 @@
+use compiler.parser.expressions
+
+class ParseExpressionResult
+{
+	bool success
+	Expression expression
+
+	ctor() {
+		success = false
+		
+		// debug hacky workaround to prevent fields from giving exceptions
+		expression = parenthetical(parenthetical(parenthetical(parenthetical(numerical(1)))))
+	}
+	
+	ctor(Expression param_expression) {
+		success = true
+		expression = param_expression
+	}
+}

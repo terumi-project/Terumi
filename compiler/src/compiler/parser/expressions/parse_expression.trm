@@ -7,5 +7,5 @@ use compiler.lexer
  */
 ParseExpressionResult parse_expression(ContractLexer lexer)
 {
-	return new ParseExpressionResult()
+	return parse_expression_next(lexer)
 }

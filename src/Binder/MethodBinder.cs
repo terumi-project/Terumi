@@ -109,6 +109,7 @@ namespace Terumi.Binder
 
 		private List<Statement> Handle(Scope scope, Parser.CodeBody body)
 		{
+			Log.Debug("Handling method '" + _method.Name + "' at " + _file.FilePath);
 			var binder = new CodeBodyBinder(this, scope);
 			return binder.Handle(body);
 		}

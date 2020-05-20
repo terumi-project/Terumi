@@ -21,19 +21,41 @@ class ParseAdditionTests
 		ParseExpressionResult result = parse_addition(new Lexer(""))
 		assert(result.success == false)
 		
-		begin("fails on '1'")
-		result = parse_addition(new Lexer("1"))
-		assert(result.success == false)
-		
-		begin("fails on '1 + a'")
+		begin("passes on '1 + a'")
 		result = parse_addition(new Lexer("1 + a"))
-		assert(result.success == false)
+		assert(result.success == true)
+		assert(result.expression.equals(
+			addition(
+				numerical(1),
+				identifier("a")
+			)
+		))
+		
+		begin("passes on '1 - a'")
+		result = parse_addition(new Lexer("1 - a"))
+		assert(result.success == true)
+		assert(result.expression.equals(
+			subtraction(
+				numerical(1),
+				identifier("a")
+			)
+		))
 		
 		begin("passes on '1 + 1'")
 		result = parse_addition(new Lexer("1 + 1"))
 		assert(result.success == true)
 		assert(result.expression.equals(
 			addition(
+				numerical(1),
+				numerical(1)
+			)
+		))
+		
+		begin("passes on '1 - 1'")
+		result = parse_addition(new Lexer("1 - 1"))
+		assert(result.success == true)
+		assert(result.expression.equals(
+			subtraction(
 				numerical(1),
 				numerical(1)
 			)
@@ -98,6 +120,37 @@ class ParseAdditionTests
 						numerical(1)
 					)
 				)
+			)
+		))
+		
+		begin("passes on '1 + 1 + 1'")
+		result = parse_addition(new Lexer("1 + 1 + 1"))
+		assert(result.success == true)
+		assert(result.expression.equals(
+			addition(
+				addition(
+					numerical(1),
+					numerical(1)
+				),
+				numerical(1)
+			)
+		))
+		
+		begin("passes on '1 + (1 + 1) - 5'")
+		result = parse_addition(new Lexer("1 + (1 + 1) - 5"))
+		assert(result.success == true)
+		assert(result.expression.equals(
+			subtraction(
+				addition(
+					numerical(1),
+					parenthetical(
+						addition(
+							numerical(1),
+							numerical(1)
+						)
+					)
+				),
+				numerical(5)
 			)
 		))
 	}

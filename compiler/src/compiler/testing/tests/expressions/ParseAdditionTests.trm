@@ -1,0 +1,60 @@
+use compiler.testing
+use compiler.lexer
+use compiler.parser.expressions
+
+class ParseAdditionTests
+{
+	string test_group
+	ContractTestHelper runner
+
+	ctor() {
+		test_group = "parse_addition"
+	}
+	
+	begin(string name) runner.begin(name)
+	assert(bool condition) runner.assert(condition)
+	
+	test(ContractTestHelper test_runner) {
+		runner = test_runner
+		
+		begin("fails on ''")
+		ParseAdditionResult result = parse_addition(new Lexer(""))
+		assert(result.success == false)
+		
+		begin("fails on '1'")
+		result = parse_addition(new Lexer("1"))
+		assert(result.success == false)
+		
+		begin("fails on '1 + a'")
+		result = parse_addition(new Lexer("1 + a"))
+		assert(result.success == false)
+		
+		begin("passes on '1 + 1'")
+		result = parse_addition(new Lexer("1 + 1"))
+		assert(result.success == true)
+		
+		begin("passes on '1 + 1'")
+		result = parse_addition(new Lexer("1 + 1"))
+		assert(result.success == true)
+		
+		begin("passes on '749182 + 6789152'")
+		result = parse_addition(new Lexer("749182 + 6789152"))
+		assert(result.success == true)
+		
+		begin("passes on '1 + -1'")
+		result = parse_addition(new Lexer("1 + -1"))
+		assert(result.success == true)
+		
+		begin("passes on '-1 + 1'")
+		result = parse_addition(new Lexer("-1 + 1"))
+		assert(result.success == true)
+		
+		begin("passes on '1 + (1)'")
+		result = parse_addition(new Lexer("(1 + 1) + (1 + 1)"))
+		assert(result.success == true)
+		
+		begin("passes on '(1 + 1) + (1 + 1)'")
+		result = parse_addition(new Lexer("(1 + 1) + (1 + 1)"))
+		assert(result.success == true)
+	}
+}

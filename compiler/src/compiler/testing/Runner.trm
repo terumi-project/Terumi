@@ -1,6 +1,7 @@
 use std
 use terumi
 use compiler.testing.tests
+use compiler.testing.tests.expressions
 
 run_tests()
 {
@@ -29,6 +30,7 @@ the project is still in its infancy.
 	runner.run(new ParseParameterMetaTests())
 	runner.run(new ParseStatementTests())
 	runner.run(new ParseExpressionTests())
+	runner.run(new ParseAdditionTests())
 	
 	@println("== TESTS == {to_string(runner._passed)} passed, {to_string(runner._failed)} failed")
 	@println(runner._log_pass)

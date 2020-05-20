@@ -1,0 +1,44 @@
+use std
+use compiler
+use compiler.lexer
+use compiler.parser
+
+ParseAdditionResult parse_addition(ContractLexer lexer)
+{
+	Token left = lexer_next_significant(lexer)
+	
+	if (!left.is_number()) {
+		return new ParseAdditionResult()
+	}
+	
+	Token plus = lexer_next_significant(lexer)
+	
+	if (!plus.is_special("+")) {
+		return new ParseAdditionResult()
+	}
+	
+	Token right = lexer_next_significant(lexer)
+	
+	if (!right.is_number()) {
+		return new ParseAdditionResult()
+	}
+	
+	return new ParseAdditionResult(left, right)
+}
+
+class ParseAdditionResult
+{
+	bool success
+	Token left
+	Token right
+
+	ctor() {
+		success = false
+	}
+	
+	ctor(Token param_left, Token param_right) {
+		success = true
+		left = param_left
+		right = param_right
+	}
+}

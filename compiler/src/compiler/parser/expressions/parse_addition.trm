@@ -23,22 +23,20 @@ ParseAdditionResult parse_addition(ContractLexer lexer)
 		return new ParseAdditionResult()
 	}
 	
-	return new ParseAdditionResult(left, right)
+	return new ParseAdditionResult(addition(numerical(left), numerical(right)))
 }
 
 class ParseAdditionResult
 {
 	bool success
-	Token left
-	Token right
+	Expression expression
 
 	ctor() {
 		success = false
 	}
 	
-	ctor(Token param_left, Token param_right) {
+	ctor(Expression param_expression) {
 		success = true
-		left = param_left
-		right = param_right
+		expression = param_expression
 	}
 }

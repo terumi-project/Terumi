@@ -1,6 +1,7 @@
 use compiler.testing
 use compiler.lexer
 use compiler.parser
+use compiler.parser.expressions
 
 class ParseExpressionTests
 {
@@ -18,7 +19,7 @@ class ParseExpressionTests
 		runner = test_runner
 		
 		begin("fails on ''")
-		ParseStatementResult result = parse_expression(new Lexer(""))
+		ParseExpressionResult result = parse_expression(new Lexer(""))
 		assert(result.success == false)
 		
 		begin("fails on invalid expression \{")
@@ -28,22 +29,37 @@ class ParseExpressionTests
 		begin("passes on identifier")
 		result = parse_expression(new Lexer("identifier"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			identifier("identifier")
+		))
 		
 		begin("passes on true")
 		result = parse_expression(new Lexer("true"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			identifier("true")
+		))
 		
 		begin("passes on false")
 		result = parse_expression(new Lexer("false"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			identifier("false")
+		))
 		
 		begin("passes on whole number")
 		result = parse_expression(new Lexer("123"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			numerical(123)
+		))
 		
 		begin("passes on negative whole number")
 		result = parse_expression(new Lexer("-123"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			negate(numerical(123))
+		))
 		
 		begin("passes on decimal")
 		result = parse_expression(new Lexer("123.456"))
@@ -84,10 +100,22 @@ class ParseExpressionTests
 		begin("passes on addition")
 		result = parse_expression(new Lexer("1 + 2"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			addition(
+				numerical(1),
+				numerical(2)
+			)
+		))
 		
 		begin("passes on subtraction")
 		result = parse_expression(new Lexer("1 - 2"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			subtraction(
+				numerical(1),
+				numerical(2)
+			)
+		))
 		
 		begin("passes on multiplication")
 		result = parse_expression(new Lexer("1 * 2"))
@@ -116,6 +144,9 @@ class ParseExpressionTests
 		begin("parses not !")
 		result = parse_expression(new Lexer("!true"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			negate(identifier("true"))
+		))
 		
 		begin("parses and &&")
 		result = parse_expression(new Lexer("&&"))
@@ -132,10 +163,16 @@ class ParseExpressionTests
 		begin("parses parenthetical expression 1")
 		result = parse_expression(new Lexer("(1)"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			parenthetical(numerical(1))
+		))
 		
 		begin("parses parenthetical expression true")
 		result = parse_expression(new Lexer("(true)"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			parenthetical(identifier("true"))
+		))
 		
 		begin("parses parenthetical expression before non parenthetical expressions")
 		result = parse_expression(new Lexer("true && (false == true) || (!false == (!true && false))"))

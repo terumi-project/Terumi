@@ -1,5 +1,6 @@
 use compiler
 use std
+use compiler.parser.expressions
 
 class LexerPosition
 {
@@ -113,24 +114,29 @@ class Lexer
 				}
 				
 				if (temp.take(1).equals("\{")) {
-					// TODO: parse out an expression
-					do {
-						offset = offset + 1
-						
-						if (current.skip(offset).length == 0) {
-							// hit EOF too soon
-							// pretend it's a string i guess?
-							Text string_data = current.take(offset)
-							_next_token = offset
-							return new_string_token(string_data)
-						}
-					} while (!current.skip(offset).take(1).equals("\}"))
+					// consume {
+					offset = offset + 1
+					temp = current.skip(offset)
+					
+					Lexer target = new Lexer(current.skip(offset).to_string())
+					ParseExpressionResult expression_result = parse_expression(target)
+					
+					if (!expression_result.success) {
+						// we couldn't parse the string...?
+						@panic("Couldn't parse string with inner expression.")
+					}
+					
+					// we parsed the expression, update the offset
+					offset = offset + target._next_token
 					
 					// consume string end curly brace
+					// TODO: may need to consume whitespace before curly brace
 					offset = offset + 1
+					
+					temp = current.skip(offset)
 				}
 				
-				// TODO: length checks (considering above ^)
+				// TODO: length checks for taking data (considering above ^)
 				
 				if (temp.take(1).equals(get_backslash())) {
 					// no continue statement

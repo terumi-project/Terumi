@@ -22,6 +22,7 @@ class Expression
 	 * IdentifierExpression: the identifier
 	 * NumberExpression: the number
 	 * ParentheticalExpression: the left (
+	 * StringExpression: the string
 	 */
 	Text text_one
 	
@@ -60,6 +61,12 @@ class Expression
 			// numerical: 4
 			expression_type = 4
 		}
+	}
+	
+	ctor(Text text, number circumstance) {
+		// string: 7
+		expression_type = 7
+		text_one = text
 	}
 	
 	ctor(Expression left, Expression right, number circumstance) {
@@ -121,7 +128,7 @@ class Expression
 			return false
 		}
 
-		if (@operator_or(expression_type == 1, expression_type == 4)) {
+		if (@operator_or(@operator_or(expression_type == 1, expression_type == 4), expression_type == 7)) {
 			// we want to compare the *value* of the text, not necessarily just
 			// the position of the text
 			
@@ -161,6 +168,9 @@ class Expression
 		else if (expression_type == 6) {
 			return "subtraction ({expression_one.to_string()}) ({expression_two.to_string()})"
 		}
+		else if (expression_type == 7) {
+			return "string '{text_one.to_string()}'"
+		}
 		
 		@panic("string Expression.to_string(): impossible path taken")
 	}
@@ -173,6 +183,10 @@ Expression identifier(Text identifier) return new Expression(identifier, false)
 Expression numerical(Token token) return numerical(token.source)
 Expression numerical(number value) return numerical(new Text("{to_string(value)}"))
 Expression numerical(Text numerical_text) return new Expression(numerical_text, true)
+
+Expression string(Token token) return string(token.source)
+Expression string(string string) return string(new Text(string))
+Expression string(Text text) return new Expression(text, 1)
 
 Expression addition(Expression left, Expression right) return new Expression(left, right, 0)
 Expression subtraction(Expression left, Expression right) return new Expression(left, right, 1)

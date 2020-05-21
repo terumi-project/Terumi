@@ -17,6 +17,10 @@ ParseExpressionResult parse_value(ContractLexer lexer)
 	if (token.is_identifier()) {
 		return new ParseExpressionResult(identifier(token.source))
 	}
+	
+	if (token.is_string()) {
+		return new ParseExpressionResult(string(token.source))
+	}
 
 	lexer.load(position)
 	return parse_value_next(lexer)

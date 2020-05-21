@@ -152,7 +152,7 @@ class LexerTests
 		
 		// a string is an expression, should be handled (with inner strings too)
 		// TODO: make test pass in far future
-		lexer = new Lexer("{get_quotation_mark()}some \{{get_quotation_mark()}inner string{get_quotation_mark()}\} text{get_quotation_mark()}")
+		lexer = new Lexer("{get_quotation_mark()}some \{{get_quotation_mark()}inner \{{get_quotation_mark()}inner string{get_quotation_mark()}\} string{get_quotation_mark()}\} text{get_quotation_mark()}")
 		token = lexer.next_token()
 		assert(token.token_type == STRING_TOKEN)
 		assert(token.source.equals("{get_quotation_mark()}some \{{get_quotation_mark()}inner \{{get_quotation_mark()}inner string{get_quotation_mark()}\} string{get_quotation_mark()}\} text{get_quotation_mark()}"))

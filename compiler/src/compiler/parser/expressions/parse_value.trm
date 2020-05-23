@@ -14,12 +14,12 @@ ParseExpressionResult parse_value(ContractLexer lexer)
 		return new ParseExpressionResult(numerical(token.source))
 	}
 	
-	if (token.is_identifier()) {
-		return new ParseExpressionResult(identifier(token.source))
-	}
-	
 	if (token.is_string()) {
 		return new ParseExpressionResult(string(token.source))
+	}
+	
+	if (token.is_identifier()) {
+		return new ParseExpressionResult(identifier(token.source))
 	}
 
 	lexer.load(position)

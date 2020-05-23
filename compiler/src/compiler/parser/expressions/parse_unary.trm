@@ -21,6 +21,17 @@ ParseExpressionResult parse_unary(ContractLexer lexer)
 		return new ParseExpressionResult(negate(expression_result.expression))
 	}
 	
+	if (next.is_special("!")) {
+		ParseExpressionResult expression_result = parse_unary_next(lexer)
+		
+		if (!expression_result.success) {
+			lexer.load(position)
+			return parse_unary_next(lexer)
+		}
+		
+		return new ParseExpressionResult(not(expression_result.expression))
+	}
+	
 	lexer.load(position)
 	return parse_unary_next(lexer)
 }

@@ -1,0 +1,46 @@
+class String
+{
+	string _raw_string
+	number length
+
+	// TODO: use 'set' language feature
+	ctor(string raw_string) {
+		_raw_string = raw_string
+
+		length = @string_length(_raw_string)
+	}
+	
+	String skip(number chars) return substring(chars, length - chars)
+	String take(number chars) return substring(0, chars)
+	String take_end(number chars) return substring(length - chars, chars)
+	
+	String substring(number index, number count) return new String(@string_substring(_raw_string, index, count))
+	
+	String concat(string other) return new String(_raw_string + other)
+	String concat(String other) return concat(other._raw_string)
+	
+	String clone() return new String(_raw_string)
+
+	bool equals(string other) return _raw_string == other
+	bool equals(String other) return equals(other._raw_string)
+	string to_string() return _raw_string
+	
+	String skip_whitespace() return skip(new DelegateStringSkipWhitespace())
+	String skip(DelegateStringSkip delegate) {
+		String result = clone()
+		
+		if (result.length == 0) {
+			return result
+		}
+		
+		while (delegate.is_skippable(result.take(1))) {
+			result = result.skip(1)
+			
+			if (result.length == 0) {
+				return result
+			}
+		}
+		
+		return result
+	}
+}

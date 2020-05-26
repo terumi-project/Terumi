@@ -1,0 +1,5 @@
+# ignore build artifacts
+bin/
+
+# ignore cached pulled dependencies
+.libs/

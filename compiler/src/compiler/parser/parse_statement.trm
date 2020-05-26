@@ -1,0 +1,20 @@
+use std
+use compiler
+use compiler.lexer
+
+/**
+ * This will parse exactly one statement of a method. A body of statements counts as a statement.
+ */
+ParseStatementResult parse_statement(ContractLexer lexer)
+{
+	return new ParseStatementResult()
+}
+
+class ParseStatementResult
+{
+	bool success
+
+	ctor() {
+		success = false
+	}
+}

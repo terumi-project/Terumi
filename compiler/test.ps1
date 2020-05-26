@@ -1,0 +1,1 @@
+terumi compile -t c && gcc .\bin\out.c -o .\bin\compiler.exe && .\bin\compiler.exe

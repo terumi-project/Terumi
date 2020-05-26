@@ -1,0 +1,44 @@
+use std
+
+class DelegateStringSkipString
+{
+	bool _entered_string
+	bool _got_backslash
+	bool _got_end_of_string
+
+	ctor() {
+		_entered_string = false
+		_got_backslash = false
+		_got_end_of_string = false
+	}
+
+	bool is_skippable(String char) {
+		// we did precisely enough to consume end of string and that's it
+		if (_got_end_of_string) {
+			return false
+		}
+	
+		if (!_entered_string) {
+			_entered_string = true
+			return char.equals(get_quotation_mark())
+		}
+		
+		if (_got_backslash) {
+			_got_backslash = false
+			return true
+		}
+		
+		if (char.equals(get_backslash())) {
+			_got_backslash = true
+			return true
+		}
+		
+		if (char.equals(get_quotation_mark())) {
+			// we need to consume the last "
+			_got_end_of_string = true
+			return true
+		}
+		
+		return true
+	}
+}

@@ -1,0 +1,52 @@
+use compiler.testing
+use compiler.lexer
+use compiler.parser
+
+class ParseParameterMetaTests
+{
+	string test_group
+	ContractTestHelper runner
+
+	ctor() {
+		test_group = "parse_parameter_meta"
+	}
+	
+	begin(string name) runner.begin(name)
+	assert(bool condition) runner.assert(condition)
+	
+	test(ContractTestHelper test_runner) {
+		runner = test_runner
+		
+		begin("fails on ''")
+		ParseParameterMetaResult result = parse_parameter_meta(new Lexer(""))
+		assert(result.success == false)
+		
+		begin("fails on 'ValidType valid_name\{'")
+		result = parse_parameter_meta(new Lexer("ValidType valid_name\{"))
+		assert(result.success == false)
+		
+		begin("fails on '123'")
+		result = parse_parameter_meta(new Lexer("123"))
+		assert(result.success == false)
+		
+		begin("parses 'ParameterType parameter_name,'")
+		result = parse_parameter_meta(new Lexer("ParameterType parameter_name,"))
+		assert(result.success == true)
+		assert(result.should_be_more == true)
+		assert(result.type.is_array == false)
+		assert(result.type.is_generic == false)
+		assert(result.type.name.equals("ParameterType"))
+		assert(result.name.source.equals("parameter_name"))
+		assert(result.end.source.equals(","))
+		
+		begin("parses 'ParameterType parameter_name)'")
+		result = parse_parameter_meta(new Lexer("ParameterType parameter_name)"))
+		assert(result.success == true)
+		assert(result.should_be_more == false)
+		assert(result.type.is_array == false)
+		assert(result.type.is_generic == false)
+		assert(result.type.name.equals("ParameterType"))
+		assert(result.name.source.equals("parameter_name"))
+		assert(result.end.source.equals(")"))
+	}
+}

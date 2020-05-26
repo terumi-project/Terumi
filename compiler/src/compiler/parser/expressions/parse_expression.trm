@@ -1,0 +1,11 @@
+use std
+use compiler
+use compiler.lexer
+
+/**
+ * This will parse exactly one expression.
+ */
+ParseExpressionResult parse_expression(ContractLexer lexer)
+{
+	return parse_expression_next(lexer)
+}

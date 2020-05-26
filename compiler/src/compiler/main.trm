@@ -1,0 +1,30 @@
+use terumi
+use std
+use compiler.tests
+use compiler
+use compiler.lexer
+use compiler.parser
+
+main()
+{
+	bool should_run_tests = true
+	
+	if (should_run_tests) {
+		run_tests()
+	}
+
+	Lexer lexer = new Lexer(new Text("
+use terumi
+use std
+use compiler.tests
+use compiler
+
+main()
+\{
+	// run unit tests (lol)
+	run_tests()
+\}
+	"))
+	
+	Parser parser = new Parser(lexer)
+}

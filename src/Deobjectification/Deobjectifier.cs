@@ -68,6 +68,7 @@ namespace Terumi.Deobjectification
 
 			foreach (var method in _flattened.Methods)
 			{
+				Log.Debug("Deobjectifying " + method.Name + ", @" + (method.Owner?.Name ?? "??"));
 				var returnType = BuiltinType.ToObjectType(method.BoundMethod.ReturnType);
 				var parameters = method.Parameters.Select(x => x.Type);
 

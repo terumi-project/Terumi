@@ -1,0 +1,26 @@
+use std
+use compiler
+use compiler.lexer
+use compiler.parser
+use compiler.parser.expressions
+
+ParseExpressionResult parse_unary(ContractLexer lexer)
+{
+	LexerPosition position = lexer.save()
+	
+	Token next = lexer_next_significant(lexer)
+	
+	if (next.is_special("-")) {
+		ParseExpressionResult expression_result = parse_unary_next(lexer)
+		
+		if (!expression_result.success) {
+			lexer.load(position)
+			return parse_unary_next(lexer)
+		}
+		
+		return new ParseExpressionResult(negate(expression_result.expression))
+	}
+	
+	lexer.load(position)
+	return parse_unary_next(lexer)
+}

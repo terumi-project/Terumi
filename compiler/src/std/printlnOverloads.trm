@@ -1,0 +1,27 @@
+use terumi
+use compiler
+
+// print naything that has a to_string() method
+println(ContractToString value) {
+	@println(value.to_string())
+}
+
+println(string value) {
+	@println(value)
+}
+
+println(number value) {
+	println(to_string(value))
+}
+
+println(bool value) {
+	println(to_string(value))
+}
+
+class ContractToString
+{
+	string to_string()
+	{
+		@panic("Contract 'ContractToString' may not be used.")
+	}
+}

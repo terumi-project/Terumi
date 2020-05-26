@@ -1,0 +1,19 @@
+class DelegateStringSkipWhitespace
+{
+	ctor() {
+	}
+
+	bool is_skippable(String char) {
+		string chr = char.to_string()
+		
+		// TODO: ||
+		// TOOD: \r \n \t
+		if (chr == " ") return true
+		if (chr == "	") return true
+		if (chr == "") return true
+		if (chr == "
+") return true
+		
+		return false
+	}
+}

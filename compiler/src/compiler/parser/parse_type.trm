@@ -1,0 +1,95 @@
+use std
+use compiler
+use compiler.lexer
+
+/**
+ * This will attempt to parse parse what is defined in code as a "Type".
+ * Types look like this:
+ * Name
+ * Name[]
+ * Name<T>
+ * Name<T>[]
+ * Name<T1, T2>
+ * Name<More<Stuff>[], number[]>[]
+ */
+ParseTypeResult parse_type(ContractLexer lexer)
+{
+	Token primary_part = lexer_next_significant(lexer)
+
+	if (!primary_part.is_identifier()) {
+		return new ParseTypeResult(false)
+	}
+	
+	// now, parse generics
+	LinkedParsedTypeList generics = new LinkedParsedTypeList()
+	bool is_generic = false
+	
+	ParseGenericsResult generics_result = parse_generics(lexer)
+	
+	if (!generics_result.success) {
+		return new ParseTypeResult(false)
+	}
+
+	is_generic = generics_result.generics.has_any()
+	
+	if (is_generic) {
+		generics = generics_result.generics
+	}
+
+	bool is_array = false
+	
+	Token next = lexer_next_significant(lexer)
+	
+	if (next.is_special("[")) {
+		is_array = true
+		
+		next = lexer_next_significant(lexer)
+		
+		// we must have a closing ]
+		if (!next.is_special("]")) {
+			// TODO: fail parsing
+			return new ParseTypeResult(false)
+		}
+		
+		next = lexer_next_significant(lexer)
+	}
+	
+	lexer.scan_to(next)
+	return new ParseTypeResult(new ParsedType(is_array, is_generic, generics, primary_part.source))
+}
+
+class ParseTypeResult
+{
+	bool success
+	ParsedType data
+
+	ctor(bool param_success) {
+		success = param_success
+	}
+	
+	ctor(ParsedType param_data) {
+		success = true
+		data = param_data
+	}
+}
+
+class ParsedType
+{
+	bool is_array
+	bool is_generic
+	LinkedParsedTypeList generics
+	Text name
+
+	ctor(bool param_is_array, Text param_name) {
+		is_array = param_is_array
+		is_generic = false
+		name = param_name
+	}
+
+	ctor(bool param_is_array, bool param_is_generic, LinkedParsedTypeList param_generics, Text param_name) {
+		is_array = param_is_array
+		is_generic = param_is_generic
+		generics = param_generics
+		name = param_name
+	}
+}

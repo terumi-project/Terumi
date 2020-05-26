@@ -69,6 +69,7 @@ namespace Terumi.Flattening
 				.Concat(_bindings.DirectDependencies)
 				.Concat(_bindings.IndirectDependencies))
 			{
+				Log.Debug("Flattening file " + file.FilePath);
 				var unique = CalcUnique(file);
 
 				static string CalcUnique(Binder.BoundFile file)

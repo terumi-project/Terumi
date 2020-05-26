@@ -1,0 +1,78 @@
+use std
+
+/**
+ * This class is a leaky abstraction.
+ * It expects the caller to know that this may skip a single character 
+ */
+class DelegateStringSkipComment
+{
+	bool _is_first
+	bool _is_second
+	bool _parse_singleline
+	bool _parse_multiline
+	bool _last_char_was_asterisk
+	bool _last_char_was_forward_slash
+
+	ctor() {
+		_is_first = true
+		_is_second = false
+		_parse_singleline = false
+		_parse_multiline = false
+		_last_char_was_asterisk = false
+		_last_char_was_forward_slash = false
+	}
+
+	bool is_skippable(String char) {
+		if (_is_first) {
+			_is_first = false
+			_is_second = true
+			return char.equals("/")
+		}
+		
+		if (_is_second) {
+			_is_second = false
+			
+			if (char.equals("/")) {
+				_parse_singleline = true
+				return true
+			}
+			
+			if (char.equals("*")) {
+				_parse_multiline = true
+				
+				// we want to support comments that look like /*/
+				_last_char_was_asterisk = true
+				return true
+			}
+			
+			// not a singleline or multiline, don't do it
+			return false
+		}
+		
+		if (_parse_singleline) {
+			// DelegateStringSkipNewline will skip newlines
+			// so if the char is skippable, we want to end the skipping
+			DelegateStringSkipNewline skip_newline = new DelegateStringSkipNewline()
+			bool newline_is_skippable = skip_newline.is_skippable(char)
+			return @operator_not(newline_is_skippable)
+		}
+		
+		if (_parse_multiline) {
+			if (_last_char_was_forward_slash) {
+				// done parsing
+				return false
+			}
+		
+			if (_last_char_was_asterisk) {
+				_last_char_was_forward_slash = char.equals("/")
+				_last_char_was_asterisk = char.equals("*")
+				return true
+			}
+			
+			_last_char_was_asterisk = char.equals("*")
+			return true
+		}
+		
+		@panic("expected to be parsing singleline or multiline")
+	}
+}

@@ -1,0 +1,27 @@
+use std
+use compiler
+use compiler.lexer
+use compiler.parser
+use compiler.parser.expressions
+
+ParseExpressionResult parse_value(ContractLexer lexer)
+{
+	LexerPosition position = lexer.save()
+
+	Token token = lexer_next_significant(lexer)
+	
+	if (token.is_number()) {
+		return new ParseExpressionResult(numerical(token.source))
+	}
+	
+	if (token.is_identifier()) {
+		return new ParseExpressionResult(identifier(token.source))
+	}
+	
+	if (token.is_string()) {
+		return new ParseExpressionResult(string(token.source))
+	}
+
+	lexer.load(position)
+	return parse_value_next(lexer)
+}

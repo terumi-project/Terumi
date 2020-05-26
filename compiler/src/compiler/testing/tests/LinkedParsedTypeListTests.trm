@@ -1,0 +1,62 @@
+use std
+use compiler
+use compiler.parser
+use compiler.testing
+
+class LinkedParsedTypeListTests
+{
+	string test_group
+	ContractTestHelper runner
+
+	ctor() {
+		test_group = "LinkedParsedTypeList"
+	}
+	
+	begin(string name) runner.begin(name)
+	assert(bool condition) runner.assert(condition)
+	
+	test(ContractTestHelper test_runner) {
+		runner = test_runner
+		
+		begin("ctor()")
+		LinkedParsedTypeList list = new LinkedParsedTypeList()
+		
+		// newly created list should have head and tail the same
+		assert(list._tail == list._head)
+		
+		begin("add()")
+		
+		ParsedType element_one = new ParsedType(false, new Text("elem1"))
+		list.add(element_one)
+		
+		assert(list._tail != list._head)
+		assert(list._tail.value == element_one)
+		
+		ParsedType element_two = new ParsedType(false, new Text("elem2"))
+		list.add(element_two)
+		
+		assert(list._head.previous.value == element_two)
+		
+		begin("can enumerate")
+		
+		assert(list._tail.value == element_one)
+		assert(list._tail.has_previous == false)
+		assert(list._tail.has_next == true)
+		
+		assert(list._tail.next.value == element_two)
+		assert(list._tail.next.has_previous == true)
+		assert(list._tail.next.previous == list._tail)
+		assert(list._tail.next.has_next == true)
+		
+		assert(list._tail.next.next == list._head)
+		assert(list._head.has_previous == true)
+		assert(list._head.has_next == false)
+		
+		begin("has_any()")
+		assert(list.has_any() == true)
+		list = new LinkedParsedTypeList()
+		assert(list.has_any() == false)
+		list.add(element_one)
+		assert(list.has_any() == true)
+	}
+}

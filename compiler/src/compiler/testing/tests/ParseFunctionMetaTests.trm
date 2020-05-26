@@ -1,0 +1,156 @@
+use compiler.testing
+use compiler.lexer
+use compiler.parser
+
+class ParseFunctionMetaTests
+{
+	string test_group
+	ContractTestHelper runner
+
+	ctor() {
+		test_group = "parse_function_meta"
+	}
+	
+	begin(string name) runner.begin(name)
+	assert(bool condition) runner.assert(condition)
+	
+	test(ContractTestHelper test_runner) {
+		runner = test_runner
+		
+		begin("fails on ''")
+		ParseFunctionMetaResult result = parse_function_meta(new Lexer(""))
+		assert(result.success == false)
+		
+		begin("fails on 'IncompleteType<T function_name()'")
+		result = parse_function_meta(new Lexer("IncompleteType<T function_name()"))
+		assert(result.success == false)
+		
+		begin("fails on 'incomplete_generics<T()'")
+		result = parse_function_meta(new Lexer("incomplete_generics<T()"))
+		assert(result.success == false)
+		
+		begin("fails on 'IncompleteType<T incomplete_generics<T()'")
+		result = parse_function_meta(new Lexer("IncompleteType<T incomplete_generics<T()"))
+		assert(result.success == false)
+		
+		begin("fails on '1 function_name()'")
+		result = parse_function_meta(new Lexer("1 function_name()"))
+		assert(result.success == false)
+		
+		begin("parses 'my_function()'")
+		result = parse_function_meta(new Lexer("my_function()"))
+		assert(result.success)
+		assert(result.data.has_type == false)
+		
+		begin("parses 'my_function<T>()'")
+		result = parse_function_meta(new Lexer("my_function<T>()"))
+		assert(result.success)
+		assert(result.data.has_type == false)
+		assert(result.data.generics.has_any() == true)
+		assert(result.data.generics._tail.value.is_array == false)
+		assert(result.data.generics._tail.value.is_generic == false)
+		assert(result.data.generics._tail.value.name.equals("T"))
+		assert(result.data.generics._tail.has_another_generic() == false)
+		assert(result.data.open_parenthesis.is_special("("))
+		
+		begin("parses 'number my_function()'")
+		result = parse_function_meta(new Lexer("number my_function()"))
+		assert(result.success)
+		assert(result.data.has_type == true)
+		assert(result.data.type.is_array == false)
+		assert(result.data.type.is_generic == false)
+		assert(result.data.type.name.equals("number"))
+		assert(result.data.name.source.equals("my_function"))
+		assert(result.data.generics.has_any() == false)
+		assert(result.data.open_parenthesis.is_special("("))
+		
+		begin("parses 'number my_function<T>()'")
+		result = parse_function_meta(new Lexer("number my_function<T>()"))
+		assert(result.success)
+		assert(result.data.has_type == true)
+		assert(result.data.type.is_array == false)
+		assert(result.data.type.is_generic == false)
+		assert(result.data.type.name.equals("number"))
+		assert(result.data.name.source.equals("my_function"))
+		assert(result.data.generics.has_any() == true)
+		assert(result.data.generics._tail.value.is_array == false)
+		assert(result.data.generics._tail.value.is_generic == false)
+		assert(result.data.generics._tail.value.name.equals("T"))
+		assert(result.data.generics._tail.has_another_generic() == false)
+		assert(result.data.open_parenthesis.is_special("("))
+		
+		begin("parses 'GenericType<string> my_function()'")
+		result = parse_function_meta(new Lexer("GenericType<string> my_function()"))
+		assert(result.success)
+		assert(result.data.has_type == true)
+		assert(result.data.has_type == true)
+		assert(result.data.type.is_array == false)
+		assert(result.data.type.is_generic == true)
+		assert(result.data.type.name.equals("GenericType"))
+		assert(result.data.type.generics.has_any())
+		assert(result.data.type.generics._tail.value.is_array == false)
+		assert(result.data.type.generics._tail.value.is_generic == false)
+		assert(result.data.type.generics._tail.value.name.equals("string"))
+		assert(result.data.name.source.equals("my_function"))
+		assert(result.data.generics.has_any() == false)
+		assert(result.data.generics._tail.has_another_generic() == false)
+		assert(result.data.open_parenthesis.is_special("("))
+		
+		begin("parses 'GenericType<T> my_function<T>()'")
+		result = parse_function_meta(new Lexer("GenericType<T> my_function<T>()"))
+		assert(result.success)
+		assert(result.data.has_type == true)
+		assert(result.data.has_type == true)
+		assert(result.data.type.is_array == false)
+		assert(result.data.type.is_generic == true)
+		assert(result.data.type.name.equals("GenericType"))
+		assert(result.data.type.generics.has_any())
+		assert(result.data.type.generics._tail.value.is_array == false)
+		assert(result.data.type.generics._tail.value.is_generic == false)
+		assert(result.data.type.generics._tail.value.name.equals("T"))
+		assert(result.data.name.source.equals("my_function"))
+		assert(result.data.generics.has_any() == true)
+		assert(result.data.generics._tail.value.is_array == false)
+		assert(result.data.generics._tail.value.is_generic == false)
+		assert(result.data.generics._tail.value.name.equals("T"))
+		assert(result.data.generics._tail.has_another_generic() == false)
+		assert(result.data.open_parenthesis.is_special("("))
+		
+		begin("handles whitespace")
+		result = parse_function_meta(new Lexer("GenericType        
+		
+			 <
+			 
+	 T       
+	         >
+			                      my_function
+		 <
+		 K
+		 
+		 
+		 ,L
+		 
+		 >
+		      ("))
+		assert(result.success)
+		assert(result.data.has_type == true)
+		assert(result.data.type.is_array == false)
+		assert(result.data.type.is_generic == true)
+		assert(result.data.type.name.equals("GenericType"))
+		assert(result.data.type.generics.has_any())
+		assert(result.data.type.generics._tail.value.is_array == false)
+		assert(result.data.type.generics._tail.value.is_generic == false)
+		assert(result.data.type.generics._tail.value.name.equals("T"))
+		assert(result.data.name.source.equals("my_function"))
+		assert(result.data.generics.has_any() == true)
+		assert(result.data.generics._tail.value.is_array == false)
+		assert(result.data.generics._tail.value.is_generic == false)
+		assert(result.data.generics._tail.value.name.equals("K"))
+		assert(result.data.generics._tail.has_another_generic() == true)
+		assert(result.data.generics._tail.next.value.is_array == false)
+		assert(result.data.generics._tail.next.value.is_generic == false)
+		assert(result.data.generics._tail.next.value.name.equals("L"))
+		assert(result.data.generics._tail.next.has_another_generic() == false)
+		assert(result.data.open_parenthesis.is_special("("))
+	}
+}

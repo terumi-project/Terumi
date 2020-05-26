@@ -1,0 +1,72 @@
+use compiler
+use std
+
+// because Terumi does not have any polymorphism, we must
+// hack our way around it.
+
+// because of the lack of polymorphism, i am NOT going to include comments or whitespace
+// as tokens. :)
+class Token
+{
+	number token_type
+	Text source
+	
+	ctor(number param_token_type, Text param_source) {
+		token_type = param_token_type
+		source = param_source
+	}
+	
+	bool equals(Token other) {
+		if (token_type != other.token_type) return false
+		return source.equals_text(other.source)
+	}
+	
+	string to_string() return "{_token_type_to_string(token_type)}: '{source.to_string()}'"
+	
+	bool is_identifier() return token_type == 1
+	bool is_special() return token_type == 2
+	bool is_number() return token_type == 3
+	bool is_eof() return token_type == 4
+	bool is_newline() return token_type == 5
+	bool is_string() return token_type == 6
+	
+	bool is_special(string character) {
+		if (is_special()) {
+			return source.equals(character)
+		}
+		
+		return false
+	}
+}
+
+Token new_identifier_token(Text text) 
+	return new Token(1, text)
+
+Token new_special_token(Text text)
+	return new Token(2, text)
+
+Token new_number_token(Text text)
+	return new Token(3, text)
+
+// TODO: for some reason this one has to be surrounded in curly braces
+Token new_eof_token(Text text) {
+	return new Token(4, text)
+}
+
+Token new_newline_token(Text text) {
+	return new Token(5, text)
+}
+
+Token new_string_token(Text text) {
+	return new Token(6, text)
+}
+
+string _token_type_to_string(number type) {
+	if (type == 1) return "Identifier"
+	if (type == 2) return "Special"
+	if (type == 3) return "Number"
+	if (type == 4) return "EOF"
+	if (type == 5) return "Newline"
+	if (type == 6) return "String"
+	@panic("unexpected token type '{to_string(type)}'")
+}

@@ -1,0 +1,202 @@
+// This file is dedicated towards a simple to use pattern taht results in easy
+// to construct expression trees.
+
+use compiler
+use compiler.lexer
+
+/**
+ * Currently, a giant hack of a class that gets around the fact that
+ * polymorphism doesn't exist.
+ */
+class Expression
+{
+	/**
+	 * Internal number to determine the type of an expression. Used as a
+	 * workaround for not having polymorphism.
+	 */
+	number expression_type
+	
+	/**
+	 * Used for storing data, serves various purposes.
+	 * When this Expression is a | This Stores
+	 * IdentifierExpression: the identifier
+	 * NumberExpression: the number
+	 * ParentheticalExpression: the left (
+	 * StringExpression: the string
+	 */
+	Text text_one
+	
+	/**
+	 * Used for storing data, serves various purposes.
+	 * When this Expression is a | This Stores
+	 * IdentifierExpression: the identifier
+	 * NumberExpression: the number
+	 * ParentheticalExpression: the right )
+	 */
+	Text text_two
+	
+	/**
+	 * Used for storing data, serves various purposes.
+	 * When this Expression is a | This Stores
+	 * ParentheticalExpression: the inner expression
+	 * AdditionExpression: the left hand side
+	 * SubtractionExpression: the left hand side
+	 */
+	Expression expression_one
+	
+	/**
+	 * Used for storing data, serves various purposes.
+	 * When this Expression is a | This Stores
+	 * AdditionExpression: the right hand side
+	 * SubtractionExpression: the right hand side
+	 */
+	Expression expression_two
+	
+	ctor(Text text, bool is_number) {
+		// identifier: 1
+		expression_type = 1
+		text_one = text
+		
+		if (is_number) {
+			// numerical: 4
+			expression_type = 4
+		}
+	}
+	
+	ctor(Text text, number circumstance) {
+		// string: 7
+		expression_type = 7
+		text_one = text
+	}
+	
+	ctor(Expression left, Expression right, number circumstance) {
+		// addition: 2
+		expression_type = 2
+		expression_one = left
+		expression_two = right
+		
+		if (circumstance == 0) {
+			// addition: 2
+			expression_type = 2
+		}
+		
+		if (circumstance == 1) {
+			// subtraction: 6
+			expression_type = 6
+		}
+	}
+	
+	ctor(Expression left, Expression right, number circumstance, Text middle) {
+		// addition: 2
+		expression_type = 2
+		expression_one = left
+		expression_two = right
+		text_one = middle
+		
+		if (circumstance == 0) {
+			// addition: 2
+			expression_type = 2
+		}
+		
+		if (circumstance == 1) {
+			// subtraction: 6
+			expression_type = 6
+		}
+	}
+	
+	ctor(Expression expression, number circumstance) {
+		// parenthetical: 3
+		expression_type = 3
+		expression_one = expression
+		
+		if (circumstance == 2) {
+			// negate: 5
+			expression_type = 5
+		}
+	}
+	
+	ctor(Text left, Expression expression, Text right) {
+		// parenthetical: 3
+		expression_type = 3
+		text_one = left
+		expression_one = expression
+		text_two = right
+	}
+
+	bool equals(Expression other) {
+		if (other.expression_type != expression_type) {
+			return false
+		}
+
+		if (@operator_or(@operator_or(expression_type == 1, expression_type == 4), expression_type == 7)) {
+			// we want to compare the *value* of the text, not necessarily just
+			// the position of the text
+			
+			return text_one.to_string() == other.text_one.to_string()
+		}
+		
+		if (@operator_or(expression_type == 2, expression_type == 6)) {
+		
+			bool lefts_equal = expression_one.equals(other.expression_one)
+			bool rights_equal = expression_two.equals(other.expression_two)
+			return @operator_and(lefts_equal, rights_equal)
+		}
+		
+		if (@operator_or(expression_type == 3, expression_type == 5)) {
+			return expression_one.equals(other.expression_one)
+		}
+		
+		@panic("bool Expression.equals(Expression): impossible path taken")
+	}
+	
+	string to_string() {
+		if (expression_type == 1) {
+			return "identifier '{text_one.to_string()}'"
+		}
+		else if (expression_type == 2) {
+			return "addition ({expression_one.to_string()}) ({expression_two.to_string()})"
+		}
+		else if (expression_type == 3) {
+			return "parenthetical ({expression_one.to_string()})"
+		}
+		else if (expression_type == 4) {
+			return "numerical {text_one.to_string()}"
+		}
+		else if (expression_type == 5) {
+			return "negate ({expression_one.to_string()})"
+		}
+		else if (expression_type == 6) {
+			return "subtraction ({expression_one.to_string()}) ({expression_two.to_string()})"
+		}
+		else if (expression_type == 7) {
+			return "string '{text_one.to_string()}'"
+		}
+		
+		@panic("string Expression.to_string(): impossible path taken")
+	}
+}
+
+Expression identifier(Token token) return identifier(token.source)
+Expression identifier(string identifier) return identifier(new Text(identifier))
+Expression identifier(Text identifier) return new Expression(identifier, false)
+
+Expression numerical(Token token) return numerical(token.source)
+Expression numerical(number value) return numerical(new Text("{to_string(value)}"))
+Expression numerical(Text numerical_text) return new Expression(numerical_text, true)
+
+Expression string(Token token) return string(token.source)
+Expression string(string string) return string(new Text(string))
+Expression string(Text text) return new Expression(text, 1)
+
+Expression addition(Expression left, Expression right) return new Expression(left, right, 0)
+Expression subtraction(Expression left, Expression right) return new Expression(left, right, 1)
+
+Expression addition(Expression left, Text middle, Expression right) return new Expression(left, right, 0, middle)
+Expression subtraction(Expression left, Text middle, Expression right) return new Expression(left, right, 1, middle)
+
+Expression parenthetical(Expression expression) return new Expression(expression, 1)
+Expression parenthetical(Token left, Expression expression, Token right) return new Expression(left.source, expression, right.source)
+
+Expression negate(Expression expression) {
+	return new Expression(expression, 2)
+}

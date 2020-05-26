@@ -1,0 +1,209 @@
+use compiler
+use std
+use compiler.parser.expressions
+
+class LexerPosition
+{
+	number _next_token
+
+	ctor(number next_token) {
+		_next_token = next_token
+	}
+}
+
+class ContractLexer
+{
+	Token next_token() @panic("Contract 'ContractLexer' may not be used.")
+
+	scan_to(Token token) @panic("Contract 'ContractLexer' may not be used.")
+	scan_after(Token token) @panic("Contract 'ContractLexer' may not be used.")
+
+	LexerPosition save() @panic("Contract 'ContractLexer' may not be used.")
+	load(LexerPosition position) @panic("Contract 'ContractLexer' may not be used.")
+}
+
+class Lexer
+{
+	Text text
+	number _next_token
+	
+	ctor(string input) {
+		ctor(new Text(input))
+	}
+
+	ctor(Text param_text) {
+		text = param_text
+		_next_token = 0
+	}
+	
+	Token next_token() {
+		Text current = text.skip(_next_token)
+		
+		// whitespace and comments are irrelevant
+		bool do_again = false
+		
+		do {
+			current = current.skip(new DelegateStringSkipWhitespaceNotNewline())
+		
+			if (current.length == 0) {
+				return new_eof_token(current)
+			}
+			
+			Text comment_skip = current.skip(new DelegateStringSkipComment())
+			
+			// DelegateStringSkipComment will skip at least 1 char to check if it's a comment
+			// if 1 char has been skipped, we can assume it failed
+			if (current.length - comment_skip.length <= 1) {
+				do_again = false
+			} else {
+				// otherwise, we did consume acomment
+				do_again = true
+				current = comment_skip
+			}
+		} while (do_again)
+		
+		if (current.length == 0) {
+			return new_eof_token(current)
+		}
+		
+		// next, we'll use the "skip" feature to try skip characters. if we're successful,
+		// we can calssify all the characters we skipped as whatever
+		
+		DelegateStringSkipNewline newline_skip = new DelegateStringSkipNewline()
+		Text skip_newline = current.skip(newline_skip)
+		
+		if (skip_newline.offset != current.offset) {
+			current = text.substring(current.offset, skip_newline.offset - current.offset)
+			_next_token = skip_newline.offset
+			return new_newline_token(current)
+		}
+		
+		DelegateStringSkipDigit digit_skip = new DelegateStringSkipDigit()
+		Text skip_digit = current.skip(digit_skip)
+		
+		if (skip_digit.offset != current.offset) {
+			// found digits
+			current = text.substring(current.offset, skip_digit.offset - current.offset)
+			_next_token = skip_digit.offset
+			return new_number_token(current)
+		}
+
+		DelegateStringSkipAscii ascii_skip = new DelegateStringSkipAscii()
+		Text skip_ascii = current.skip(ascii_skip)
+		
+		if (skip_ascii.offset != current.offset) {
+			// found text
+			current = text.substring(current.offset, skip_ascii.offset - current.offset)
+			_next_token = skip_ascii.offset
+			return new_identifier_token(current)
+		}
+		
+		// STRING SKIPPING CODE
+		// TODO: put this into its own class, it's too large
+		if (current.take(1).equals(get_quotation_mark())) {
+			number offset = 1
+			
+			do {
+				Text temp = current.skip(offset)
+				if (temp.length == 0) {
+					// hit EOF too soon
+					// let's just pretend it's all a string i guess
+					Text string_data = current.take(offset)
+					_next_token = offset
+					return new_string_token(string_data)
+				}
+				
+				if (temp.take(1).equals("\{")) {
+					// consume {
+					offset = offset + 1
+					temp = current.skip(offset)
+					
+					Lexer target = new Lexer(current.skip(offset).to_string())
+					ParseExpressionResult expression_result = parse_expression(target)
+					
+					if (!expression_result.success) {
+						// we couldn't parse the string...?
+						@panic("Couldn't parse string with inner expression.")
+					}
+					
+					// we parsed the expression, update the offset
+					offset = offset + target._next_token
+					
+					// consume string end curly brace
+					// TODO: may need to consume whitespace before curly brace
+					offset = offset + 1
+					
+					temp = current.skip(offset)
+				}
+				
+				// TODO: length checks for taking data (considering above ^)
+				
+				if (temp.take(1).equals(get_backslash())) {
+					// no continue statement
+					// so we use else if
+					
+					// ignore the current character and the next one
+					offset = offset + 2
+				} else {
+					if (temp.take(1).equals(get_quotation_mark())) {
+						offset = offset + 1 // consume ending quotation mark
+					
+						Text string_data = current.take(offset)
+						_next_token = offset
+						return new_string_token(string_data)
+					}
+					
+					offset = offset + 1
+				}
+			} while (true)
+			
+		}
+		
+		DelegateStringSkipString string_skip = new DelegateStringSkipString()
+		Text skip_string = current.skip(string_skip)
+		
+		if (skip_string.offset != current.offset) {
+			// found "a string"
+			current = text.substring(current.offset, skip_string.offset - current.offset)
+			_next_token = skip_string.offset
+			return new_string_token(current)
+		}
+		
+		// something special?
+		_next_token = current.offset + 1
+		return new_special_token(current.take(1))
+	}
+	
+	scan_to(Token token) {
+		_next_token = token.source.offset
+	}
+	
+	scan_after(Token token) {
+		_next_token = token.source.offset + token.source.length
+	}
+	
+	LexerPosition save() {
+		return new LexerPosition(_next_token)
+	}
+	
+	load(LexerPosition position) {
+		_next_token = position._next_token
+	}
+}
+
+/**
+ * Yields the next non-newline token.
+ */
+Token lexer_next_significant(ContractLexer lexer) {
+	Token token = lexer.next_token()
+
+	while (token.is_newline()) {
+		if (token.is_eof()) {
+			return token
+		}
+			
+		token = lexer.next_token()
+	}
+	
+	return token
+}

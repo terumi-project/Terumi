@@ -1,0 +1,28 @@
+use std
+use compiler
+use compiler.lexer
+use compiler.parser
+use compiler.parser.expressions
+
+ParseExpressionResult parse_parenthetical(ContractLexer lexer)
+{
+	Token open_paren = lexer_next_significant(lexer)
+	
+	if (!open_paren.is_special("(")) {
+		return new ParseExpressionResult()
+	}
+	
+	ParseExpressionResult expression = parse_expression(lexer)
+	
+	if (!expression.success) {
+		return new ParseExpressionResult()
+	}
+	
+	Token close_paren = lexer_next_significant(lexer)
+	
+	if (!close_paren.is_special(")")) {
+		return new ParseExpressionResult()
+	}
+	
+	return new ParseExpressionResult(parenthetical(open_paren, expression.expression, close_paren))
+}

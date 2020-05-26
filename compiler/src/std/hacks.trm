@@ -1,0 +1,18 @@
+string get_quotation_mark()
+{
+	// how it works:
+	// the terumi compiler has a bug where it won't correctly format the strings.
+	// `\"` will translate to `"`, and `\\\\` will translate to a single `\` (on the C target)
+	// either way, this sequence of characters yields \"
+	string backslash_quote = "\\\\\""
+	
+	// to get only the quote, we substring it one after
+	return @string_substring(backslash_quote, 1, 1)
+}
+
+string get_backslash()
+{
+	// how it works:
+	// `\\\\` translates to a single `\` for some reason. (on the C target)
+	return "\\\\"
+}

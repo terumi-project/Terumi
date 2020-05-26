@@ -1,0 +1,53 @@
+use std
+use compiler
+use compiler.lexer
+
+class Parser
+{
+	ContractLexer _lexer
+
+	ctor(ContractLexer lexer) {
+		_lexer = lexer
+	}
+	
+	ParseResult next_element() {
+
+		// first: grab a non whitespace token
+		Token token = lexer_next_significant(_lexer)
+		
+		if (token.is_eof()) {
+			return new ParseResult()
+		}
+		
+		// now we can scan the lexer back to the token if parsing an entry failed
+		
+		_lexer.scan_to(token)
+		ParseFunctionMetaResult meta_result = parse_function_meta(_lexer)
+		
+		if (meta_result.success == true) {
+		}
+		
+		return new ParseResult(1, token)
+	}
+}
+
+class ParseResult
+{
+	number state
+	number error
+	Token error_token
+	
+	ctor() {
+		state = 3
+	}
+	
+	ctor(number param_error, Token param_error_token) {
+		state = 2
+		error = param_error
+		error_token = param_error_token
+	}
+	
+	bool is_success() return state == 1
+	bool is_error() return state == 2
+	bool is_eof() return state == 3
+}

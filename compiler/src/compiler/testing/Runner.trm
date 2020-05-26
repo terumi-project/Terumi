@@ -1,0 +1,241 @@
+use std
+use terumi
+use compiler.testing.tests
+use compiler.testing.tests.expressions
+
+run_tests()
+{
+	println("
+[Terumi Compiler Tests]
+
+The Terumi Compiler tests as much of its code as it can, at runtime, when you
+run it. The reason tests are ran not at compile time, is because there is no
+infrastructure setup.
+
+If you're seeing this message, chances are, you explicitly enabled testing - or
+the project is still in its infancy.
+")
+
+	TestRunner runner = new TestRunner(false)
+	
+	runner.run(new MetaTests())
+	runner.run(new StringTests())
+	runner.run(new TextTests())
+	runner.run(new LexerTests())
+	runner.run(new TokenTests())
+	runner.run(new LinkedParsedTypeListTests())
+	runner.run(new ParseTypeTests())
+	runner.run(new ParseGenericsTests())
+	runner.run(new ParseFunctionMetaTests())
+	runner.run(new ParseParameterMetaTests())
+	runner.run(new ParseStatementTests())
+	runner.run(new ParseExpressionTests())
+	runner.run(new ParseAdditionTests())
+	
+	@println("== TESTS == {to_string(runner._passed)} passed, {to_string(runner._failed)} failed")
+	@println(runner._log_pass)
+	@println(runner._log_failed)
+}
+
+/**
+ * Class used for running tests. Allows for minimal configuration.
+ */
+class TestRunner
+{
+	bool _show_success
+	string _log_pass
+	string _log_failed
+	number _passed
+	number _failed
+
+	ctor(bool show_success) {
+		_show_success = show_success
+		_log_pass = ""
+		_log_failed = ""
+		_passed = 0
+		_failed = 0
+	}
+	
+	run(ContractTestable suite) {
+		string all = "[{suite.test_group}] - " // include stats about run
+		
+		RunnerImpl impl = new RunnerImpl(_show_success)
+		suite.test(new RunnerWrapper(impl))
+		impl.done()
+		
+		_passed = _passed + impl.passed_assertions
+		_failed = _failed + impl.failed_assertions
+		
+		all = "{all}{to_string(impl.passed_assertions)} passed, {to_string(impl.failed_assertions)} failed"
+		
+		string print_log = all
+		
+		if (@string_length(impl.log) > 0) {
+			print_log = "{print_log}
+{@string_substring(impl.log, 1, @string_length(impl.log) - 1))}"
+		}
+		
+		if (impl.failed_assertions > 0) {
+			_log_failed = "{_log_failed}
+{print_log}"
+		} else {
+			_log_pass = "{_log_pass}
+{print_log}"
+		}
+	}
+}
+
+// TODO: rename to ContractRunner or something
+class Runner
+{
+	begin(string section_name) @panic("Contract 'ContractRunner' may not be used.")
+	assert(bool condition) @panic("Contract 'ContractRunner' may not be used.")
+	done() @panic("Contract 'ContractRunner' may not be used.")
+}
+
+/**
+ * Wraps over any 'Runner' to provide ease of use to the caller.
+ * It does this by:
+ * - calling 'begin' will automatically call done
+ * - repeat calls to 'done' won't be registered
+ */
+class RunnerWrapper
+{
+	Runner _runner
+	bool _has_begun
+
+	ctor(Runner runner) {
+		_runner = runner
+		_has_begun = false
+	}
+	
+	begin(string section_name) {
+		if (_has_begun) {
+			done()
+		}
+		
+		if (!_has_begun) {
+			_has_begun = true
+			_runner.begin(section_name)
+		}
+	}
+	
+	assert(bool condition) {
+		if (!_has_begun) {
+			@panic("Cannot call 'assert' outside of a 'begin'")
+		}
+		
+		_runner.assert(condition)
+	}
+	
+	done() {
+		if (_has_begun) {
+			_has_begun = false
+			_runner.done()
+		}
+	}
+}
+
+/**
+ * Implements 'Runner' to the spec with logs and all.
+ */
+class RunnerImpl
+{
+	string _log_header
+	string _log_body
+	bool _has_been_failure
+	bool _show_success
+	number _assertions
+	
+	number passed_assertions
+	number failed_assertions
+	string log
+	
+	number segment_passed_assertions
+	number segment_failed_assertions
+	
+	ctor(bool show_success) {
+		_show_success = show_success
+		passed_assertions = 0
+		failed_assertions = 0
+		log = ""
+	}
+	
+	begin(string section_name) {
+		_log_header = "	{section_name}:"
+		_log_body = ""
+		_assertions = 0
+		_has_been_failure = false
+		segment_passed_assertions = 0
+		segment_failed_assertions = 0
+	}
+	
+	assert(bool condition) {
+		_assertions = _assertions + 1
+		
+		if (condition) {
+			passed_assertions = passed_assertions + 1
+			segment_passed_assertions = segment_passed_assertions + 1
+		}
+		
+		if (!condition) {
+			failed_assertions = failed_assertions + 1
+			segment_failed_assertions = segment_failed_assertions + 1
+		}
+		
+		if (!condition) {
+			_has_been_failure = true
+			_log_body = "{_log_body}, {to_string(_assertions)}"
+		}
+	}
+	
+	done() {
+		// in this specific circumstance we will not need to show any 
+		if (!_show_success) {
+			if (!_has_been_failure) {
+				// log = ""
+				return
+			}
+		}
+	
+		// time to format the log
+		if (_has_been_failure) {
+			// prepend an 'X' to show failure
+			_log_header = "X{_log_header}"
+			
+			// if there has been a failure, _log_body will start with a comma
+			// remove the comma and space now
+			_log_body = @string_substring(_log_body, 2, @string_length(_log_body) - 2)
+			_log_body = "FAILED on assertion {_log_body}"
+		} else {
+			_log_body = "passed"
+		}
+		
+		_log_header = "{_log_header} "
+		
+		// we want to show how many assertions failed if at least one failed,
+		// or how many passed if all passed
+		if (_has_been_failure) {
+			_log_header = "{_log_header}{to_string(segment_failed_assertions)} "
+		} else {
+			_log_header = "{_log_header}{to_string(segment_passed_assertions)} "
+		}
+		
+		log = "{log}
+{_log_header}{_log_body}"
+	}
+}
+
+class ContractTestHelper
+{
+	begin(string name) @panic("Contract 'ContractTestHelper' may not be used.")
+	assert(bool condition) @panic("Contract 'ContractTestHelper' may not be used.")
+	done() @panic("Contract 'ContractTestHelper' may not be used.")
+}
+
+class ContractTestable
+{
+	string test_group
+
+	test(ContractTestHelper test_runner) @panic("Contract 'ContractTestable' may not be used.")
+}

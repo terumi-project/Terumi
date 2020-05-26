@@ -294,6 +294,7 @@ namespace Terumi.Lexer
 				if (peek == '*' && _source.Peek(length + 1) == '/')
 				{
 					length++;
+					length++;
 					break;
 				}
 

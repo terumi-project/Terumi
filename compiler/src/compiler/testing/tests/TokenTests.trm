@@ -1,0 +1,88 @@
+use std
+use compiler
+use compiler.lexer
+use compiler.testing
+
+class TokenTests
+{
+	string test_group
+	ContractTestHelper runner
+
+	ctor() {
+		test_group = "Token"
+	}
+	
+	begin(string name) runner.begin(name)
+	assert(bool condition) runner.assert(condition)
+	
+	test(ContractTestHelper test_runner) {
+		number IDENTIFIER_TOKEN = 1
+		number SPECIAL_TOKEN = 2
+		number NUMBER_TOKEN = 3
+		number EOF_TOKEN = 4
+		number NEWLINE_TOKEN = 5
+		number STRING_TOKEN = 6
+		
+		runner = test_runner
+		begin("ctor(number, Text)")
+		Token token = new Token(IDENTIFIER_TOKEN, new Text("test"))
+		assert(token.token_type == IDENTIFIER_TOKEN)
+		assert(token.source.equals_text(new Text("test")))
+		
+		begin("to_string()")
+		token = new Token(IDENTIFIER_TOKEN, new Text("one"))
+		assert(token.to_string() == "Identifier: 'one'")
+		
+		token = new Token(SPECIAL_TOKEN, new Text("two"))
+		assert(token.to_string() == "Special: 'two'")
+		
+		token = new Token(NUMBER_TOKEN, new Text("3"))
+		assert(token.to_string() == "Number: '3'")
+		
+		token = new Token(EOF_TOKEN, new Text("four"))
+		assert(token.to_string() == "EOF: 'four'")
+		
+		token = new Token(NEWLINE_TOKEN, new Text("
+
+"))
+		assert(token.to_string() == "Newline: '
+'")
+
+		token = new Token(STRING_TOKEN, new Text("six"))
+		assert(token.to_string() == "String: 'six'")
+		
+		begin("is_identifier()")
+		assert(new Token(IDENTIFIER_TOKEN, new Text("")).is_identifier() == true)
+		assert(new Token(EOF_TOKEN, new Text("")).is_identifier() == false)
+		
+		begin("is_special()")
+		assert(new Token(SPECIAL_TOKEN, new Text("")).is_special() == true)
+		assert(new Token(EOF_TOKEN, new Text("")).is_special() == false)
+		
+		begin("is_special(string)")
+		assert(new Token(SPECIAL_TOKEN, new Text(".")).is_special(".") == true)
+		assert(new Token(SPECIAL_TOKEN, new Text(";")).is_special(".") == false)
+		assert(new Token(EOF_TOKEN, new Text("")).is_special(".") == false)
+		
+		begin("is_number()")
+		assert(new Token(NUMBER_TOKEN, new Text("")).is_number() == true)
+		assert(new Token(EOF_TOKEN, new Text("")).is_number() == false)
+		
+		begin("is_eof()")
+		assert(new Token(EOF_TOKEN, new Text("")).is_eof() == true)
+		assert(new Token(IDENTIFIER_TOKEN, new Text("")).is_eof() == false)
+		
+		begin("is_newline()")
+		assert(new Token(NEWLINE_TOKEN, new Text("")).is_newline() == true)
+		assert(new Token(EOF_TOKEN, new Text("")).is_newline() == false)
+		
+		begin("is_string()")
+		assert(new Token(STRING_TOKEN, new Text("")).is_string() == true)
+		assert(new Token(EOF_TOKEN, new Text("")).is_string() == false)
+		
+		begin("equals()")
+		assert(new Token(IDENTIFIER_TOKEN, new Text("asdfg")).equals(new Token(IDENTIFIER_TOKEN, new Text("asdfg"))))
+		assert(new Token(NUMBER_TOKEN, new Text("asdfg")).equals(new Token(NUMBER_TOKEN, new Text("asdfg"))))
+		assert(!(new Token(IDENTIFIER_TOKEN, new Text("asdfg")).equals(new Token(IDENTIFIER_TOKEN, new Text("gfdsa")))))
+	}
+}

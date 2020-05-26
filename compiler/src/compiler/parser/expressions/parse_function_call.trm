@@ -1,0 +1,67 @@
+use std
+use compiler
+use compiler.lexer
+use compiler.parser
+use compiler.parser.expressions
+
+ParseExpressionResult parse_function_call(ContractLexer lexer)
+{
+	Token function_name = lexer_next_significant(lexer)
+	
+	if (!function_name.is_identifier()) {
+		return new ParseExpressionResult()
+	}
+	
+	ParseGenericsResult generics_result = parse_generics(lexer)
+	
+	if (!generics_result.success) {
+		return new ParseExpressionResult()
+	}
+	
+	Token open_paren = lexer_next_significant(lexer)
+	
+	if (!open_paren.is_special("(")) {
+		return new ParseExpressionResult()
+	}
+	
+	LinkedExpressionList params = new LinkedExpressionList()
+	
+	ParseExpressionResult expression_result = parse_expression(lexer)
+	
+	if (!expression_result.success) {
+		// we expect a ) if there was no expression
+		lexer.scan_past(open_paren)
+		
+		if (!lexer_next_significant(lexer).is_special(")")) {
+			return new ParseExpressionResult()
+		}
+	}
+	else {
+		params.add(expression_result.expression)
+	
+		LexerPosition current = lexer.save()
+		while (lexer_next_significant(lexer).is_special(",")) {
+		
+			expression_result = parse_expression(lexer)
+		
+			if (!expression_result.success) {
+				return new ParseExpressionResult()
+			}
+		
+			params.add(expression_result.expression)
+			
+			current = lexer.save()
+		}
+		
+		// the token was not a ',', go back to it
+		lexer.load(current)
+		
+		// we expect a ) if there was no expression
+		if (!lexer_next_significant(lexer).is_special(")")) {
+			return new ParseExpressionResult()
+		}
+	}
+	
+	// by this point, we definitely have a function call fully
+	return new ParseExpressionResult(function_call(function_name, generics_result.generics, params))
+}

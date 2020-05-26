@@ -7,7 +7,6 @@ use compiler.parser.expressions
 ParseExpressionResult parse_value(ContractLexer lexer)
 {
 	LexerPosition position = lexer.save()
-
 	Token token = lexer_next_significant(lexer)
 	
 	if (token.is_number()) {
@@ -19,6 +18,17 @@ ParseExpressionResult parse_value(ContractLexer lexer)
 	}
 	
 	if (token.is_identifier()) {
+		LexerPosition parsed_token = lexer.save()
+		
+		lexer.load(position)
+		ParseExpressionResult function_call_result = parse_function_call(lexer)
+		
+		if (function_call_result.success) {
+			return new ParseExpressionResult(function_call_result.expression)
+		}
+		
+		lexer.load(parsed_token)
+		
 		return new ParseExpressionResult(identifier(token.source))
 	}
 

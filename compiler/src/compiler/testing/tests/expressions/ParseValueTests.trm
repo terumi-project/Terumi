@@ -1,6 +1,7 @@
 use std
 use compiler.testing
 use compiler.lexer
+use compiler.parser
 use compiler.parser.expressions
 
 class ParseValueTests
@@ -25,6 +26,7 @@ class ParseValueTests
 		passes("asdf", identifier("asdf"))
 		passes("1234", numerical(1234))
 		passes("{quot()}string{quot()}", string("{quot()}string{quot()}"))
+		passes("function()", function_call("function", new LinkedParsedTypeList(), new LinkedExpressionList()))
 	}
 	
 	passes(string input, Expression tree) {

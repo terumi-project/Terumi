@@ -1,17 +1,17 @@
-class LinkedParsedTypeList
+class LinkedExpressionList
 {
-	LinkedParsedTypeNode _tail
-	LinkedParsedTypeNode _head
+	LinkedExpressionNode _tail
+	LinkedExpressionNode _head
 
 	ctor() {
-		_tail = new LinkedParsedTypeNode()
+		_tail = new LinkedExpressionNode()
 		_head = _tail
 	}
 	
-	add(ParsedType element) {
+	add(Expression element) {
 		_head.value = element
 		
-		LinkedParsedTypeNode new_head = new LinkedParsedTypeNode()
+		LinkedExpressionNode new_head = new LinkedExpressionNode()
 		new_head.set_previous(_head)
 		_head.set_next(new_head)
 		
@@ -20,27 +20,27 @@ class LinkedParsedTypeList
 	
 	bool has_any() return _tail.has_next
 	
-	string to_string() return "string LinkedParsedTypeList.to_string(): not implemented"
+	string to_string() return "string LinkedExpressionList.to_string(): not implemented"
 }
 
-class LinkedParsedTypeNode
+class LinkedExpressionNode
 {
-	ParsedType value
+	Expression value
 	
 	bool has_previous
-	LinkedParsedTypeNode previous
+	LinkedExpressionNode previous
 	
 	bool has_next
-	LinkedParsedTypeNode next
+	LinkedExpressionNode next
 	
 	set_next() has_next = false
-	set_next(LinkedParsedTypeNode node) {
+	set_next(LinkedExpressionNode node) {
 		has_next = true
 		next = node
 	}
 	
 	set_previous() has_previous = false
-	set_previous(LinkedParsedTypeNode node) {
+	set_previous(LinkedExpressionNode node) {
 		has_previous = true
 		previous = node
 	}

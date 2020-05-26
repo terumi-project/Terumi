@@ -3,6 +3,8 @@
 
 use compiler
 use compiler.lexer
+use compiler.parser
+use compiler.parser.expressions
 
 /**
  * Currently, a giant hack of a class that gets around the fact that
@@ -23,6 +25,7 @@ class Expression
 	 * NumberExpression: the number
 	 * ParentheticalExpression: the left (
 	 * StringExpression: the string
+	 * FunctionCall: the function name
 	 */
 	Text text_one
 	
@@ -51,6 +54,10 @@ class Expression
 	 * SubtractionExpression: the right hand side
 	 */
 	Expression expression_two
+	
+	// Both are used for function calls
+	LinkedParsedTypeList generics
+	LinkedExpressionList expressions
 	
 	ctor(Text text, bool is_number) {
 		// identifier: 1
@@ -127,6 +134,14 @@ class Expression
 		expression_one = expression
 		text_two = right
 	}
+	
+	ctor(Text function_name, LinkedParsedTypeList param_generics, LinkedExpressionList param_expressions) {
+		// function call: 9
+		expression_type = 9
+		text_one = function_name,
+		generics = param_generics
+		expressions = param_expressions
+	}
 
 	bool equals(Expression other) {
 		if (other.expression_type != expression_type) {
@@ -140,15 +155,21 @@ class Expression
 			return text_one.to_string() == other.text_one.to_string()
 		}
 		
-		if (@operator_or(expression_type == 2, expression_type == 6)) {
+		if (@operator_or(@operator_or(expression_type == 2, expression_type == 6), false)) {
 		
 			bool lefts_equal = expression_one.equals(other.expression_one)
 			bool rights_equal = expression_two.equals(other.expression_two)
 			return @operator_and(lefts_equal, rights_equal)
 		}
 		
-		if (@operator_or(@operator_or(expression_type == 3, expression_type == 5), expression_type == 8)) {
+		if (@operator_or(@operator_or(expression_type == 3, expression_type == 5), @operator_or(expression_type == 8, false))) {
 			return expression_one.equals(other.expression_one)
+		}
+		
+		if (expression_type == 9) {
+			bool names_equal = text_one.to_string() == other.text_one.to_string()
+			// TODO: ensure more stuff is equal for function call
+			return names_equal
 		}
 		
 		@panic("bool Expression.equals(Expression): impossible path taken")
@@ -179,6 +200,9 @@ class Expression
 		else if (expression_type == 8) {
 			return "not ({expression_one.to_string()})"
 		}
+		else if (expression_type == 9) {
+			return "function_call ({text_one.to_string()}) ({generics.to_string()}) ({expressions.to_string()})"
+		}
 		
 		@panic("string Expression.to_string(): impossible path taken")
 	}
@@ -204,6 +228,10 @@ Expression subtraction(Expression left, Text middle, Expression right) return ne
 
 Expression parenthetical(Expression expression) return new Expression(expression, 1)
 Expression parenthetical(Token left, Expression expression, Token right) return new Expression(left.source, expression, right.source)
+
+Expression function_call(string name, LinkedParsedTypeList generics, LinkedExpressionList expressions) return function_call(new Text(name), generics, expressions)
+Expression function_call(Token name, LinkedParsedTypeList generics, LinkedExpressionList expressions) return function_call(name.source, generics, expressions)
+Expression function_call(Text name, LinkedParsedTypeList generics, LinkedExpressionList expressions) return new Expression(name, generics, expressions)
 
 Expression not(Expression expression) {
 	return new Expression(expression, 3)

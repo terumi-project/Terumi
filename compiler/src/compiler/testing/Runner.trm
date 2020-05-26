@@ -31,8 +31,11 @@ the project is still in its infancy.
 	runner.run(new ParseStatementTests())
 	runner.run(new ParseExpressionTests())
 	runner.run(new ParseAdditionTests())
+	runner.run(new ParseValueTests())
+	runner.run(new ParseUnaryTests())
+	runner.run(new ParseParentheticalTests())
 	
-	@println("== TESTS == {to_string(runner._passed)} passed, {to_string(runner._failed)} failed")
+	@println("== TESTS == {to_string(runner._passed)} assertions passed, {to_string(runner._failed)} assertions failed")
 	@println(runner._log_pass)
 	@println(runner._log_failed)
 }
@@ -66,7 +69,19 @@ class TestRunner
 		_passed = _passed + impl.passed_assertions
 		_failed = _failed + impl.failed_assertions
 		
-		all = "{all}{to_string(impl.passed_assertions)} passed, {to_string(impl.failed_assertions)} failed"
+		string passed_assertions_s = ""
+		
+		if (impl.passed_assertions != 1) {
+			passed_assertions_s = "s"
+		}
+		
+		string failed_assertions_s = ""
+		
+		if (impl.failed_assertions != 1) {
+			failed_assertions_s = "s"
+		}
+		
+		all = "{all}{to_string(impl.passed_assertions)} assertion{passed_assertions_s} passed, {to_string(impl.failed_assertions)} assertion{failed_assertions_s} failed"
 		
 		string print_log = all
 		

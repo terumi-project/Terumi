@@ -1,0 +1,36 @@
+use std
+use compiler.testing
+use compiler.lexer
+use compiler.parser.expressions
+
+class ParseValueTests
+{
+	string test_group
+	ContractTestHelper runner
+
+	ctor() {
+		test_group = "parse_value"
+	}
+	
+	begin(string name) runner.begin(name)
+	assert(bool condition) runner.assert(condition)
+	
+	test(ContractTestHelper test_runner) {
+		runner = test_runner
+		
+		begin("fails on ''")
+		ParseExpressionResult result = parse_value(new Lexer(""))
+		assert(result.success == false)
+		
+		passes("asdf", identifier("asdf"))
+		passes("1234", numerical(1234))
+		passes("{quot()}string{quot()}", string("{quot()}string{quot()}"))
+	}
+	
+	passes(string input, Expression tree) {
+		begin("passes on '{input}'")
+		ParseExpressionResult result = parse_value(new Lexer(input))
+		assert(result.success == true)
+		assert(result.expression.equals(tree))
+	}
+}

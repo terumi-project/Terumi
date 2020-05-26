@@ -1,3 +1,5 @@
+string quot() return get_quotation_mark()
+
 string get_quotation_mark()
 {
 	// how it works:

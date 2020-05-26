@@ -45,6 +45,11 @@ namespace Terumi.Targets
 				case TargetMethodNames.StringSubstring: return C(types[0]);
 				case TargetMethodNames.StringLength: return C(BuiltinType.Number);
 
+				case TargetMethodNames.FilesystemCurrentPath: return C(BuiltinType.String);
+				case TargetMethodNames.FilesystemVulnerableRead: return C(BuiltinType.String);
+				case TargetMethodNames.FilesystemVulnerableEntryCount: return C(BuiltinType.Number);
+				case TargetMethodNames.FilesystemVulnerableEntryRead: return C(BuiltinType.String);
+
 				default: return null;
 			}
 

@@ -9,7 +9,11 @@
 #include <string.h> // for 'strcmp', 'strlen', etc.
 #include <stdbool.h> // OBJ_BOOLEANs
 #include <errno.h> // strtol
-#include <limits.h> // INT_MAX
+#include <limits.h> // INT_MAX, PATH_MAX
+#include <dirent.h> // opendir() and friends
+
+// we don't include windows.h up here because otherwise it collides with some
+// of our function names.
 
 // compatibility on linux
 #define errno_t int32_t
@@ -85,6 +89,9 @@ enum ExitCode {
 	// Used when a given operation was attempted that ends up being impossible.
 	// An example would be attempting to make a value copy with an UNKNOWN type.
 	IMPOSSIBLE = 3,
+
+	// Used when a given operation fails to do something.
+	FAILURE = 4,
 };
 
 // directly related to exit codes, prints additional information.
@@ -1212,6 +1219,10 @@ struct Value* cc_operator_divide(struct Value* left, struct Value* right);
 struct Value* cc_operator_exponent(struct Value* left, struct Value* right);
 struct Value* cc_string_substring(struct Value* str, struct Value* index, struct Value* length);
 struct Value* cc_string_length(struct Value* str);
+struct Value* cc_filesystem_current_path();
+struct Value* cc_filesystem_vulnerable_read(struct Value* path);
+struct Value* cc_filesystem_entry_count(struct Value* path);
+struct Value* cc_filesystem_vulnerable_entry_read(struct Value* path, struct Value* entry_index);
 
 struct Value* cc_target_name() {
 	return value_from_string(string_copy("c"));
@@ -1373,6 +1384,165 @@ struct Value* cc_string_length(struct Value* str) {
 	return value_from_number(number_from_int(strlen(value_unpack_string(str))));
 }
 
+#ifdef _WIN32
+#include <Windows.h>
+#include <strsafe.h>
+#endif
+
+struct Value* cc_filesystem_current_path() {
+	// allocate enough memory to store the current path into a buffer
+	void* path_allocation = terumi_alloc(PATH_MAX);
+	char* current_working_directory = getcwd(path_allocation, PATH_MAX);
+
+	// if it's null, we failed
+	if (current_working_directory == NULL) {
+		printf("[ERR] getcwd returned NULL");
+		print_err();
+		exit(FAILURE);
+	}
+
+	// instead of storing PATH_MAX bytes on the heap, we'll store exactly what is necessary
+	// so copy what getcwd returned (getcwd will put a '\0' at the end of it) and then free
+	// the buffer
+	char* filesystem_current_path = string_copy(current_working_directory);
+	terumi_free(path_allocation);
+
+	return value_from_string(filesystem_current_path);
+}
+
+// https://stackoverflow.com/a/2029227/3780113
+struct Value* cc_filesystem_vulnerable_read(struct Value* path) {
+	char* file_name = value_unpack_string(path);
+
+	FILE* file = fopen(file_name, "r");
+
+	if (file == NULL) {
+		return instruction_load_string("");
+	}
+
+	// get length of file
+	if (fseek(file, 0L, SEEK_END) == 0) { // success
+		// successfully went to the end
+		long file_size = ftell(file);
+
+		// go back to beginning to read
+		fseek(file, 0L, SEEK_SET);
+
+		// TODO: this could cause some big problems for big files... oh well!
+		void* file_buffer = terumi_alloc(file_size + 1 /* NUL terminator */);
+
+		fread(file_buffer, sizeof(char), file_size, file);
+
+		if (ferror(file) != 0) {
+			printf("[ERR] ferror returned non 0");
+			print_err();
+			exit(FAILURE);
+		}
+
+		fclose(file);
+
+		return value_from_string(file_buffer);
+	}
+	else {
+		fclose(file);
+		return instruction_load_string("");
+	}
+}
+
+struct Value* cc_filesystem_vulnerable_entry_count(struct Value* path) {
+	char* directory_name = value_unpack_string(path);
+
+#ifndef _WIN32
+	// open a directory POSIX way
+	DIR* directory = opendir(directory_name);
+
+	// TODO: implement
+	printf("[ERR] number @filesystem_entry_count(string path) not supported for POSIX yet.");
+	print_err();
+	exit(FAILURE);
+#else
+	int32_t entries = 0;
+
+	// https://stackoverflow.com/questions/2314542/listing-directory-contents-using-c-and-windows
+	// https://www.bfilipek.com/2019/04/dir-iterate.html#on-windows-winapi
+	// https://docs.microsoft.com/en-us/windows/win32/fileio/listing-the-files-in-a-directory
+	TCHAR search_path[MAX_PATH];
+	StringCchCopy(search_path, MAX_PATH, directory_name);
+	StringCchCat(search_path, MAX_PATH, TEXT("\\*"));
+
+	WIN32_FIND_DATA found_file;
+	HANDLE file_handle = FindFirstFile(search_path, &found_file);
+	if (file_handle == INVALID_HANDLE_VALUE) {
+		// directory not found
+		return instruction_load_number(0);
+	}
+
+	do {
+		entries++;
+	} while (FindNextFile(file_handle, &found_file) != 0);
+
+	FindClose(file_handle);
+	return instruction_load_number(entries);
+#endif
+}
+
+struct Value* cc_filesystem_vulnerable_entry_read(struct Value* path, struct Value* entry_index) {
+	char* directory_name = value_unpack_string(path);
+	int32_t entry_index_value = value_unpack_number(entry_index)->data;
+
+#ifndef _WIN32
+	// open a directory POSIX way
+	DIR* directory = opendir(directory_name);
+
+	// TODO: implement
+	printf("[ERR] number @filesystem_entry_count(string path) not supported for POSIX yet.");
+	print_err();
+	exit(FAILURE);
+#else
+	size_t entries = 0;
+
+	// see above function
+	TCHAR search_path[MAX_PATH];
+	StringCchCopy(search_path, MAX_PATH, directory_name);
+	StringCchCat(search_path, MAX_PATH, TEXT("\\*"));
+
+	WIN32_FIND_DATA found_file;
+	HANDLE file_handle = FindFirstFile(search_path, &found_file);
+	if (file_handle == INVALID_HANDLE_VALUE) {
+		printf("[ERR] FindFirstFile failed (%d)", GetLastError());
+		print_err();
+		exit(IMPOSSIBLE);
+	}
+
+	do {
+		if (entry_index_value == entries) {
+			// first one always bound to be ./
+			if (entries == 0) {
+				FindClose(file_handle);
+				return instruction_load_string(".\\");
+			}
+
+			char* name = string_copy(found_file.cFileName);
+
+			if (found_file.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+				char* result = string_concat(name, "\\");
+				terumi_free(name);
+				FindClose(file_handle);
+				return value_from_string(result);
+			}
+
+			FindClose(file_handle);
+			return value_from_string(name);
+		}
+
+		entries++;
+	} while (FindNextFile(file_handle, &found_file) != 0);
+
+	FindClose(file_handle);
+	return instruction_load_string("");
+#endif
+}
+
 #pragma endregion
 
 #pragma region TerumiMethods
@@ -1412,7 +1582,7 @@ int main(int argc, char** argv) {
 }
 
 #ifdef _WIN32
-#include <windows.h> // GetCommandLine
+#include <windows.h> // GetCommandLine and friends
 #endif
 
 char* get_command_line(int argc, char** argv) {

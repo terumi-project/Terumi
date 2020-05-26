@@ -38,6 +38,11 @@ namespace Terumi.Targets
 		public const string StringSubstring = "string_substring";
 		public const string StringLength = "string_length";
 
+		public const string FilesystemCurrentPath = "filesystem_current_path";
+		public const string FilesystemVulnerableRead = "filesystem_vulnerable_read";
+		public const string FilesystemVulnerableEntryCount = "filesystem_vulnerable_entry_count";
+		public const string FilesystemVulnerableEntryRead = "filesystem_vulnerable_entry_read";
+
 		public static string ToMethodName(this BinaryExpression binaryExpression)
 			=> binaryExpression switch
 		{

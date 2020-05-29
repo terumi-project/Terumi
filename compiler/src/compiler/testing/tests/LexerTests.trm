@@ -60,6 +60,12 @@ class LexerTests
 		assert(token.token_type == SPECIAL_TOKEN)
 		assert(token.source.equals(";"))
 		
+		begin("next_token() yields special on double")
+		lexer = new Lexer("++")
+		token = lexer.next_token()
+		assert(token.token_type == SPECIAL_TOKEN)
+		assert(token.source.equals("++"))
+		
 		begin("next_token() yields eof")
 		lexer = new Lexer("")
 		token = lexer.next_token()

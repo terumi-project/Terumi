@@ -171,6 +171,21 @@ class Lexer
 		}
 		
 		// something special?
+		if (current.length >= 2) {
+			
+			string double_specials = current.take(2).to_string()
+			if (@operator_or(@operator_or(@operator_or(
+				double_specials == "||",
+				double_specials == "&&"), @operator_or(
+				double_specials == "++",
+				double_specials == "--")),
+				false)) {
+				
+				_next_token = current.offset + 2
+				return new_special_token(current.take(2))
+			}
+		}
+		
 		_next_token = current.offset + 1
 		return new_special_token(current.take(1))
 	}

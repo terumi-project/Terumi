@@ -1,0 +1,42 @@
+use std
+use compiler
+use compiler.lexer
+use compiler.parser
+use compiler.parser.expressions
+
+ParseExpressionResult parse_and(ContractLexer lexer)
+{
+	ParseExpressionResult left = parse_and_next(lexer)
+	
+	if (!left.success) {
+		return new ParseExpressionResult()
+	}
+	
+	LexerPosition position = lexer.save()
+	return parse_and_right(lexer, position, left.expression)
+}
+
+// recursion is used as hacky workaround given that reassigning variables seems
+// to cause some kind of weird bug
+ParseExpressionResult parse_and_right(ContractLexer lexer, LexerPosition position, Expression left)
+{
+	Token middle = lexer_next_significant(lexer)
+	
+	if (!middle.is_special("&&")) {
+		lexer.load(position)
+		return new ParseExpressionResult(left)
+	}
+	
+	ParseExpressionResult right = parse_and_next(lexer)
+	
+	if (!right.success) {
+		lexer.load(position)
+		return new ParseExpressionResult(left)
+	}
+	
+	if (middle.is_special("&&")) {
+		return parse_and_right(lexer, lexer.save(), and(left, right.expression))
+	}
+	
+	@panic("ParseExpressionResult parse_and_right(ContractLexer, LexerPosition, Expression): impossible path taken")
+}

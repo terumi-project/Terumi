@@ -134,11 +134,11 @@ class ParseExpressionTests
 		assert(result.success == true)
 		
 		begin("parses equal to ==")
-		result = parse_expression(new Lexer("=="))
+		result = parse_expression(new Lexer("true == true"))
 		assert(result.success == true)
 		
 		begin("parses not equal to !=")
-		result = parse_expression(new Lexer("!="))
+		result = parse_expression(new Lexer("true != false"))
 		assert(result.success == true)
 		
 		begin("parses not !")
@@ -149,12 +149,18 @@ class ParseExpressionTests
 		))
 		
 		begin("parses and &&")
-		result = parse_expression(new Lexer("&&"))
+		result = parse_expression(new Lexer("true && true"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			and(identifier("true"), identifier("true"))
+		))
 		
 		begin("parses or ||")
-		result = parse_expression(new Lexer("||"))
+		result = parse_expression(new Lexer("false || true"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			or(identifier("false"), identifier("true"))
+		))
 		
 		begin("parses equality in right precedence order")
 		result = parse_expression(new Lexer("true && false || true == false && true == false || false || true && false == true || false"))

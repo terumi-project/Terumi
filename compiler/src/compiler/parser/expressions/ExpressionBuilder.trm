@@ -233,9 +233,7 @@ Expression function_call(string name, LinkedParsedTypeList generics, LinkedExpre
 Expression function_call(Token name, LinkedParsedTypeList generics, LinkedExpressionList expressions) return function_call(name.source, generics, expressions)
 Expression function_call(Text name, LinkedParsedTypeList generics, LinkedExpressionList expressions) return new Expression(name, generics, expressions)
 
-Expression not(Expression expression) {
-	return new Expression(expression, 3)
-}
+Expression not(Expression expression) return negate(expression)
 
 Expression negate(Expression expression) {
 	return new Expression(expression, 2)

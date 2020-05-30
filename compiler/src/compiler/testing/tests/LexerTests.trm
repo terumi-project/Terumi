@@ -64,7 +64,9 @@ class LexerTests
 		lexer = new Lexer("++")
 		token = lexer.next_token()
 		assert(token.token_type == SPECIAL_TOKEN)
-		assert(token.source.equals("++"))
+		assert(token.is_special("++"))
+		
+		// TODO: test all other specials
 		
 		begin("next_token() yields eof")
 		lexer = new Lexer("")

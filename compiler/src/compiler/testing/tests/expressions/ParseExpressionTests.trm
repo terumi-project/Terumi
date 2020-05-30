@@ -136,10 +136,16 @@ class ParseExpressionTests
 		begin("parses equal to ==")
 		result = parse_expression(new Lexer("true == true"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			equals(identifier("true"), identifier("true"))
+		))
 		
 		begin("parses not equal to !=")
 		result = parse_expression(new Lexer("true != false"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			not_equals(identifier("true"), identifier("false"))
+		))
 		
 		begin("parses not !")
 		result = parse_expression(new Lexer("!true"))

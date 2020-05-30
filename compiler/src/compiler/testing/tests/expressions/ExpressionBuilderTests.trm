@@ -29,6 +29,10 @@ class ParseParentheticalTests
 		passes("and (identifier 'true') (identifier 'false')", and(identifier("true"), identifier("false")))
 		passes("equals (numerical 1) (numerical 2)", equals(numerical(1), numerical(2)))
 		passes("negate (equals (numerical 1) (numerical 2))", not_equals(numerical(1), numerical(2)))
+		passes("less_than (numerical 1) (numerical 2)", less_than(numerical(1), numerical(2)))
+		passes("greater_than (numerical 2) (numerical 1)", greater_than(numerical(2), numerical(1)))
+		passes("less_than_or_equal_to (numerical 1) (numerical 1)", less_than_or_equal_to(numerical(1), numerical(1)))
+		passes("greater_than_or_equal_to (numerical 1) (numerical 1)", greater_than_or_equal_to(numerical(1), numerical(1)))
 		
 		// TODO: test function_call
 	}

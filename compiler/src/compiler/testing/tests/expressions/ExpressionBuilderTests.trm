@@ -1,0 +1,40 @@
+use std
+use compiler.testing
+use compiler.lexer
+use compiler.parser.expressions
+
+class ParseParentheticalTests
+{
+	string test_group
+	ContractTestHelper runner
+
+	ctor() {
+		test_group = "ExpressionBuilder"
+	}
+	
+	begin(string name) runner.begin(name)
+	assert(bool condition) runner.assert(condition)
+	
+	test(ContractTestHelper test_runner) {
+		runner = test_runner
+		
+		passes("identifier 'asdf'", identifier("asdf"))
+		passes("numerical 123", numerical(123))
+		passes("string 'asdf'", string("asdf"))
+		passes("addition (numerical 1) (numerical 2)", addition(numerical(1), numerical(2)))
+		passes("parenthetical (numerical 1)", parenthetical(numerical(1)))
+		passes("negate (identifier 'true')", negate(identifier("true")))
+		passes("subtraction (numerical 2) (numerical 1)", subtraction(numerical(2), numerical(1)))
+		passes("or (identifier 'false') (identifier 'true')", or(identifier("false"), identifier("true")))
+		passes("and (identifier 'true') (identifier 'false')", and(identifier("true"), identifier("false")))
+		passes("equals (numerical 1) (numerical 2)", equals(numerical(1), numerical(2)))
+		passes("negate (equals (numerical 1) (numerical 2))", not_equals(numerical(1), numerical(2)))
+		
+		// TODO: test function_call
+	}
+	
+	passes(string input, Expression tree) {
+		begin(input)
+		assert(tree.to_string() == input)
+	}
+}

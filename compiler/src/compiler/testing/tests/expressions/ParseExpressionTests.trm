@@ -72,6 +72,9 @@ class ParseExpressionTests
 		begin("passes on identifier member access")
 		result = parse_expression(new Lexer("identifier.another_identifier"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			member_access(identifier("identifier"), identifier("another_identifier"))
+		))
 		
 		begin("passes on = assignment")
 		result = parse_expression(new Lexer("identifier = 123"))

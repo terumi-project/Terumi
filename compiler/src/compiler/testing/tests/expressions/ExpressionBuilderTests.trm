@@ -33,6 +33,7 @@ class ParseParentheticalTests
 		passes("greater_than (numerical 2) (numerical 1)", greater_than(numerical(2), numerical(1)))
 		passes("less_than_or_equal_to (numerical 1) (numerical 1)", less_than_or_equal_to(numerical(1), numerical(1)))
 		passes("greater_than_or_equal_to (numerical 1) (numerical 1)", greater_than_or_equal_to(numerical(1), numerical(1)))
+		passes("member_access (numerical 1) (identifier 'ok')", member_access(numerical(1), identifier("ok")))
 		
 		// TODO: test function_call
 	}

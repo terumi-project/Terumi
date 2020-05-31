@@ -126,6 +126,11 @@ class Expression
 			// less_than_or_equal_to 15
 			expression_type = 15
 		}
+		
+		if (circumstance == 9) {
+			// member access 16
+			expression_type = 16
+		}
 	}
 	
 	ctor(Expression left, Expression right, number circumstance, Text middle) {
@@ -185,7 +190,7 @@ class Expression
 			return text_one.to_string() == other.text_one.to_string()
 		}
 		
-		if (@operator_or(@operator_or(expression_type == 2, expression_type == 6), @operator_or(expression_type == 8, @operator_or(expression_type == 10, @operator_or(expression_type == 11, @operator_or(expression_type == 12, @operator_or(expression_type == 13, @operator_or(expression_type == 14, @operator_or(expression_type == 15, @operator_or(expression_type == 15 , false)))))))))) {
+		if (@operator_or(@operator_or(expression_type == 2, expression_type == 6), @operator_or(expression_type == 8, @operator_or(expression_type == 10, @operator_or(expression_type == 11, @operator_or(expression_type == 12, @operator_or(expression_type == 13, @operator_or(expression_type == 14, @operator_or(expression_type == 15, @operator_or(expression_type == 15 , @operator_or(expression_type == 16 , false))))))))))) {
 		
 			bool lefts_equal = expression_one.equals(other.expression_one)
 			bool rights_equal = expression_two.equals(other.expression_two)
@@ -251,6 +256,9 @@ class Expression
 		else if (expression_type == 15) {
 			return "less_than_or_equal_to ({expression_one.to_string()}) ({expression_two.to_string()})"
 		}
+		else if (expression_type == 16) {
+			return "member_access ({expression_one.to_string()}) ({expression_two.to_string()})"
+		}
 		
 		@panic("string Expression.to_string(): impossible path taken")
 	}
@@ -291,6 +299,7 @@ Expression greater_than(Expression left, Expression right) return new Expression
 Expression less_than(Expression left, Expression right) return new Expression(left, right, 6)
 Expression greater_than_or_equal_to(Expression left, Expression right) return new Expression(left, right, 7)
 Expression less_than_or_equal_to(Expression left, Expression right) return new Expression(left, right, 8)
+Expression member_access(Expression left, Expression right) return new Expression(left, right, 9)
 
 Expression negate(Expression expression) {
 	return new Expression(expression, 2)

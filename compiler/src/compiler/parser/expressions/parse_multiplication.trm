@@ -22,7 +22,7 @@ ParseExpressionResult parse_multiplication_right(ContractLexer lexer, LexerPosit
 {
 	Token middle = lexer_next_significant(lexer)
 	
-	if (!(@operator_or(middle.is_special("*"), middle.is_special("/")))) {
+	if (!(@operator_or(middle.is_special("*"), @operator_or(middle.is_special("/"), middle.is_special("%"))))) {
 		lexer.load(position)
 		return new ParseExpressionResult(left)
 	}
@@ -39,6 +39,9 @@ ParseExpressionResult parse_multiplication_right(ContractLexer lexer, LexerPosit
 	}
 	else if (middle.is_special("/")) {
 		return parse_multiplication_right(lexer, lexer.save(), division(left, right.expression))
+	}
+	else if (middle.is_special("%")) {
+		return parse_multiplication_right(lexer, lexer.save(), modulous(left, right.expression))
 	}
 	
 	@panic("ParseExpressionResult parse_multiplication_right(ContractLexer, LexerPosition, Expression): impossible path taken")

@@ -79,6 +79,9 @@ class ParseExpressionTests
 		begin("passes on = assignment")
 		result = parse_expression(new Lexer("identifier = 123"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			numerical(1)
+		))
 		
 		begin("passes on member access = assignment")
 		result = parse_expression(new Lexer("identifier.another = 123"))
@@ -143,6 +146,12 @@ class ParseExpressionTests
 		begin("passes on modulus")
 		result = parse_expression(new Lexer("1 % 2"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			modulous(
+				numerical(1),
+				numerical(2)
+			)
+		))
 		
 		begin("parses math in right precedence order")
 		result = parse_expression(new Lexer("1 + 2 - 3 * 4 / 5 + 2 / 5 - 8 * 11"))
@@ -174,7 +183,6 @@ class ParseExpressionTests
 				)
 			)
 		))
-		println(result.expression)
 		
 		begin("parses equal to ==")
 		result = parse_expression(new Lexer("true == true"))
@@ -214,6 +222,39 @@ class ParseExpressionTests
 		begin("parses equality in right precedence order")
 		result = parse_expression(new Lexer("true && false || true == false && true == false || false || true && false == true || false"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			or(
+				or(
+					or(
+						or(
+							and(
+								identifier("true"),
+								identifier("false")
+							),
+							and(
+								equals(
+									identifier("true"),
+									identifier("false")
+								),
+								equals(
+									identifier("true"),
+									identifier("false")
+								)
+							)
+						),
+						identifier("false")
+					),
+					and(
+						identifier("true"),
+						equals(
+							identifier("false"),
+							identifier("true")
+						)
+					)
+				),
+				identifier("false")
+			)
+		))
 		
 		begin("parses parenthetical expression 1")
 		result = parse_expression(new Lexer("(1)"))
@@ -231,6 +272,31 @@ class ParseExpressionTests
 		
 		begin("parses parenthetical expression before non parenthetical expressions")
 		result = parse_expression(new Lexer("true && (false == true) || (!false == (!true && false))"))
+		// (true && (false == true)) || (!false == (!true && false))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			or(
+				and(
+					identifier("true"),
+					parenthetical(
+						equals(
+							identifier("false"),
+							identifier("true")
+						)
+					)
+				),
+				parenthetical(
+					equals(
+						not(identifier("false")),
+						parenthetical(
+							and(
+								not(identifier("true")),
+								identifier("false")
+							)
+						)
+					)
+				)
+			)
+		))
 	}
 }

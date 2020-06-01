@@ -1,9 +1,11 @@
-use terumi
-use std
-use compiler.tests
 use compiler
 use compiler.lexer
 use compiler.parser
+use compiler.parser.expressions
+use compiler.testing
+use compiler.testing.tests
+use compiler.testing.tests.expressions
+use std
 
 main()
 {
@@ -12,19 +14,4 @@ main()
 	if (should_run_tests) {
 		run_tests()
 	}
-
-	Lexer lexer = new Lexer(new Text("
-use terumi
-use std
-use compiler.tests
-use compiler
-
-main()
-\{
-	// run unit tests (lol)
-	run_tests()
-\}
-	"))
-	
-	Parser parser = new Parser(lexer)
 }

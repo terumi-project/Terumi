@@ -1,0 +1,65 @@
+use std
+use compiler
+use compiler.lexer
+use compiler.parser
+use compiler.parser.expressions
+
+ParseExpressionResult parse_assignment(ContractLexer lexer)
+{
+	ParseExpressionResult left = parse_assignment_next(lexer)
+	
+	if (!left.success) {
+		return new ParseExpressionResult()
+	}
+	
+	// in order to have the resulting parsed expression be generated as an
+	// additive expression where the earlier assignments are executed first,
+	// instead of using some kind of recursion with parse_assignment for the
+	// right hand side, we have to continually try to parse a right side
+	// with parse_assignment_next.
+	//
+	// this is so we can get this tree generated:
+	// 1 + 1 + 1 + 1
+	// (((1 + 1) + 1) + 1)
+	// instead of any others
+	
+	LexerPosition position = lexer.save()
+	return parse_assignment_right(lexer, position, left.expression)
+}
+
+// recursion is used as hacky workaround given that reassigning variables seems
+// to cause some kind of weird bug
+ParseExpressionResult parse_assignment_right(ContractLexer lexer, LexerPosition position, Expression left)
+{
+	Token middle = lexer_next_significant(lexer)
+	
+	if (!(@operator_or(@operator_or(@operator_or(middle.is_special("+="), middle.is_special("-=")), @operator_or(middle.is_special("*="), middle.is_special("/="))),middle.is_special("=")))) {
+		lexer.load(position)
+		return new ParseExpressionResult(left)
+	}
+	
+	ParseExpressionResult right = parse_assignment_next(lexer)
+	
+	if (!right.success) {
+		lexer.load(position)
+		return new ParseExpressionResult(left)
+	}
+	
+	if (middle.is_special("+=")) {
+		return parse_assignment_right(lexer, lexer.save(), assignment_add(left, right.expression))
+	}
+	else if (middle.is_special("-=")) {
+		return parse_assignment_right(lexer, lexer.save(), assignment_subtract(left, right.expression))
+	}
+	else if (middle.is_special("*=")) {
+		return parse_assignment_right(lexer, lexer.save(), assignment_multiply(left, right.expression))
+	}
+	else if (middle.is_special("/=")) {
+		return parse_assignment_right(lexer, lexer.save(), assignment_divide(left, right.expression))
+	}
+	else if (middle.is_special("=")) {
+		return parse_assignment_right(lexer, lexer.save(), assignment(left, right.expression))
+	}
+	
+	@panic("ParseExpressionResult parse_assignment_right(ContractLexer, LexerPosition, Expression): impossible path taken")
+}

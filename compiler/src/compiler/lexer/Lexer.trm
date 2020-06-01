@@ -181,7 +181,10 @@ class Lexer
 				double_specials == "--")), @operator_or(
 				double_specials == "==", @operator_or(
 				double_specials == "!=", @operator_or(
-				false, false))))) {
+				double_specials == "+=", @operator_or(
+				double_specials == "-=", @operator_or(
+				double_specials == "*=", @operator_or(
+				double_specials == "/=", false)))))))) {
 				
 				_next_token = current.offset + 2
 				return new_special_token(current.take(2))

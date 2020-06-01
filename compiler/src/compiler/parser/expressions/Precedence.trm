@@ -1,8 +1,8 @@
 use compiler.lexer
 use compiler.parser
 
-ParseExpressionResult parse_expression_next(ContractLexer lexer) return parse_or(lexer)
-ParseExpressionResult parse_assignment_next(ContractLexer lexer) @panic("parse_assignment_next not implemented")
+ParseExpressionResult parse_expression_next(ContractLexer lexer) return parse_assignment(lexer)
+ParseExpressionResult parse_assignment_next(ContractLexer lexer) return parse_or(lexer)
 ParseExpressionResult parse_or_next(ContractLexer lexer) return parse_and(lexer)
 ParseExpressionResult parse_and_next(ContractLexer lexer) return parse_equality(lexer)
 ParseExpressionResult parse_equality_next(ContractLexer lexer) return parse_relational(lexer)

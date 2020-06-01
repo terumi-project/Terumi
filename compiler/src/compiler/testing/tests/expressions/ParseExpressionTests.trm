@@ -80,28 +80,70 @@ class ParseExpressionTests
 		result = parse_expression(new Lexer("identifier = 123"))
 		assert(result.success == true)
 		assert(result.expression.equals(
-			numerical(1)
+			assignment(
+				identifier("identifier"),
+				numerical(123)
+			)
 		))
 		
 		begin("passes on member access = assignment")
 		result = parse_expression(new Lexer("identifier.another = 123"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			assignment(
+				member_access(
+					identifier("identifier"),
+					identifier("another")
+				),
+				numerical(123)
+			)
+		))
 		
 		begin("passes on += assignment")
 		result = parse_expression(new Lexer("identifier += 123"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			assignment_add(
+				identifier("identifier"),
+				numerical(123)
+			)
+		))
 		
 		begin("passes on member access += assignment")
 		result = parse_expression(new Lexer("identifier.another += 123"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			assignment_add(
+				member_access(
+					identifier("identifier"),
+					identifier("another")
+				),
+				numerical(123)
+			)
+		))
 		
 		begin("passes on -= assignment")
 		result = parse_expression(new Lexer("identifier -= 123"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			assignment_subtract(
+				identifier("identifier"),
+				numerical(123)
+			)
+		))
 		
 		begin("passes on member access -= assignment")
 		result = parse_expression(new Lexer("identifier.another -= 123"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			assignment_subtract(
+				member_access(
+					identifier("identifier"),
+					identifier("another")
+				),
+				numerical(123)
+			)
+		))
 		
 		begin("passes on addition")
 		result = parse_expression(new Lexer("1 + 2"))

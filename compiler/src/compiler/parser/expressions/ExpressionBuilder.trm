@@ -146,6 +146,31 @@ class Expression
 			// modulous
 			expression_type = 19
 		}
+		
+		if (circumstance == 13) {
+			// =
+			expression_type = 20
+		}
+		
+		if (circumstance == 14) {
+			// +=
+			expression_type = 21
+		}
+		
+		if (circumstance == 15) {
+			// -=
+			expression_type = 22
+		}
+		
+		if (circumstance == 16) {
+			// *=
+			expression_type = 23
+		}
+		
+		if (circumstance == 17) {
+			// /=
+			expression_type = 24
+		}
 	}
 	
 	ctor(Expression left, Expression right, number circumstance, Text middle) {
@@ -283,6 +308,21 @@ class Expression
 		else if (expression_type == 19) {
 			return "modulous ({expression_one.to_string()}) ({expression_two.to_string()})"
 		}
+		else if (expression_type == 20) {
+			return "assignment ({expression_one.to_string()}) ({expression_two.to_string()})"
+		}
+		else if (expression_type == 21) {
+			return "assignment_add ({expression_one.to_string()}) ({expression_two.to_string()})"
+		}
+		else if (expression_type == 22) {
+			return "assignment_subtract ({expression_one.to_string()}) ({expression_two.to_string()})"
+		}
+		else if (expression_type == 23) {
+			return "assignment_multiply ({expression_one.to_string()}) ({expression_two.to_string()})"
+		}
+		else if (expression_type == 24) {
+			return "assignment_divide ({expression_one.to_string()}) ({expression_two.to_string()})"
+		}
 		
 		@panic("string Expression.to_string(): impossible path taken")
 	}
@@ -327,6 +367,13 @@ Expression less_than(Expression left, Expression right) return new Expression(le
 Expression greater_than_or_equal_to(Expression left, Expression right) return new Expression(left, right, 7)
 Expression less_than_or_equal_to(Expression left, Expression right) return new Expression(left, right, 8)
 Expression member_access(Expression left, Expression right) return new Expression(left, right, 9)
+
+Expression assignment(Expression left, Expression right) return assignment(left, right, 0)
+Expression assignment_add(Expression left, Expression right) return assignment(left, right, 1)
+Expression assignment_subtract(Expression left, Expression right) return assignment(left, right, 2)
+Expression assignment_multiply(Expression left, Expression right) return assignment(left, right, 3)
+Expression assignment_divide(Expression left, Expression right) return assignment(left, right, 4)
+Expression assignment(Expression left, Expression right, number scenario) return new Expression(left, right, scenario + 13)
 
 Expression negate(Expression expression) {
 	return new Expression(expression, 2)

@@ -123,10 +123,22 @@ class ParseExpressionTests
 		begin("passes on multiplication")
 		result = parse_expression(new Lexer("1 * 2"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			multiplication(
+				numerical(1),
+				numerical(2)
+			)
+		))
 		
 		begin("passes on division")
 		result = parse_expression(new Lexer("1 / 2"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			division(
+				numerical(1),
+				numerical(2)
+			)
+		))
 		
 		begin("passes on modulus")
 		result = parse_expression(new Lexer("1 % 2"))
@@ -135,6 +147,34 @@ class ParseExpressionTests
 		begin("parses math in right precedence order")
 		result = parse_expression(new Lexer("1 + 2 - 3 * 4 / 5 + 2 / 5 - 8 * 11"))
 		assert(result.success == true)
+		assert(result.expression.equals(
+			subtraction(
+				addition(
+					subtraction(
+						addition(
+							numerical(1),
+							numerical(2)
+						),
+						division(
+							multiplication(
+								numerical(3),
+								numerical(4)
+							),
+							numerical(5)
+						)
+					),
+					division(
+						numerical(2),
+						numerical(5)
+					)
+				),
+				multiplication(
+					numerical(8),
+					numerical(11)
+				)
+			)
+		))
+		println(result.expression)
 		
 		begin("parses equal to ==")
 		result = parse_expression(new Lexer("true == true"))

@@ -68,7 +68,84 @@ ParseStatementResult parse_statement(ContractLexer lexer)
 
 ParseStatementResult parse_statement_body(ContractLexer lexer)
 {
-	return new ParseStatementResult()
+	Token open_body = lexer_next_significant(lexer)
+	if !open_body.is_special("\{") {
+		return new ParseStatementResult()
+	}
+	
+	// to create a set of rules for statement bodies, we should figure out what is valid and what is not
+	//
+	// valid:
+	// { }
+	// { a() }
+	// {
+	//     a()
+	// }
+	//
+	// not valid:
+	// { a() b() }
+	//
+	// rules for statement bodies:
+	// - if we do not get a } after parsing a statement, we must have a newline
+	// - probably could be more but whatever
+	
+	LinkedStatementList statements = new LinkedStatementList()
+	
+	// first, we wanna parse at least one statement before recursing
+	// otherwise we can't properly setup the recursive-ness stuff
+	Token next = lexer_next_significant(lexer)
+	
+	if next.is_special("\}") {
+		// 0 statements in this body
+		return new ParseStatementResult(statement_body(statements))
+	}
+	
+	// not a } or newline, must be a statement
+	lexer.scan_to(next)
+	
+	return parse_statement_body_recurse(lexer, statements)
+}
+
+// this recursion for parse_statement_body is to bypass a weird variable reassignment bug
+ParseStatementResult parse_statement_body_recurse(ContractLexer lexer, LinkedStatementList statements)
+{
+	// if this method is called, we know we can expect another 
+	ParseStatementResult statement_result = parse_statement(lexer)
+	if !statement_result.success {
+		return new ParseStatementResult()
+	}
+	
+	statements.add(statement_result.statement)
+	
+	// next, we expect either a newline or this body to end
+	// if we don't get a newline or }, that means it's probably another statement
+	// and we can't have that
+	return parse_statement_body_recurse_end(lexer, statements, false)
+}
+
+ParseStatementResult parse_statement_body_recurse_end(ContractLexer lexer, LinkedStatementList statements, bool got_newline)
+{
+	Token current = lexer.next_token()
+	
+	if current.is_newline() {
+		return parse_statement_body_recurse_end(lexer, statements, true)
+	}
+	
+	if current.is_special("\}") {
+		return new ParseStatementResult(statement_body(statements))
+	}
+	
+	// now that we don't have a } or newline, we can basically guarantee that there must be a statement
+	
+	// if we didn't get a newline before parsing the next statement, cry
+	if !got_newline {
+		return new ParseStatementResult()
+	}
+	
+	// the token was part of a statement
+	lexer.scan_to(current)
+	
+	return parse_statement_body_recurse(lexer, statements)
 }
 
 ParseStatementResult parse_statement_if(ContractLexer lexer)

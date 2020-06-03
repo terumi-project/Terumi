@@ -269,8 +269,8 @@ Statement statement_for(Statement initialization, Expression condition, Statemen
 Statement statement_return(Expression value)
 	return new Statement(statement_id_return(), value)
 
-Statement statement_assignment(Expression left, Expression right)
-	return new Statement(statement_id_assignment(), left, right)
+Statement statement_assignment(Expression assignment_expression)
+	return new Statement(statement_id_assignment(), assignment_expression)
 
 Statement statement_declaration(ParsedType type, Text name, Expression value)
 	return new Statement(statement_id_declaration(), value, name, type)

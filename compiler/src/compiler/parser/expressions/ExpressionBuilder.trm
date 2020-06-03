@@ -335,6 +335,13 @@ class Expression
 		
 		@panic("string Expression.to_string(): impossible path taken")
 	}
+	
+	bool is_assignment() {
+		return @operator_and(
+			expression_type >= 20,
+			expression_type <= 24
+		)
+	}
 }
 
 Expression identifier(Token token) return identifier(token.source)

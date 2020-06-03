@@ -63,6 +63,12 @@ ParseStatementResult parse_statement(ContractLexer lexer)
 		return result
 	}
 	
+	lexer.load(position)
+	result = parse_statement_assignment(lexer)
+	if result.success {
+		return result
+	}
+	
 	return new ParseStatementResult()
 }
 
@@ -303,4 +309,19 @@ ParseStatementResult parse_statement_return(ContractLexer lexer)
 	}
 	
 	return new ParseStatementResult(statement_return(expression_result.expression))
+}
+
+ParseStatementResult parse_statement_assignment(ContractLexer lexer)
+{
+	ParseExpressionResult expression_result = parse_expression(lexer)
+	if !expression_result.success {
+		return new ParseStatementResult()
+	}
+	
+	Expression expression = expression_result.expression
+	if !expression.is_assignment() {
+		return new ParseStatementResult()
+	}
+	
+	return new ParseStatementResult(statement_assignment(expression))
 }

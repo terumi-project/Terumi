@@ -192,6 +192,10 @@ class Statement
 			base = "while"
 		}
 		
+		if (statement_id == statement_id_do_while()) {
+			base = "do_while"
+		}
+		
 		if (statement_id == statement_id_for()) {
 			base = "for"
 		}
@@ -232,16 +236,17 @@ number statement_id_body() return 1
 number statement_id_if() return 2
 number statement_id_if_else() return 3
 number statement_id_while() return 4
-number statement_id_for() return 5
-number statement_id_return() return 6
-number statement_id_assignment() return 7
-number statement_id_declaration() return 8
+number statement_id_do_while() return 5
+number statement_id_for() return 6
+number statement_id_return() return 7
+number statement_id_assignment() return 8
+number statement_id_declaration() return 9
 // turns standalone member access expressions into statements
 // useful for object.method()
-number statement_id_member_access() return 9
-number statement_id_method_call() return 10
-number statement_id_increment() return 11
-number statement_id_command() return 12
+number statement_id_member_access() return 10
+number statement_id_method_call() return 11
+number statement_id_increment() return 12
+number statement_id_command() return 13
 
 Statement statement_body(LinkedStatementList statements)
 	return new Statement(statement_id_body(), statements)
@@ -254,6 +259,9 @@ Statement statement_if_else(Expression condition, Statement condition_true, Stat
 
 Statement statement_while(Expression condition, Statement loop)
 	return new Statement(statement_id_while(), condition, loop)
+
+Statement statement_do_while(Statement loop, Expression condition)
+	return new Statement(statement_id_do_while(), condition, loop)
 
 Statement statement_for(Statement initialization, Expression condition, Statement increment, Statement loop)
 	return new Statement(statement_id_for(), condition, initialization, increment, loop)

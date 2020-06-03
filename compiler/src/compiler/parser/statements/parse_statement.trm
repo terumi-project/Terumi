@@ -46,6 +46,18 @@ ParseStatementResult parse_statement(ContractLexer lexer)
 	}
 	
 	lexer.load(position)
+	result = parse_statement_while(lexer)
+	if result.success {
+		return result
+	}
+	
+	lexer.load(position)
+	result = parse_statement_do_while(lexer)
+	if result.success {
+		return result
+	}
+	
+	lexer.load(position)
 	result = parse_statement_return(lexer)
 	if result.success {
 		return result
@@ -150,6 +162,53 @@ ParseStatementResult parse_statement_for(ContractLexer lexer)
 	}
 	
 	return new ParseStatementResult(statement_for(initialization_statement_result.statement, condition_expression_result.expression, increment_statement_result.statement, body_statement_result.statement))
+}
+
+ParseStatementResult parse_statement_while(ContractLexer lexer)
+{
+	Token token = lexer_next_significant(lexer)
+	
+	if !token.is_identifier("while") {
+		return new ParseStatementResult()
+	}
+	
+	ParseExpressionResult condition_expression_result = parse_expression(lexer)
+	if !condition_expression_result.success {
+		return new ParseStatementResult()
+	}
+	
+	ParseStatementResult body_statement_result = parse_statement(lexer)
+	if !body_statement_result.success {
+		return new ParseStatementResult()
+	}
+	
+	return new ParseStatementResult(statement_while(condition_expression_result.expression, body_statement_result.statement))
+}
+
+ParseStatementResult parse_statement_do_while(ContractLexer lexer)
+{
+	Token token = lexer_next_significant(lexer)
+	
+	if !token.is_identifier("do") {
+		return new ParseStatementResult()
+	}
+	
+	ParseStatementResult body_statement_result = parse_statement(lexer)
+	if !body_statement_result.success {
+		return new ParseStatementResult()
+	}
+	
+	Token while_token = lexer_next_significant(lexer)
+	if !while_token.is_identifier("while") {
+		return new ParseStatementResult()
+	}
+	
+	ParseExpressionResult condition_expression_result = parse_expression(lexer)
+	if !condition_expression_result.success {
+		return new ParseStatementResult()
+	}
+	
+	return new ParseStatementResult(statement_do_while(body_statement_result.statement, condition_expression_result.expression))
 }
 
 ParseStatementResult parse_statement_return(ContractLexer lexer)

@@ -10,6 +10,9 @@ class ParseStatementResult
 
 	ctor() {
 		success = false
+		
+		// debug hacky workaround to prevent fields from giving exceptions
+		statement = statement_return(numerical(1))
 	}
 	
 	ctor(Statement param_statement) {
@@ -25,18 +28,66 @@ ParseStatementResult parse_statement(ContractLexer lexer)
 {
 	LexerPosition position = lexer.save()
 	
-	ParseStatementResult result = parse_statement_return(lexer)
+	ParseStatementResult result = parse_statement_body(lexer)
 	if result.success {
 		return result
 	}
 	
-	lexer.load(position)	
+	lexer.load(position)
+	result = parse_statement_if(lexer)
+	if result.success {
+		return result
+	}
+	
+	lexer.load(position)
 	result = parse_statement_return(lexer)
 	if result.success {
 		return result
 	}
 	
 	return new ParseStatementResult()
+}
+
+ParseStatementResult parse_statement_body(ContractLexer lexer)
+{
+	return new ParseStatementResult()
+}
+
+ParseStatementResult parse_statement_if(ContractLexer lexer)
+{
+	Token token = lexer_next_significant(lexer)
+	
+	if !token.is_identifier("if") {
+		return new ParseStatementResult()
+	}
+	
+	ParseExpressionResult expression_result = parse_expression(lexer)
+	
+	if !expression_result.success {
+		return new ParseStatementResult()
+	}
+	
+	ParseStatementResult statement_result = parse_statement(lexer)
+	
+	if !statement_result.success {
+		return new ParseStatementResult()
+	}
+	
+	LexerPosition position = lexer.save()
+	
+	if lexer_next_significant(lexer).is_identifier("else") {
+		ParseStatementResult statement_result_else = parse_statement(lexer)
+		
+		if !statement_result_else.success {
+			return new ParseStatementResult()
+		}
+		
+		return new ParseStatementResult(statement_if_else(expression_result.expression, statement_result.statement, statement_result_else.statement))
+	}
+	
+	lexer.load(position)
+	
+	return new ParseStatementResult(statement_if(expression_result.expression, statement_result.statement))
 }
 
 ParseStatementResult parse_statement_return(ContractLexer lexer)

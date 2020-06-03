@@ -30,6 +30,11 @@ class ParseStatementTests
 		begin("passes on return")
 		result = parse_statement(new Lexer("return 1"))
 		assert(result.success == true)
+		assert(result.statement.equals(
+			statement_return(
+				numerical(1)
+			)
+		))
 		
 		begin("passes on assignment")
 		result = parse_statement(new Lexer("left = right"))
@@ -50,6 +55,24 @@ class ParseStatementTests
 		begin("passes on if statement")
 		result = parse_statement(new Lexer("if (true) \{\}"))
 		assert(result.success == true)
+		
+		begin("passes on if statement and return")
+		result = parse_statement(new Lexer("if (true) return 1"))
+		assert(result.success == true)
+		
+		begin("passes on if statement and return and else")
+		result = parse_statement(new Lexer("if (true)
+	return 1
+else
+	return 2"))
+		assert(result.success == true)
+		assert(result.statement.equals(
+			statement_if_else(
+				parenthetical(identifier("true")),
+				statement_return(numerical(1)),
+				statement_return(numerical(2))
+			)
+		))
 		
 		begin("passes on while")
 		result = parse_statement(new Lexer("while (true) \{\}"))

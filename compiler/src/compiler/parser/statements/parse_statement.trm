@@ -1,0 +1,57 @@
+use std
+use compiler
+use compiler.lexer
+use compiler.parser.expressions
+
+class ParseStatementResult
+{
+	bool success
+	Statement statement
+
+	ctor() {
+		success = false
+	}
+	
+	ctor(Statement param_statement) {
+		success = true
+		statement = param_statement
+	}
+}
+
+/**
+ * This will parse exactly one statement of a method. A body of statements counts as a statement.
+ */
+ParseStatementResult parse_statement(ContractLexer lexer)
+{
+	LexerPosition position = lexer.save()
+	
+	ParseStatementResult result = parse_statement_return(lexer)
+	if result.success {
+		return result
+	}
+	
+	lexer.load(position)	
+	result = parse_statement_return(lexer)
+	if result.success {
+		return result
+	}
+	
+	return new ParseStatementResult()
+}
+
+ParseStatementResult parse_statement_return(ContractLexer lexer)
+{
+	Token token = lexer_next_significant(lexer)
+	
+	if !token.is_identifier("return") {
+		return new ParseStatementResult()
+	}
+	
+	ParseExpressionResult expression_result = parse_expression(lexer)
+	
+	if !expression_result.success {
+		return new ParseExpressionResult()
+	}
+	
+	return new ParseStatementResult(statement_return(expression_result.expression))
+}

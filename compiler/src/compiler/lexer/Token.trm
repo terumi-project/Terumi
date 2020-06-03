@@ -30,6 +30,14 @@ class Token
 	bool is_newline() return token_type == 5
 	bool is_string() return token_type == 6
 	
+	bool is_identifier(string text) {
+		if (is_identifier()) {
+			return source.equals(text)
+		}
+		
+		return false
+	}
+	
 	bool is_special(string character) {
 		if (is_special()) {
 			return source.equals(character)

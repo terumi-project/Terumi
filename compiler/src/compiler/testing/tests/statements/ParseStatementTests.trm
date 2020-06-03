@@ -1,6 +1,8 @@
 use compiler.testing
 use compiler.lexer
 use compiler.parser
+use compiler.parser.expressions
+use compiler.parser.statements
 
 class ParseStatementTests
 {

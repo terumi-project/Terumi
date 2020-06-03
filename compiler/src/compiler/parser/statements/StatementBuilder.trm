@@ -1,0 +1,108 @@
+use compiler.parser.expressions
+
+number statement_type_compare_list() return 1
+number statement_type_compare_expression() return 2
+number statement_type_compare_expression_statement() return 3
+number statement_type_compare_expression_statement_statement() return 4
+
+class Statement
+{
+	number statement_id
+	number statement_type
+	
+	Expression _expression_one
+	LinkedStatementList _list_one
+	Statement _statement_one
+	Statement _statement_two
+
+	ctor(number param_statement_id) {
+		statement_id = param_statement_id
+		statement_type = 0
+		
+		@panic("Statement.ctor(number): this ctor should not be invoked")
+	}
+
+	ctor(number param_statement_id, LinkedStatementList statements) {
+		statement_id = param_statement_id
+		statement_type = statement_type_compare_list()
+		
+		_list_one = statements
+	}
+
+	ctor(number param_statement_id, Expression param_expression) {
+		statement_id = param_statement_id
+		statement_type = statement_type_compare_expression()
+		
+		_expression_one = param_expression
+	}
+	
+	ctor(number param_statement_id, Expression param_expression, Statement param_statement_one) {
+		statement_id = param_statement_id
+		statement_type = statement_type_compare_expression_statement()
+		
+		_expression_one = param_expression
+		_statement_one = param_statement_one
+	}
+	
+	ctor(number param_statement_id, Expression param_expression, Statement param_statement_one, Statement param_statement_two) {
+		statement_id = param_statement_id
+		statement_type = statement_type_compare_expression_statement_statement()
+		
+		_expression_one = param_expression
+		_statement_one = param_statement_one
+		_statement_two = param_statement_two
+	}
+	
+	bool equals(Statement other) {
+		if (other.statement_id != statement_id) return false
+		if (other.statement_type != statement_type) return false
+		
+		if (statement_type == statement_type_compare_list()) {
+			// TODO: compare lists
+			return true
+		}
+		
+		if (statement_type == statement_type_compare_expression()) {
+			return _expression_one.equals(other._expression_one)
+		}
+		
+		if (statement_type == statement_type_compare_expression_statement()) {
+			return @operator_and(
+				_expression_one.equals(other._expression_one),
+				_statement_one.equals(other._statement_one)
+			)
+		}
+		
+		if (statement_type == statement_type_compare_expression_statement_statement()) {
+			return @operator_and(
+				@operator_and(
+					_expression_one.equals(other._expression_one),
+					_statement_one.equals(other._statement_one)
+				),
+				_statement_two.equals(other._statement_two)
+			)
+		}
+		
+		@panic("bool Statement.equals(Statement): impossible path taken")
+	}
+}
+
+number statement_id_body() return 1
+number statement_id_if() return 2
+number statement_id_if_else() return 3
+number statement_id_return() return 4
+
+Statement statement_body(LinkedStatementList statements)
+	return new Statement(statement_id_body(), statements)
+
+Statement statement_if(Expression condition, Statement condition_true)
+	return new Statement(statement_id_if(), condition, condition_true)
+
+Statement statement_if_else(Expression condition, Statement condition_true, Statement condition_false)
+	return new Statement(statement_id_if_else(), condition, condition_true, condition_false)
+
+Statement statement_return(Expression value)
+	return new Statement(statement_id_return(), value)
+
+__() {
+}

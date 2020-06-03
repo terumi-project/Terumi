@@ -2,6 +2,7 @@ use std
 use terumi
 use compiler.testing.tests
 use compiler.testing.tests.expressions
+use compiler.testing.tests.statements
 
 run_tests()
 {
@@ -18,22 +19,26 @@ the project is still in its infancy.
 
 	TestRunner runner = new TestRunner(false)
 	
-	runner.run(new MetaTests())
-	runner.run(new StringTests())
-	runner.run(new TextTests())
-	runner.run(new LexerTests())
-	runner.run(new TokenTests())
-	runner.run(new LinkedParsedTypeListTests())
-	runner.run(new ParseTypeTests())
-	runner.run(new ParseGenericsTests())
-	runner.run(new ParseFunctionMetaTests())
-	runner.run(new ParseParameterMetaTests())
+	// ===
+	// Tests commented out so that the most important tests can be ran
+	// ===
+	
+	// runner.run(new MetaTests())
+	// runner.run(new StringTests())
+	// runner.run(new TextTests())
+	// runner.run(new LexerTests())
+	// runner.run(new TokenTests())
+	// runner.run(new LinkedParsedTypeListTests())
+	// runner.run(new ParseTypeTests())
+	// runner.run(new ParseGenericsTests())
+	// runner.run(new ParseFunctionMetaTests())
+	// runner.run(new ParseParameterMetaTests())
 	runner.run(new ParseStatementTests())
-	runner.run(new ParseExpressionTests())
-	runner.run(new ParseAdditionTests())
-	runner.run(new ParseValueTests())
-	runner.run(new ParseUnaryTests())
-	runner.run(new ParseParentheticalTests())
+	// runner.run(new ParseExpressionTests())
+	// runner.run(new ParseAdditionTests())
+	// runner.run(new ParseValueTests())
+	// runner.run(new ParseUnaryTests())
+	// runner.run(new ParseParentheticalTests())
 	
 	@println("== TESTS == {to_string(runner._passed)} assertions passed, {to_string(runner._failed)} assertions failed")
 	@println(runner._log_pass)

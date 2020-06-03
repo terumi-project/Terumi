@@ -1,0 +1,60 @@
+class LinkedStatementList
+{
+	LinkedStatementNode _tail
+	LinkedStatementNode _head
+
+	ctor() {
+		_tail = new LinkedStatementNode()
+		_head = _tail
+	}
+	
+	add(Statement element) {
+		_head.value = element
+		
+		LinkedStatementNode new_head = new LinkedStatementNode()
+		new_head.set_previous(_head)
+		_head.set_next(new_head)
+		
+		_head = new_head
+	}
+	
+	bool has_any() return _tail.has_next
+	
+	string to_string() return "string LinkedStatementList.to_string(): not implemented"
+}
+
+class LinkedStatementNode
+{
+	Statement value
+	
+	bool has_previous
+	LinkedStatementNode previous
+	
+	bool has_next
+	LinkedStatementNode next
+	
+	set_next() has_next = false
+	set_next(LinkedStatementNode node) {
+		has_next = true
+		next = node
+	}
+	
+	set_previous() has_previous = false
+	set_previous(LinkedStatementNode node) {
+		has_previous = true
+		previous = node
+	}
+	
+	bool has_another_generic() {
+		if (has_next) {
+			return next.has_next
+		}
+		
+		return false
+	}
+	
+	ctor() {
+		has_previous = false
+		has_next = false
+	}
+}

@@ -104,4 +104,8 @@ class ParsedType
 		
 		return true
 	}
+	
+	string to_string() {
+		return "string ParsedType.to_string(): not implemented"
+	}
 }

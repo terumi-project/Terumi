@@ -40,6 +40,12 @@ ParseStatementResult parse_statement(ContractLexer lexer)
 	}
 	
 	lexer.load(position)
+	result = parse_statement_for(lexer)
+	if result.success {
+		return result
+	}
+	
+	lexer.load(position)
 	result = parse_statement_return(lexer)
 	if result.success {
 		return result
@@ -88,6 +94,62 @@ ParseStatementResult parse_statement_if(ContractLexer lexer)
 	lexer.load(position)
 	
 	return new ParseStatementResult(statement_if(expression_result.expression, statement_result.statement))
+}
+
+ParseStatementResult parse_statement_for(ContractLexer lexer)
+{
+	// TODO: support hip syntax:
+	// for i, entry in list {
+	//     // ...
+	// }
+	// for now we only support C style for loops for compatibility with old compiler
+
+	Token token = lexer_next_significant(lexer)
+	if !token.is_identifier("for") {
+		return new ParseStatementResult()
+	}
+	
+	Token open_parenthesis = lexer_next_significant(lexer)
+	if !open_parenthesis.is_special("(") {
+		return new ParseStatementResult()
+	}
+	
+	ParseStatementResult initialization_statement_result = parse_statement(lexer)
+	if !initialization_statement_result.success {
+		return new ParseStatementResult()
+	}
+	
+	Token semicolon_one = lexer_next_significant(lexer)
+	if !semicolon_one.is_special(";") {
+		return new ParseStatementResult()
+	}
+	
+	ParseExpressionResult condition_expression_result = parse_expression(lexer)
+	if !condition_expression_result.success {
+		return new ParseStatementResult()
+	}
+	
+	Token semicolon_two = lexer_next_significant(lexer)
+	if !semicolon_two.is_special(";") {
+		return new ParseStatementResult()
+	}
+	
+	ParseStatementResult increment_statement_result = parse_statement(lexer)
+	if !increment_statement_result.success {
+		return new ParseStatementResult()
+	}
+	
+	Token close_parenthesis = lexer_next_significant(lexer)
+	if !close_parenthesis.is_special(")") {
+		return new ParseStatementResult()
+	}
+	
+	ParseStatementResult body_statement_result = parse_statement(lexer)
+	if !body_statement_result.success {
+		return new ParseStatementResult()
+	}
+	
+	return new ParseStatementResult(statement_for(initialization_statement_result.statement, condition_expression_result.expression, increment_statement_result.statement, body_statement_result.statement))
 }
 
 ParseStatementResult parse_statement_return(ContractLexer lexer)

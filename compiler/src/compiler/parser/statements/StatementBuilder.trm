@@ -1,9 +1,14 @@
+use compiler
+use compiler.parser
 use compiler.parser.expressions
 
 number statement_type_compare_list() return 1
 number statement_type_compare_expression() return 2
-number statement_type_compare_expression_statement() return 3
-number statement_type_compare_expression_statement_statement() return 4
+number statement_type_compare_expression_expression() return 3
+number statement_type_compare_expression_statement() return 4
+number statement_type_compare_expression_statement_statement() return 5
+number statement_type_compare_expression_statement_statement_statement() return 6
+number statement_type_compare_expression_text_parsed_type() return 7
 
 class Statement
 {
@@ -11,16 +16,13 @@ class Statement
 	number statement_type
 	
 	Expression _expression_one
+	Expression _expression_two
 	LinkedStatementList _list_one
 	Statement _statement_one
 	Statement _statement_two
-
-	ctor(number param_statement_id) {
-		statement_id = param_statement_id
-		statement_type = 0
-		
-		@panic("Statement.ctor(number): this ctor should not be invoked")
-	}
+	Statement _statement_three
+	Text _text_one
+	ParsedType _parsed_type_one
 
 	ctor(number param_statement_id, LinkedStatementList statements) {
 		statement_id = param_statement_id
@@ -34,6 +36,14 @@ class Statement
 		statement_type = statement_type_compare_expression()
 		
 		_expression_one = param_expression
+	}
+
+	ctor(number param_statement_id, Expression param_expression_one, Expression param_expression_two) {
+		statement_id = param_statement_id
+		statement_type = statement_type_compare_expression_expression()
+		
+		_expression_one = param_expression_one
+		_expression_two = param_expression_two
 	}
 	
 	ctor(number param_statement_id, Expression param_expression, Statement param_statement_one) {
@@ -53,17 +63,42 @@ class Statement
 		_statement_two = param_statement_two
 	}
 	
+	ctor(number param_statement_id, Expression param_expression, Statement param_statement_one, Statement param_statement_two, Statement param_statement_three) {
+		statement_id = param_statement_id
+		statement_type = statement_type_compare_expression_statement_statement_statement()
+		
+		_expression_one = param_expression
+		_statement_one = param_statement_one
+		_statement_two = param_statement_two
+		_statement_three = param_statement_three
+	}
+	
+	ctor(number param_statement_id, Expression param_expression, Text param_text, ParsedType param_parsed_type) {
+		statement_id = param_statement_id
+		statement_type = statement_type_compare_expression_text_parsed_type()
+		
+		_expression_one = param_expression
+		_text_one = param_text
+		_parsed_type_one = param_parsed_type
+	}
+	
 	bool equals(Statement other) {
 		if (other.statement_id != statement_id) return false
 		if (other.statement_type != statement_type) return false
 		
 		if (statement_type == statement_type_compare_list()) {
-			// TODO: compare lists
-			return true
+			return _list_one.equals(other._list_one)
 		}
 		
 		if (statement_type == statement_type_compare_expression()) {
 			return _expression_one.equals(other._expression_one)
+		}
+		
+		if (statement_type == statement_type_compare_expression_expression()) {
+			return @operator_and(
+				_expression_one.equals(other._expression_one),
+				_expression_two.equals(other._expression_two)
+			)
 		}
 		
 		if (statement_type == statement_type_compare_expression_statement()) {
@@ -83,14 +118,130 @@ class Statement
 			)
 		}
 		
+		if (statement_type == statement_type_compare_expression_statement_statement_statement()) {
+			return @operator_and(
+				@operator_and(
+					_expression_one.equals(other._expression_one),
+					_statement_one.equals(other._statement_one)
+				),
+				@operator_and(
+					_statement_two.equals(other._statement_two),
+					_statement_three.equals(other._statement_three)
+				)
+			)
+		}
+		
+		if (statement_type == statement_type_compare_expression_text_parsed_type()) {
+			return @operator_and(
+				@operator_and(
+					_expression_one.equals(other._expression_one),
+					_text_one.to_string() == other._text_one.to_string()
+				),
+				_parsed_type_one.equals(other._parsed_type_one)
+			)
+		}
+		
 		@panic("bool Statement.equals(Statement): impossible path taken")
+	}
+	
+	string to_string() {
+		string base = "???"
+		string expressions = "???"
+		
+		if (statement_type == statement_type_compare_list()) {
+			expressions = "({_list_one.to_string()})"
+		}
+		
+		if (statement_type == statement_type_compare_expression()) {
+			expressions = "({_expression_one.to_string()})"
+		}
+		
+		if (statement_type == statement_type_compare_expression_expression()) {
+			expressions = "({_expression_one.to_string()}) ({_expression_two.to_string()})"
+		}
+		
+		if (statement_type == statement_type_compare_expression_statement()) {
+			expressions = "({_expression_one.to_string()}) ({_statement_one.to_string()})"
+		}
+		
+		if (statement_type == statement_type_compare_expression_statement_statement()) {
+			expressions = "({_expression_one.to_string()}) ({_statement_one.to_string()}) ({_statement_two.to_string()})"
+		}
+		
+		if (statement_type == statement_type_compare_expression_statement_statement_statement()) {
+			expressions = "({_expression_one.to_string()}) ({_statement_one.to_string()}) ({_statement_two.to_string()}) ({_statement_three.to_string()})"
+		}
+		
+		if (statement_type == statement_type_compare_expression_text_parsed_type()) {
+			expressions = "({_expression_one.to_string()}) ({_text_one.to_string()}) ({_parsed_type_one.to_string()})"
+		}
+		
+		if (statement_id == statement_id_body()) {
+			base = "body"
+		}
+		
+		if (statement_id == statement_id_if()) {
+			base = "if"
+		}
+		
+		if (statement_id == statement_id_if_else()) {
+			base = "if_else"
+		}
+		
+		if (statement_id == statement_id_while()) {
+			base = "while"
+		}
+		
+		if (statement_id == statement_id_for()) {
+			base = "for"
+		}
+		
+		if (statement_id == statement_id_return()) {
+			base = "return"
+		}
+		
+		if (statement_id == statement_id_assignment()) {
+			base = "assignment"
+		}
+		
+		if (statement_id == statement_id_declaration()) {
+			base = "declaration"
+		}
+		
+		if (statement_id == statement_id_member_access()) {
+			base = "member_access"
+		}
+		
+		if (statement_id == statement_id_method_call()) {
+			base = "method_call"
+		}
+		
+		if (statement_id == statement_id_increment()) {
+			base = "increment"
+		}
+		
+		if (statement_id == statement_id_command()) {
+			base = "command"
+		}
+		
+		return "{base} {expressions}"
 	}
 }
 
 number statement_id_body() return 1
 number statement_id_if() return 2
 number statement_id_if_else() return 3
-number statement_id_return() return 4
+number statement_id_while() return 4
+number statement_id_for() return 5
+number statement_id_return() return 6
+number statement_id_assignment() return 7
+number statement_id_declaration() return 8
+// turns standalone member access expressions into statements
+// useful for object.method()
+number statement_id_member_access() return 9
+number statement_id_method_call() return 10
+number statement_id_increment() return 11
+number statement_id_command() return 12
 
 Statement statement_body(LinkedStatementList statements)
 	return new Statement(statement_id_body(), statements)
@@ -101,8 +252,32 @@ Statement statement_if(Expression condition, Statement condition_true)
 Statement statement_if_else(Expression condition, Statement condition_true, Statement condition_false)
 	return new Statement(statement_id_if_else(), condition, condition_true, condition_false)
 
+Statement statement_while(Expression condition, Statement loop)
+	return new Statement(statement_id_while(), condition, loop)
+
+Statement statement_for(Statement initialization, Expression condition, Statement increment, Statement loop)
+	return new Statement(statement_id_for(), condition, initialization, increment, loop)
+
 Statement statement_return(Expression value)
 	return new Statement(statement_id_return(), value)
+
+Statement statement_assignment(Expression left, Expression right)
+	return new Statement(statement_id_assignment(), left, right)
+
+Statement statement_declaration(ParsedType type, Text name, Expression value)
+	return new Statement(statement_id_declaration(), value, name, type)
+
+Statement statement_member_access(Expression member_access_expression)
+	return new Statement(statement_id_member_access(), member_access_expression)
+
+Statement statement_method_call(Expression method_call_expression)
+	return new Statement(statement_id_method_call(), method_call_expression)
+
+Statement statement_increment(Expression increment_expression)
+	return new Statement(statement_id_increment(), increment_expression)
+
+Statement statement_command(Expression command_expression)
+	return new Statement(statement_id_increment(), command_expression)
 
 __() {
 }

@@ -23,9 +23,10 @@ class ParseStatementTests
 		ParseStatementResult result = parse_statement(new Lexer(""))
 		assert(result.success == false)
 		
-		begin("fails on assigning to function call")
+		// even though it's illegal, it's parseable
+		begin("passes on assigning to function call")
 		result = parse_statement(new Lexer("nested.left_hand() = right()"))
-		assert(result.success == false)
+		assert(result.success == true)
 		
 		begin("passes on return")
 		result = parse_statement(new Lexer("return 1"))

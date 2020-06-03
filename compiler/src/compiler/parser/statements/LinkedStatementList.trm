@@ -21,6 +21,8 @@ class LinkedStatementList
 	bool has_any() return _tail.has_next
 	
 	string to_string() return "string LinkedStatementList.to_string(): not implemented"
+	
+	bool equals(LinkedStatementList other) return _tail.equals(other._tail)
 }
 
 class LinkedStatementNode
@@ -43,6 +45,24 @@ class LinkedStatementNode
 	set_previous(LinkedStatementNode node) {
 		has_previous = true
 		previous = node
+	}
+	
+	bool equals(LinkedStatementNode other) {
+		if has_previous != other.has_previous return false
+		if has_next != other.has_next return false
+		
+		if has_next {
+			if !value.equals(other.value) return false
+			if !next.equals(other.next) return false
+		}
+		
+		// don't compare previous, we could end up in an infinite loop
+		// we start from tail and go to the head
+		// if has_previous {
+		// 	if !previous.equals(other.previous) return false
+		// }
+		
+		return true
 	}
 	
 	bool has_another_generic() {

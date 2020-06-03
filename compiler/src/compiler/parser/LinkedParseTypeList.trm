@@ -21,6 +21,8 @@ class LinkedParsedTypeList
 	bool has_any() return _tail.has_next
 	
 	string to_string() return "string LinkedParsedTypeList.to_string(): not implemented"
+	
+	bool equals(LinkedParsedTypeList other) return _tail.equals(other._tail)
 }
 
 class LinkedParsedTypeNode
@@ -56,5 +58,23 @@ class LinkedParsedTypeNode
 	ctor() {
 		has_previous = false
 		has_next = false
+	}
+	
+	bool equals(LinkedParsedTypeNode other) {
+		if has_previous != other.has_previous return false
+		if has_next != other.has_next return false
+		
+		if has_next {
+			if !value.equals(other.value) return false
+			if !next.equals(other.next) return false
+		}
+		
+		// don't compare previous, we could end up in an infinite loop
+		// we start from tail and go to the head
+		// if has_previous {
+		// 	if !previous.equals(other.previous) return false
+		// }
+		
+		return true
 	}
 }

@@ -92,4 +92,16 @@ class ParsedType
 		generics = param_generics
 		name = param_name
 	}
+	
+	bool equals(ParsedType other) {
+		if is_array != other.is_array return false
+		if is_generic != other.is_generic return false
+		if name.to_string() != other.name.to_string() return false
+		
+		if is_generic {
+			return generics.equals(other.generics)
+		}
+		
+		return true
+	}
 }

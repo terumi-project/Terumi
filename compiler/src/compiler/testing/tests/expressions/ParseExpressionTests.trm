@@ -1,3 +1,4 @@
+use compiler
 use compiler.testing
 use compiler.lexer
 use compiler.parser
@@ -338,6 +339,28 @@ class ParseExpressionTests
 						)
 					)
 				)
+			)
+		))
+		
+		begin("parses function call")
+		result = parse_expression(new Lexer("my_function_call<T>(1, true, 8 < 7)"))
+		
+		assert(result.success == true)
+		
+		LinkedParsedTypeList parsed_type_list = new LinkedParsedTypeList()
+		parsed_type_list.add(new ParsedType(false, false, new LinkedParsedTypeList(), new Text("T")))
+		
+		LinkedExpressionList expression_list = new LinkedExpressionList()
+		expression_list.add(numerical(1))
+		expression_list.add(identifier("true"))
+		expression_list.add(less_than(numerical(8), numerical(7)))
+		
+		@println("asserting equal")
+		assert(result.expression.equals(
+			function_call(
+				"my_function_call",
+				parsed_type_list,
+				expression_list
 			)
 		))
 	}

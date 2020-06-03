@@ -243,8 +243,17 @@ class Expression
 		
 		if (expression_type == 9) {
 			bool names_equal = text_one.to_string() == other.text_one.to_string()
-			// TODO: ensure more stuff is equal for function call
-			return names_equal
+			
+			@println("generics.equals: {to_string(generics.equals(other.generics))}")
+			@println("expressions.equals: {to_string(expressions.equals(other.expressions))}")
+			
+			return @operator_and(
+				@operator_and(
+					names_equal,
+					generics.equals(other.generics)
+				),
+				expressions.equals(other.expressions)
+			)
 		}
 		
 		@panic("bool Expression.equals(Expression): impossible path taken")

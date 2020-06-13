@@ -25,6 +25,20 @@ class String
 	bool equals(String other) return equals(other._raw_string)
 	string to_string() return _raw_string
 	
+	bool starts_with(string other) return starts_with(new String(other))
+	bool starts_with(String other) {
+		number i = 0
+		
+		while (@operator_and(i < other.length, i < length)) {
+			String other_slice = other.skip(i).take(1)
+			String this_slice = skip(i).take(1)
+			
+			if (!other_slice.equals(other_slice)) return false
+		}
+		
+		return true
+	}
+	
 	String skip_whitespace() return skip(new DelegateStringSkipWhitespace())
 	String skip(DelegateStringSkip delegate) {
 		String result = clone()

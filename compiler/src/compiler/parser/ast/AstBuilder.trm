@@ -1,0 +1,118 @@
+use compiler.lexer
+use compiler.parser
+use compiler.parser.statements
+
+class Field
+{
+	bool is_readonly
+	Token name
+	LinkedParsedTypeList generics
+	
+	bool is_private() return name.source.text.starts_with("_")
+	
+	ctor(bool param_is_readonly, Token param_name, LinkedParsedTypeList param_generics) {
+		is_readonly = param_is_readonly
+		name = param_name
+		generics = param_generics
+	}
+}
+
+class Function
+{
+	FunctionHeader header
+	Statement body
+	
+	ctor(FunctionHeader param_header, Statement param_body) {
+		header = param_header
+		body = param_body
+	}
+}
+
+class Member
+{
+	number _type
+	Field _field
+	Function _function
+	
+	ctor(Field field) {
+		_type = 1
+		_field = field
+	}
+	
+	ctor(Function function) {
+		_type = 2
+		_function = function
+	}
+	
+	bool is_field() return _type == 1
+	bool is_function() return _type == 2
+	
+	Field unwrap_field() {
+		if (!is_field()) @panic("Field Member.unwrap_field(): attempt to unwrap a field that is not a field.")
+		return _field
+	}
+	
+	Function unwrap_function() {
+		if (!is_function()) @panic("Function Member.unwrap_function(): attempt to unwrap a function that is not a function.")
+		return _function
+	}
+}
+
+class Class
+{
+	Token name
+	LinkedParsedTypeList generics
+	// manifestable member list
+	
+	ctor(Token param_name, LinkedParsedTypeList param_generics) {
+		name = param_name
+		generics = param_generics
+	}
+}
+
+class FunctionHeader
+{
+	FunctionMeta meta
+	// list of parameters
+	
+	ctor(FunctionMeta param_meta) {
+		meta = param_meta
+	}
+}
+
+class PhantomMember
+{
+	number _type
+	Field _field
+	FunctionHeader _function_header
+	
+	ctor(Field field) {
+		_type = 1
+		_field = field
+	}
+	
+	ctor(FunctionHeader function_header) {
+		_type = 2
+		_function_header = function_header
+	}
+	
+	bool is_field() return _type == 1
+	bool is_function_header() return _type == 2
+	
+	Field unwrap_field() {
+		if (!is_field()) @panic("Field Member.unwrap_field(): attempt to unwrap a field that is not a field.")
+		return _field
+	}
+	
+	FunctionHeader unwrap_function_header() {
+		if (!is_function_header()) @panic("FunctionHeader Member.unwrap_function(): attempt to unwrap a function header that is not a function header.")
+		return _function_header
+	}
+}
+
+class Contract
+{
+	Token name
+	LinkedParsedTypeList generics
+	// member list - PhantomMember
+}

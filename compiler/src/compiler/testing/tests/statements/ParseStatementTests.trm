@@ -3,6 +3,7 @@ use compiler.lexer
 use compiler.parser
 use compiler.parser.expressions
 use compiler.parser.statements
+use std
 
 class ParseStatementTests
 {
@@ -40,26 +41,77 @@ class ParseStatementTests
 		begin("passes on assignment")
 		result = parse_statement(new Lexer("left = right"))
 		assert(result.success == true)
+		assert(result.statement.equals(
+			statement_assignment(
+				assignment(
+					identifier("left"),
+					identifier("right")
+				)
+			)
+		))
 		
 		begin("passes on nested assignment")
 		result = parse_statement(new Lexer("nested.left_hand.side = right"))
 		assert(result.success == true)
+		assert(result.statement.equals(
+			statement_assignment(
+				assignment(
+					member_access(
+						member_access(
+							identifier("nested"),
+							identifier("left_hand")
+						),
+						identifier("side")
+					),
+					identifier("right")
+				)
+			)
+		))
 		
 		begin("passes on nested assignment with call")
 		result = parse_statement(new Lexer("nested.left_hand().side = right"))
 		assert(result.success == true)
+		assert(result.statement.equals(
+			statement_assignment(
+				assignment(
+					member_access(
+						member_access(
+							identifier("nested"),
+							function_call("left_hand", new LinkedParsedTypeList(), new LinkedExpressionList())
+						),
+						identifier("side")
+					),
+					identifier("right")
+				)
+			)
+		))
 		
 		begin("passes on empty collection")
 		result = parse_statement(new Lexer("\{\}"))
 		assert(result.success == true)
+		assert(result.statement.equals(
+			statement_body(new LinkedStatementList())
+		))
 		
 		begin("passes on if statement")
 		result = parse_statement(new Lexer("if (true) \{\}"))
 		assert(result.success == true)
+		assert(result.statement.equals(
+			statement_if(
+				parenthetical(identifier("true")),
+				statement_body(new LinkedStatementList())
+			)
+		))
 		
 		begin("passes on if statement and return")
 		result = parse_statement(new Lexer("if (true) return 1"))
 		assert(result.success == true)
+		assert(result.statement.equals(
+			statement_if(
+				parenthetical(identifier("true")),
+				statement_return(numerical(1))
+			)
+		))
 		
 		begin("passes on if statement and return and else")
 		result = parse_statement(new Lexer("if (true)
@@ -78,9 +130,21 @@ else
 		begin("passes on while")
 		result = parse_statement(new Lexer("while (true) \{\}"))
 		assert(result.success == true)
+		assert(result.statement.equals(
+			statement_while(
+				parenthetical(identifier("true")),
+				statement_body(new LinkedStatementList())
+			)
+		))
 		
 		begin("passes on do while")
 		result = parse_statement(new Lexer("do \{\} while (true)"))
 		assert(result.success == true)
+		assert(result.statement.equals(
+			statement_do_while(
+				statement_body(new LinkedStatementList()),
+				parenthetical(identifier("true"))
+			)
+		))
 	}
 }

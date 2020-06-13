@@ -1,0 +1,105 @@
+// This class is an implementation of a list. Since Terumi does not yet support generics at the time of writing, this is to be copied and
+// pasted wherever a List of T is needed.
+
+// wrapper class to let this code compile
+// ctrl + f "Object" -> "YourType"
+class Object
+{
+	ctor() {
+	}
+}
+
+ListObject ListObject() return new ListObject()
+ListObject ListObject(Object v1) return _chain_add(ListObject(), v1)
+ListObject ListObject(Object v1, Object v2) return _chain_add(ListObject(v1), v2)
+ListObject ListObject(Object v1, Object v2, Object v3) return _chain_add(ListObject(v1, v2), v3)
+ListObject ListObject(Object v1, Object v2, Object v3, Object v4) return _chain_add(ListObject(v1, v2, v3), v4)
+ListObject ListObject(Object v1, Object v2, Object v3, Object v4, Object v5) return _chain_add(ListObject(v1, v2, v3, v4), v5)
+ListObject ListObject(Object v1, Object v2, Object v3, Object v4, Object v5, Object v6) return _chain_add(ListObject(v1, v2, v3, v4, v5), v6)
+ListObject ListObject(Object v1, Object v2, Object v3, Object v4, Object v5, Object v6, Object v7) return _chain_add(ListObject(v1, v2, v3, v4, v5, v6), v7)
+ListObject ListObject(Object v1, Object v2, Object v3, Object v4, Object v5, Object v6, Object v7, Object v8) return _chain_add(ListObject(v1, v2, v3, v4, v5, v6, v7), v8)
+
+ListObject _chain_add(ListObject instance, Object value)
+{
+	instance.add(value)
+	return instance
+}
+
+class ObjectPredicate
+{
+	ctor() {
+	}
+
+	bool matches(Object instance) {
+		return false
+	}
+}
+
+class ListObject
+{
+	ctor() {
+	}
+	
+	number length() {
+		return 0
+	}
+	
+	bool has_any() {
+		return false
+	}
+
+	add(Object value) {
+	}
+	
+	removeAt(number index) {
+	}
+	
+	concat(ListObject other) {
+	}
+	
+	_to_string_object(Object instance) return "N/A"
+	string to_string() {
+		return ""
+	}
+	
+	bool equals(ListObject other) {
+		return false
+	}
+	
+	bool contains(ObjectPredicate predicate) {
+		return false
+	}
+	
+	number index_of(ObjectPredicate predicate) {
+		return (-1)
+	}
+	
+	Object at(number index) {
+		return new Object()
+	}
+	
+	insert(number index, Object value) {
+	}
+	
+	ListObjectEnumerator enumerate() {
+		return new ListObjectEnumerator()
+	}
+}
+
+// ListObjectEnumerator enumerator = list.enumerate()
+// while enumerator.has_next() {
+//     Object next = enumerator.current
+// }
+
+class ListObjectEnumerator
+{
+	ctor() {
+		current = new Object()
+	}
+
+	Object current
+
+	bool has_next() {
+		return false
+	}
+}

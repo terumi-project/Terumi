@@ -50,7 +50,7 @@ class ListTTests
 		assert(list.length() == 4)
 		
 		list.clear()
-		assert(list.length() == 4)
+		assert(list.length() == 0)
 		
 		begin("has_any() returns if list length is > 0")
 		list = generate_list()
@@ -99,6 +99,13 @@ class ListTTests
 		assert(list.at(1).data == "e")
 		assert(list.at(2).data == "d")
 		assert(list.at(3).data == "f")
+		
+		list.insert(0, new Object("g"))
+		assert(list.at(0).data == "g")
+		assert(list.at(1).data == "c")
+		assert(list.at(2).data == "e")
+		assert(list.at(3).data == "d")
+		assert(list.at(4).data == "f")
 		
 		begin("index_of(ObjectPredicate) finds the index")
 		list = generate_list()
@@ -178,30 +185,6 @@ class ListTTests
 		assert(ListObject(d, f).to_string() == "[d, f]")
 		assert(ListObject(d).to_string() == "[d]")
 		assert(ListObject().to_string() == "[]")
-		
-		begin("can concat another list")
-		
-		left = generate_list()
-		right = generate_list()
-		
-		left.concat(right)
-		assert(left.at(0).data == "a")
-		assert(left.at(1).data == "b")
-		assert(left.at(2).data == "c")
-		assert(left.at(0).data == "a")
-		assert(left.at(1).data == "b")
-		assert(left.at(2).data == "c")
-		
-		begin("can concat self")
-		
-		list = generate_list()
-		list.concat(list)
-		assert(list.at(0).data == "a")
-		assert(list.at(1).data == "b")
-		assert(list.at(2).data == "c")
-		assert(list.at(0).data == "a")
-		assert(list.at(1).data == "b")
-		assert(list.at(2).data == "c")
 	}
 	
 	ListObject generate_list() {

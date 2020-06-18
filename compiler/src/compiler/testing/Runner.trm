@@ -18,6 +18,7 @@ the project is still in its infancy.
 ")
 
 	TestRunner runner = new TestRunner(false)
+	runner.print_early = true
 	
 	// ===
 	// Tests commented out so that the most important tests can be ran
@@ -33,7 +34,7 @@ the project is still in its infancy.
 	// runner.run(new ParseGenericsTests())
 	// runner.run(new ParseFunctionMetaTests())
 	// runner.run(new ParseParameterMetaTests())
-	runner.run(new ParseStatementTests())
+	// runner.run(new ParseStatementTests())
 	// runner.run(new ParseExpressionTests())
 	// runner.run(new ParseAdditionTests())
 	// runner.run(new ParseValueTests())
@@ -56,6 +57,7 @@ class TestRunner
 	string _log_failed
 	number _passed
 	number _failed
+	bool print_early
 
 	ctor(bool show_success) {
 		_show_success = show_success
@@ -63,12 +65,13 @@ class TestRunner
 		_log_failed = ""
 		_passed = 0
 		_failed = 0
+		print_early = false
 	}
 	
 	run(ContractTestable suite) {
 		string all = "[{suite.test_group}] - " // include stats about run
 		
-		RunnerImpl impl = new RunnerImpl(_show_success)
+		RunnerImpl impl = new RunnerImpl(_show_success, print_early)
 		suite.test(new RunnerWrapper(impl))
 		impl.done()
 		
@@ -166,6 +169,7 @@ class RunnerImpl
 	string _log_body
 	bool _has_been_failure
 	bool _show_success
+	bool _print_early
 	number _assertions
 	
 	number passed_assertions
@@ -175,14 +179,16 @@ class RunnerImpl
 	number segment_passed_assertions
 	number segment_failed_assertions
 	
-	ctor(bool show_success) {
+	ctor(bool show_success, bool print_early) {
 		_show_success = show_success
+		_print_early = print_early
 		passed_assertions = 0
 		failed_assertions = 0
 		log = ""
 	}
 	
 	begin(string section_name) {
+		if _print_early @println("testing [{section_name}]:")
 		_log_header = "	{section_name}:"
 		_log_body = ""
 		_assertions = 0
@@ -193,6 +199,7 @@ class RunnerImpl
 	
 	assert(bool condition) {
 		_assertions = _assertions + 1
+		if _print_early @println("       #{to_string(_assertions)}")
 		
 		if (condition) {
 			passed_assertions = passed_assertions + 1

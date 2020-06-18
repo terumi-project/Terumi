@@ -39,6 +39,7 @@ the project is still in its infancy.
 	// runner.run(new ParseValueTests())
 	// runner.run(new ParseUnaryTests())
 	// runner.run(new ParseParentheticalTests())
+	runner.run(new ListTTests())
 	
 	@println("== TESTS == {to_string(runner._passed)} assertions passed, {to_string(runner._failed)} assertions failed")
 	@println(runner._log_pass)

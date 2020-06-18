@@ -1,0 +1,210 @@
+use std
+use compiler.testing
+
+class ObjectPredicateImpl
+{
+	string _search
+	ctor(string search) _search = search
+
+	bool matches(Object other) return other.data == _search
+}
+
+class ListTTests
+{
+	string test_group
+	ContractTestHelper runner
+
+	ctor() {
+		test_group = "ListT"
+	}
+	
+	begin(string name) runner.begin(name)
+	assert(bool condition) runner.assert(condition)
+	
+	test(ContractTestHelper test_runner) {
+		runner = test_runner
+		
+		begin("ctor() returns empty list")
+		ListObject list = new ListObject()
+		assert(list.length() == 0)
+		assert(list.has_any() == false)
+		assert(list.to_string() == "[]")
+		
+		begin("ListObject(Object, Object, Object) matches up with ListObject.at(number)")
+		list = generate_list()
+		assert(list.at(0).data == "a")
+		assert(list.at(1).data == "b")
+		assert(list.at(2).data == "c")
+		
+		begin("length() returns length of list")
+		list = generate_list()
+		assert(list.length() == 3)
+		
+		list.add(new Object("d"))
+		assert(list.length() == 4)
+		
+		list.removeAt(1)
+		assert(list.length() == 3)
+		
+		list.insert(2, new Object("e"))
+		assert(list.length() == 4)
+		
+		list.clear()
+		assert(list.length() == 4)
+		
+		begin("has_any() returns if list length is > 0")
+		list = generate_list()
+		assert(list.has_any() == list.length() > 0)
+		
+		list.add(new Object("d"))
+		assert(list.has_any() == list.length() > 0)
+		
+		list.removeAt(1)
+		assert(list.has_any() == list.length() > 0)
+		
+		list.insert(2, new Object("e"))
+		assert(list.has_any() == list.length() > 0)
+		
+		list.clear()
+		assert(list.has_any() == list.length() > 0)
+		
+		begin("add() & insert() & remove() modify list correctly")
+		list = generate_list()
+		list.add(new Object("d"))
+		assert(list.at(0).data == "a")
+		assert(list.at(1).data == "b")
+		assert(list.at(2).data == "c")
+		assert(list.at(3).data == "d")
+		
+		list.removeAt(1)
+		assert(list.at(0).data == "a")
+		assert(list.at(1).data == "c")
+		assert(list.at(2).data == "d")
+		
+		list.insert(2, new Object("e"))
+		assert(list.at(0).data == "a")
+		assert(list.at(1).data == "c")
+		assert(list.at(2).data == "e")
+		assert(list.at(3).data == "d")
+		
+		list.insert(4, new Object("f"))
+		assert(list.at(0).data == "a")
+		assert(list.at(1).data == "c")
+		assert(list.at(2).data == "e")
+		assert(list.at(3).data == "d")
+		assert(list.at(4).data == "f")
+		
+		list.removeAt(0)
+		assert(list.at(0).data == "c")
+		assert(list.at(1).data == "e")
+		assert(list.at(2).data == "d")
+		assert(list.at(3).data == "f")
+		
+		begin("index_of(ObjectPredicate) finds the index")
+		list = generate_list()
+		assert(1 == list.index_of(new ObjectPredicateImpl("b")))
+		assert(-1 == list.index_of(new ObjectPredicateImpl("d")))
+		assert(true == list.contains(new ObjectPredicateImpl("b")))
+		assert(false == list.contains(new ObjectPredicateImpl("d")))
+		
+		begin("enumerate() enumerates the list")
+		list = generate_list()
+		ListObjectEnumerator enumerator = list.enumerate()
+		
+		assert(enumerator.has_next() == true)
+		assert(enumerator.current.data == "a")
+		assert(enumerator.current.data == "a")
+		assert(enumerator.current.data == "a")
+		assert(enumerator.has_next() == true)
+		assert(enumerator.current.data == "b")
+		assert(enumerator.current.data == "b")
+		assert(enumerator.current.data == "b")
+		assert(enumerator.has_next() == true)
+		assert(enumerator.current.data == "c")
+		assert(enumerator.current.data == "c")
+		assert(enumerator.current.data == "c")
+		assert(enumerator.has_next() == false)
+		assert(enumerator.current.data == "c")
+		assert(enumerator.current.data == "c")
+		assert(enumerator.has_next() == false)
+		assert(enumerator.current.data == "c")
+		assert(enumerator.current.data == "c")
+		assert(enumerator.has_next() == false)
+		
+		begin("equals(ListObject) works")
+		ListObject left = generate_list()
+		ListObject right = generate_list()
+		
+		assert(left.equals(right))
+		assert(right.equals(left))
+		
+		right.removeAt(0)
+		assert(!left.equals(right))
+		assert(!right.equals(left))
+		
+		left.removeAt(0)
+		assert(left.equals(right))
+		assert(right.equals(left))
+		
+		begin("to_string() works")
+		list = generate_list()
+		assert(list.to_string() == "[a, b, c]")
+		
+		list.removeAt(0)
+		assert(list.to_string() == "[b, c]")
+		
+		list.removeAt(1)
+		assert(list.to_string() == "[b]")
+		
+		list.removeAt(0)
+		assert(list.to_string() == "[]")
+		
+		begin("builder methods work")
+		
+		Object a = new Object("a")
+		Object b = new Object("b")
+		Object c = new Object("c")
+		Object d = new Object("d")
+		Object e = new Object("e")
+		Object f = new Object("f")
+		Object g = new Object("g")
+		Object h = new Object("h")
+		assert(ListObject(a, b, c, d, e, f, g, h).to_string() == "[a, b, c, d, e, f, g, h]")
+		assert(ListObject(a, b, d, e, f, g, h).to_string() == "[a, b, d, e, f, g, h]")
+		assert(ListObject(a, b, d, e, f, h).to_string() == "[a, b, d, e, f, h]")
+		assert(ListObject(b, d, e, f, h).to_string() == "[b, d, e, f, h]")
+		assert(ListObject(b, d, f, h).to_string() == "[b, d, f, h]")
+		assert(ListObject(b, d, f).to_string() == "[b, d, f]")
+		assert(ListObject(d, f).to_string() == "[d, f]")
+		assert(ListObject(d).to_string() == "[d]")
+		assert(ListObject().to_string() == "[]")
+		
+		begin("can concat another list")
+		
+		left = generate_list()
+		right = generate_list()
+		
+		left.concat(right)
+		assert(left.at(0).data == "a")
+		assert(left.at(1).data == "b")
+		assert(left.at(2).data == "c")
+		assert(left.at(0).data == "a")
+		assert(left.at(1).data == "b")
+		assert(left.at(2).data == "c")
+		
+		begin("can concat self")
+		
+		list = generate_list()
+		list.concat(list)
+		assert(list.at(0).data == "a")
+		assert(list.at(1).data == "b")
+		assert(list.at(2).data == "c")
+		assert(list.at(0).data == "a")
+		assert(list.at(1).data == "b")
+		assert(list.at(2).data == "c")
+	}
+	
+	ListObject generate_list() {
+		return ListObject(new Object("a"), new Object("b"), new Object("c"))
+	}
+}

@@ -5,7 +5,14 @@
 // ctrl + f "Object" -> "YourType"
 class Object
 {
+	string data
+
+	ctor(string param_data) {
+		data = param_data
+	}
+	
 	ctor() {
+		data = ""
 	}
 }
 
@@ -27,9 +34,6 @@ ListObject _chain_add(ListObject instance, Object value)
 
 class ObjectPredicate
 {
-	ctor() {
-	}
-
 	bool matches(Object instance) {
 		return false
 	}
@@ -37,6 +41,8 @@ class ObjectPredicate
 
 class ListObject
 {
+	_to_string_object(Object instance) return "N/A"
+	
 	ctor() {
 	}
 	
@@ -57,7 +63,9 @@ class ListObject
 	concat(ListObject other) {
 	}
 	
-	_to_string_object(Object instance) return "N/A"
+	clear() {
+	}
+	
 	string to_string() {
 		return ""
 	}

@@ -1,0 +1,352 @@
+use std
+
+ListFunction ListFunction() return new ListFunction()
+ListFunction ListFunction(Function v1) return _chain_add(ListFunction(), v1)
+ListFunction ListFunction(Function v1, Function v2) return _chain_add(ListFunction(v1), v2)
+ListFunction ListFunction(Function v1, Function v2, Function v3) return _chain_add(ListFunction(v1, v2), v3)
+ListFunction ListFunction(Function v1, Function v2, Function v3, Function v4) return _chain_add(ListFunction(v1, v2, v3), v4)
+ListFunction ListFunction(Function v1, Function v2, Function v3, Function v4, Function v5) return _chain_add(ListFunction(v1, v2, v3, v4), v5)
+ListFunction ListFunction(Function v1, Function v2, Function v3, Function v4, Function v5, Function v6) return _chain_add(ListFunction(v1, v2, v3, v4, v5), v6)
+ListFunction ListFunction(Function v1, Function v2, Function v3, Function v4, Function v5, Function v6, Function v7) return _chain_add(ListFunction(v1, v2, v3, v4, v5, v6), v7)
+ListFunction ListFunction(Function v1, Function v2, Function v3, Function v4, Function v5, Function v6, Function v7, Function v8) return _chain_add(ListFunction(v1, v2, v3, v4, v5, v6, v7), v8)
+
+ListFunction _chain_add(ListFunction instance, Function value)
+{
+	instance.add(value)
+	return instance
+}
+
+class FunctionPredicate
+{
+	bool matches(Function instance) {
+		return false
+	}
+}
+
+class ListFunction
+{
+	string _to_string_Function(Function other) return other.to_string()
+	bool _equals_Function(Function left, Function right) return left.equals(right)
+	
+	_ListFunctionNode _root
+	_ListFunctionNode _tail
+	
+	ctor() {
+		_root = new _ListFunctionNode()
+		_tail = _root
+	}
+	
+	number length() {
+		number count = 0
+		
+		ListFunctionEnumerator enumerator = enumerate()
+		while enumerator.has_next() {
+			count++
+		}
+		
+		return count
+	}
+	
+	bool has_any() {
+		return _root.has_value
+	}
+
+	add(Function value) {
+		_tail.value(value)
+		
+		_ListFunctionNode new_tail = new _ListFunctionNode()
+		new_tail.prev(_tail)
+		_tail.next(new_tail)
+		_tail = new_tail
+	}
+	
+	removeAt(number index) {
+		number i = 0
+		
+		if index == 0 {
+			if !has_any() {
+				@panic("ListFunction.removeAt(number): attempted to remove element at position 0 when none exists")
+			}
+			
+			_root = _root.safe_next()
+			return
+		}
+		
+		ListFunctionEnumerator enumerator = enumerate()
+		while @operator_and(i <= index, enumerator.has_next()) {
+			if i == index {
+				_ListFunctionNode node = enumerator._current
+				
+				if @operator_and(node.has_prev, node.has_next) {
+					// stitch previous node to refer to next node,
+					// and next node to refer to previous node
+					node.safe_prev().next(node.safe_next())
+					node.safe_next().prev(node.safe_prev())
+				}
+				else if node.has_prev {
+					// if it only has a previous, clear the previous node's next
+					node.safe_prev().next()
+				}
+				else if node.has_next {
+					// if it only has a next, clear the next node's previous
+					node.safe_next().prev()
+				}
+				else {
+					@panic("ListFunction.removeAt(number): unsure how to remove node from chain. has neither prev nor next.")
+					return
+				}
+				
+				return
+			}
+			i++
+		}
+		i--
+		
+		@panic("ListFunction.removeAt(number): unable to remove element at index {to_string(index)} (enumerated up until {to_string(i)})")
+	}
+	
+	clear() {
+		ctor()
+	}
+	
+	string to_string() {
+		string total = "["
+		
+		bool has_enumerated = false
+		ListFunctionEnumerator enumerator = enumerate()
+		while enumerator.has_next() {
+			if has_enumerated {
+				total = "{total}, {_to_string_Function(enumerator.current)}"
+			}
+			else {
+				total = "{total}{_to_string_Function(enumerator.current)}"
+				has_enumerated = true
+			}
+		}
+		
+		return "{total}]"
+	}
+	
+	bool equals(ListFunction other) {
+		ListFunctionEnumerator enumerateThis = enumerate()
+		ListFunctionEnumerator enumerateThat = other.enumerate()
+		
+		do {
+			bool thisNext = enumerateThis.has_next()
+			bool thatNext = enumerateThat.has_next()
+			
+			if thisNext != thatNext return false
+			
+			// if there are no more items, quit
+			// we've verified that the two are the same so we don't need to check both
+			if !thisNext return true
+			
+			// they were both true so we can guarantee that there's an item
+			if !_equals_Function(enumerateThis.current, enumerateThat.current) return false
+		} while(true)
+	}
+	
+	bool contains(FunctionPredicate predicate) {
+		return index_of(predicate) != -1
+	}
+	
+	number index_of(FunctionPredicate predicate) {
+		number i = 0
+		
+		ListFunctionEnumerator enumerator = enumerate()
+		while enumerator.has_next() {
+			if predicate.matches(enumerator.current) return i
+			i++
+		}
+		
+		return (-1)
+	}
+	
+	Function at(number index) {
+		number i = 0
+		
+		ListFunctionEnumerator enumerator = enumerate()
+		while @operator_and(i <= index, enumerator.has_next()) {
+			if i == index return enumerator.current
+			i++
+		}
+		i--
+		
+		@panic("Function ListFunction.at(number): unable to find element at index {to_string(index)} (enumerated up until {to_string(i)})")
+	}
+	
+	insert(number index, Function value) {
+		number i = 0
+		
+		if index == 0 {
+			_ListFunctionNode new_root = new _ListFunctionNode()
+			new_root.value(value)
+			new_root.next(_root)
+			_root = new_root
+			return
+		}
+		
+		ListFunctionEnumerator enumerator = enumerate()
+		while @operator_and(i <= index, enumerator.has_next()) {
+			if i == index {
+				_ListFunctionNode node = enumerator._current
+				
+				// set this node's previous entry to point to the next one
+				// we handled the case where i is 0, so we know we must have a previous node
+				_ListFunctionNode inject = new _ListFunctionNode()
+				inject.value(value)
+				inject.next(node)
+				inject.prev(node.safe_prev())
+				
+				node.safe_prev().next(inject)
+				
+				return
+			}
+			i++
+		}
+		
+		if i == index {
+			// we're inserting at the end - aka, adding
+			add(value)
+			return
+		}
+		
+		i--
+		
+		@panic("ListFunction.insert(number, Function): unable to insert element at index {to_string(index)} (enumerated up until {to_string(i)})")
+	}
+	
+	ListFunctionEnumerator enumerate() {
+		return new ListFunctionEnumerator(_root)
+	}
+	
+	_debug_print_structure() {
+		@println("_root: ")
+		_root._debug_print_structure("  ")
+	}
+}
+
+// ListFunctionEnumerator enumerator = list.enumerate()
+// while enumerator.has_next() {
+//     Function next = enumerator.current
+// }
+
+class ListFunctionEnumerator
+{
+	Function current
+	
+	bool _has_enumerated
+	_ListFunctionNode _current
+
+	ctor(_ListFunctionNode node_current) {
+		_has_enumerated = false
+		_current = node_current
+	}
+
+	bool has_next() {
+		if !_has_enumerated {
+			if _current.has_value {
+				current = _current.safe_value()
+				
+				_has_enumerated = true
+				return true
+			}
+			
+			return false
+		}
+		
+		if _current.has_next {
+			_current = _current.safe_next()
+			
+			if _current.has_value {
+				current = _current.safe_value()
+				return true
+			}
+		}
+		
+		return false
+	}
+}
+
+class _ListFunctionNode
+{
+	bool has_value
+	Function value
+	
+	bool has_next
+	_ListFunctionNode next
+	
+	bool has_prev
+	_ListFunctionNode prev
+	
+	ctor() {
+		has_value = false
+		has_next = false
+		has_prev = false
+	}
+	
+	Function safe_value() {
+		if !has_value {
+			@panic("Function _ListFunctionNode.safe_value(): attempted to take value when no value present")
+		}
+		
+		return value
+	}
+	
+	_ListFunctionNode safe_next() {
+		if !has_next {
+			@panic("_ListFunctionNode _ListFunctionNode.safe_next(): attempted to take next when no next present")
+		}
+		
+		return next
+	}
+	
+	_ListFunctionNode safe_prev() {
+		if !has_prev {
+			@panic("_ListFunctionNode _ListFunctionNode.safe_prev(): attempted to take prev when no prev present")
+		}
+		
+		return prev
+	}
+	
+	value() {
+		has_value = false
+	}
+	
+	value(Function new_value) {
+		has_value = true
+		value = new_value
+	}
+	
+	next() {
+		has_next = false
+	}
+	
+	next(_ListFunctionNode new_next) {
+		has_next = true
+		next = new_next
+	}
+	
+	prev() {
+		has_prev = false
+	}
+	
+	prev(_ListFunctionNode new_prev) {
+		has_prev = true
+		prev = new_prev
+	}
+	
+	_debug_print_structure(string tab) {
+		@println("{tab}- has_value: {to_string(has_value)}")
+		if has_value {
+			@println("{tab}  {new ListFunction()._to_string_Function(value)}")
+		}
+		
+		@println("{tab}- has_prev: {to_string(has_prev)}")
+		
+		@println("{tab}- has_next: {to_string(has_next)}")
+		if has_next {
+			next._debug_print_structure("{tab}  ")
+		}
+	}
+}

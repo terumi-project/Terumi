@@ -2,6 +2,52 @@ use compiler.lexer
 use compiler.parser
 use compiler.parser.statements
 
+// TODO: implement
+class Ast
+{
+	ListUsePackage use_packages
+	
+	bool has_declaration
+	DeclarePackage declaration
+	
+	ListFunction functions
+	ListClass classes
+	ListContract contracts
+	
+	ctor() {
+	}
+}
+
+// TODO: implement
+class UsePackage
+{
+	ctor() {
+	}
+	
+	bool equals(UsePackage other) {
+		return true
+	}
+	
+	string to_string() {
+		return "string UsePackage.to_string(): not implemented"
+	}
+}
+
+// TODO: implement
+class DeclarePackage
+{
+	ctor() {
+	}
+	
+	bool equals(DeclarePackage other) {
+		return true
+	}
+	
+	string to_string() {
+		return "string DeclarePackage.to_string(): not implemented"
+	}
+}
+
 class Field
 {
 	bool is_readonly
@@ -37,6 +83,10 @@ class Function
 			header.equals(other.header),
 			body.equals(other.body)
 		)
+	}
+	
+	string to_string() {
+		return "string Function.to_string(): not implemented"
 	}
 }
 
@@ -98,6 +148,20 @@ class Class
 		name = param_name
 		generics = param_generics
 		members = param_members
+	}
+	
+	bool equals(Class other) {
+		return @operator_and(
+			@operator_and(
+				name.equals(other.name),
+				generics.equals(other.generics)
+			),
+			members.equals(other.members)
+		)
+	}
+	
+	string to_string() {
+		return "string Class.to_string(): not implemented"
 	}
 }
 
@@ -173,5 +237,19 @@ class Contract
 		name = param_name
 		generics = param_generics
 		members = param_members
+	}
+	
+	bool equals(Contract other) {
+		return @operator_and(
+			@operator_and(
+				name.equals(other.name),
+				generics.equals(other.generics)
+			),
+			members.equals(other.members)
+		)
+	}
+	
+	string to_string() {
+		return "string Contract.to_string(): not implemented"
 	}
 }

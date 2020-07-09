@@ -1,0 +1,352 @@
+use std
+
+ListUsePackage ListUsePackage() return new ListUsePackage()
+ListUsePackage ListUsePackage(UsePackage v1) return _chain_add(ListUsePackage(), v1)
+ListUsePackage ListUsePackage(UsePackage v1, UsePackage v2) return _chain_add(ListUsePackage(v1), v2)
+ListUsePackage ListUsePackage(UsePackage v1, UsePackage v2, UsePackage v3) return _chain_add(ListUsePackage(v1, v2), v3)
+ListUsePackage ListUsePackage(UsePackage v1, UsePackage v2, UsePackage v3, UsePackage v4) return _chain_add(ListUsePackage(v1, v2, v3), v4)
+ListUsePackage ListUsePackage(UsePackage v1, UsePackage v2, UsePackage v3, UsePackage v4, UsePackage v5) return _chain_add(ListUsePackage(v1, v2, v3, v4), v5)
+ListUsePackage ListUsePackage(UsePackage v1, UsePackage v2, UsePackage v3, UsePackage v4, UsePackage v5, UsePackage v6) return _chain_add(ListUsePackage(v1, v2, v3, v4, v5), v6)
+ListUsePackage ListUsePackage(UsePackage v1, UsePackage v2, UsePackage v3, UsePackage v4, UsePackage v5, UsePackage v6, UsePackage v7) return _chain_add(ListUsePackage(v1, v2, v3, v4, v5, v6), v7)
+ListUsePackage ListUsePackage(UsePackage v1, UsePackage v2, UsePackage v3, UsePackage v4, UsePackage v5, UsePackage v6, UsePackage v7, UsePackage v8) return _chain_add(ListUsePackage(v1, v2, v3, v4, v5, v6, v7), v8)
+
+ListUsePackage _chain_add(ListUsePackage instance, UsePackage value)
+{
+	instance.add(value)
+	return instance
+}
+
+class UsePackagePredicate
+{
+	bool matches(UsePackage instance) {
+		return false
+	}
+}
+
+class ListUsePackage
+{
+	string _to_string_UsePackage(UsePackage other) return other.to_string()
+	bool _equals_UsePackage(UsePackage left, UsePackage right) return left.equals(right)
+	
+	_ListUsePackageNode _root
+	_ListUsePackageNode _tail
+	
+	ctor() {
+		_root = new _ListUsePackageNode()
+		_tail = _root
+	}
+	
+	number length() {
+		number count = 0
+		
+		ListUsePackageEnumerator enumerator = enumerate()
+		while enumerator.has_next() {
+			count++
+		}
+		
+		return count
+	}
+	
+	bool has_any() {
+		return _root.has_value
+	}
+
+	add(UsePackage value) {
+		_tail.value(value)
+		
+		_ListUsePackageNode new_tail = new _ListUsePackageNode()
+		new_tail.prev(_tail)
+		_tail.next(new_tail)
+		_tail = new_tail
+	}
+	
+	removeAt(number index) {
+		number i = 0
+		
+		if index == 0 {
+			if !has_any() {
+				@panic("ListUsePackage.removeAt(number): attempted to remove element at position 0 when none exists")
+			}
+			
+			_root = _root.safe_next()
+			return
+		}
+		
+		ListUsePackageEnumerator enumerator = enumerate()
+		while @operator_and(i <= index, enumerator.has_next()) {
+			if i == index {
+				_ListUsePackageNode node = enumerator._current
+				
+				if @operator_and(node.has_prev, node.has_next) {
+					// stitch previous node to refer to next node,
+					// and next node to refer to previous node
+					node.safe_prev().next(node.safe_next())
+					node.safe_next().prev(node.safe_prev())
+				}
+				else if node.has_prev {
+					// if it only has a previous, clear the previous node's next
+					node.safe_prev().next()
+				}
+				else if node.has_next {
+					// if it only has a next, clear the next node's previous
+					node.safe_next().prev()
+				}
+				else {
+					@panic("ListUsePackage.removeAt(number): unsure how to remove node from chain. has neither prev nor next.")
+					return
+				}
+				
+				return
+			}
+			i++
+		}
+		i--
+		
+		@panic("ListUsePackage.removeAt(number): unable to remove element at index {to_string(index)} (enumerated up until {to_string(i)})")
+	}
+	
+	clear() {
+		ctor()
+	}
+	
+	string to_string() {
+		string total = "["
+		
+		bool has_enumerated = false
+		ListUsePackageEnumerator enumerator = enumerate()
+		while enumerator.has_next() {
+			if has_enumerated {
+				total = "{total}, {_to_string_UsePackage(enumerator.current)}"
+			}
+			else {
+				total = "{total}{_to_string_UsePackage(enumerator.current)}"
+				has_enumerated = true
+			}
+		}
+		
+		return "{total}]"
+	}
+	
+	bool equals(ListUsePackage other) {
+		ListUsePackageEnumerator enumerateThis = enumerate()
+		ListUsePackageEnumerator enumerateThat = other.enumerate()
+		
+		do {
+			bool thisNext = enumerateThis.has_next()
+			bool thatNext = enumerateThat.has_next()
+			
+			if thisNext != thatNext return false
+			
+			// if there are no more items, quit
+			// we've verified that the two are the same so we don't need to check both
+			if !thisNext return true
+			
+			// they were both true so we can guarantee that there's an item
+			if !_equals_UsePackage(enumerateThis.current, enumerateThat.current) return false
+		} while(true)
+	}
+	
+	bool contains(UsePackagePredicate predicate) {
+		return index_of(predicate) != -1
+	}
+	
+	number index_of(UsePackagePredicate predicate) {
+		number i = 0
+		
+		ListUsePackageEnumerator enumerator = enumerate()
+		while enumerator.has_next() {
+			if predicate.matches(enumerator.current) return i
+			i++
+		}
+		
+		return (-1)
+	}
+	
+	UsePackage at(number index) {
+		number i = 0
+		
+		ListUsePackageEnumerator enumerator = enumerate()
+		while @operator_and(i <= index, enumerator.has_next()) {
+			if i == index return enumerator.current
+			i++
+		}
+		i--
+		
+		@panic("UsePackage ListUsePackage.at(number): unable to find element at index {to_string(index)} (enumerated up until {to_string(i)})")
+	}
+	
+	insert(number index, UsePackage value) {
+		number i = 0
+		
+		if index == 0 {
+			_ListUsePackageNode new_root = new _ListUsePackageNode()
+			new_root.value(value)
+			new_root.next(_root)
+			_root = new_root
+			return
+		}
+		
+		ListUsePackageEnumerator enumerator = enumerate()
+		while @operator_and(i <= index, enumerator.has_next()) {
+			if i == index {
+				_ListUsePackageNode node = enumerator._current
+				
+				// set this node's previous entry to point to the next one
+				// we handled the case where i is 0, so we know we must have a previous node
+				_ListUsePackageNode inject = new _ListUsePackageNode()
+				inject.value(value)
+				inject.next(node)
+				inject.prev(node.safe_prev())
+				
+				node.safe_prev().next(inject)
+				
+				return
+			}
+			i++
+		}
+		
+		if i == index {
+			// we're inserting at the end - aka, adding
+			add(value)
+			return
+		}
+		
+		i--
+		
+		@panic("ListUsePackage.insert(number, UsePackage): unable to insert element at index {to_string(index)} (enumerated up until {to_string(i)})")
+	}
+	
+	ListUsePackageEnumerator enumerate() {
+		return new ListUsePackageEnumerator(_root)
+	}
+	
+	_debug_print_structure() {
+		@println("_root: ")
+		_root._debug_print_structure("  ")
+	}
+}
+
+// ListUsePackageEnumerator enumerator = list.enumerate()
+// while enumerator.has_next() {
+//     UsePackage next = enumerator.current
+// }
+
+class ListUsePackageEnumerator
+{
+	UsePackage current
+	
+	bool _has_enumerated
+	_ListUsePackageNode _current
+
+	ctor(_ListUsePackageNode node_current) {
+		_has_enumerated = false
+		_current = node_current
+	}
+
+	bool has_next() {
+		if !_has_enumerated {
+			if _current.has_value {
+				current = _current.safe_value()
+				
+				_has_enumerated = true
+				return true
+			}
+			
+			return false
+		}
+		
+		if _current.has_next {
+			_current = _current.safe_next()
+			
+			if _current.has_value {
+				current = _current.safe_value()
+				return true
+			}
+		}
+		
+		return false
+	}
+}
+
+class _ListUsePackageNode
+{
+	bool has_value
+	UsePackage value
+	
+	bool has_next
+	_ListUsePackageNode next
+	
+	bool has_prev
+	_ListUsePackageNode prev
+	
+	ctor() {
+		has_value = false
+		has_next = false
+		has_prev = false
+	}
+	
+	UsePackage safe_value() {
+		if !has_value {
+			@panic("UsePackage _ListUsePackageNode.safe_value(): attempted to take value when no value present")
+		}
+		
+		return value
+	}
+	
+	_ListUsePackageNode safe_next() {
+		if !has_next {
+			@panic("_ListUsePackageNode _ListUsePackageNode.safe_next(): attempted to take next when no next present")
+		}
+		
+		return next
+	}
+	
+	_ListUsePackageNode safe_prev() {
+		if !has_prev {
+			@panic("_ListUsePackageNode _ListUsePackageNode.safe_prev(): attempted to take prev when no prev present")
+		}
+		
+		return prev
+	}
+	
+	value() {
+		has_value = false
+	}
+	
+	value(UsePackage new_value) {
+		has_value = true
+		value = new_value
+	}
+	
+	next() {
+		has_next = false
+	}
+	
+	next(_ListUsePackageNode new_next) {
+		has_next = true
+		next = new_next
+	}
+	
+	prev() {
+		has_prev = false
+	}
+	
+	prev(_ListUsePackageNode new_prev) {
+		has_prev = true
+		prev = new_prev
+	}
+	
+	_debug_print_structure(string tab) {
+		@println("{tab}- has_value: {to_string(has_value)}")
+		if has_value {
+			@println("{tab}  {new ListUsePackage()._to_string_UsePackage(value)}")
+		}
+		
+		@println("{tab}- has_prev: {to_string(has_prev)}")
+		
+		@println("{tab}- has_next: {to_string(has_next)}")
+		if has_next {
+			next._debug_print_structure("{tab}  ")
+		}
+	}
+}

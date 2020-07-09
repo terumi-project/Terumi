@@ -1,0 +1,353 @@
+use std
+use compiler.parser
+
+ListParameterMeta ListParameterMeta() return new ListParameterMeta()
+ListParameterMeta ListParameterMeta(ParameterMeta v1) return _chain_add(ListParameterMeta(), v1)
+ListParameterMeta ListParameterMeta(ParameterMeta v1, ParameterMeta v2) return _chain_add(ListParameterMeta(v1), v2)
+ListParameterMeta ListParameterMeta(ParameterMeta v1, ParameterMeta v2, ParameterMeta v3) return _chain_add(ListParameterMeta(v1, v2), v3)
+ListParameterMeta ListParameterMeta(ParameterMeta v1, ParameterMeta v2, ParameterMeta v3, ParameterMeta v4) return _chain_add(ListParameterMeta(v1, v2, v3), v4)
+ListParameterMeta ListParameterMeta(ParameterMeta v1, ParameterMeta v2, ParameterMeta v3, ParameterMeta v4, ParameterMeta v5) return _chain_add(ListParameterMeta(v1, v2, v3, v4), v5)
+ListParameterMeta ListParameterMeta(ParameterMeta v1, ParameterMeta v2, ParameterMeta v3, ParameterMeta v4, ParameterMeta v5, ParameterMeta v6) return _chain_add(ListParameterMeta(v1, v2, v3, v4, v5), v6)
+ListParameterMeta ListParameterMeta(ParameterMeta v1, ParameterMeta v2, ParameterMeta v3, ParameterMeta v4, ParameterMeta v5, ParameterMeta v6, ParameterMeta v7) return _chain_add(ListParameterMeta(v1, v2, v3, v4, v5, v6), v7)
+ListParameterMeta ListParameterMeta(ParameterMeta v1, ParameterMeta v2, ParameterMeta v3, ParameterMeta v4, ParameterMeta v5, ParameterMeta v6, ParameterMeta v7, ParameterMeta v8) return _chain_add(ListParameterMeta(v1, v2, v3, v4, v5, v6, v7), v8)
+
+ListParameterMeta _chain_add(ListParameterMeta instance, ParameterMeta value)
+{
+	instance.add(value)
+	return instance
+}
+
+class ParameterMetaPredicate
+{
+	bool matches(ParameterMeta instance) {
+		return false
+	}
+}
+
+class ListParameterMeta
+{
+	string _to_string_ParameterMeta(ParameterMeta other) return other.to_string()
+	bool _equals_ParameterMeta(ParameterMeta left, ParameterMeta right) return left.equals(right)
+	
+	_ListParameterMetaNode _root
+	_ListParameterMetaNode _tail
+	
+	ctor() {
+		_root = new _ListParameterMetaNode()
+		_tail = _root
+	}
+	
+	number length() {
+		number count = 0
+		
+		ListParameterMetaEnumerator enumerator = enumerate()
+		while enumerator.has_next() {
+			count++
+		}
+		
+		return count
+	}
+	
+	bool has_any() {
+		return _root.has_value
+	}
+
+	add(ParameterMeta value) {
+		_tail.value(value)
+		
+		_ListParameterMetaNode new_tail = new _ListParameterMetaNode()
+		new_tail.prev(_tail)
+		_tail.next(new_tail)
+		_tail = new_tail
+	}
+	
+	removeAt(number index) {
+		number i = 0
+		
+		if index == 0 {
+			if !has_any() {
+				@panic("ListParameterMeta.removeAt(number): attempted to remove element at position 0 when none exists")
+			}
+			
+			_root = _root.safe_next()
+			return
+		}
+		
+		ListParameterMetaEnumerator enumerator = enumerate()
+		while @operator_and(i <= index, enumerator.has_next()) {
+			if i == index {
+				_ListParameterMetaNode node = enumerator._current
+				
+				if @operator_and(node.has_prev, node.has_next) {
+					// stitch previous node to refer to next node,
+					// and next node to refer to previous node
+					node.safe_prev().next(node.safe_next())
+					node.safe_next().prev(node.safe_prev())
+				}
+				else if node.has_prev {
+					// if it only has a previous, clear the previous node's next
+					node.safe_prev().next()
+				}
+				else if node.has_next {
+					// if it only has a next, clear the next node's previous
+					node.safe_next().prev()
+				}
+				else {
+					@panic("ListParameterMeta.removeAt(number): unsure how to remove node from chain. has neither prev nor next.")
+					return
+				}
+				
+				return
+			}
+			i++
+		}
+		i--
+		
+		@panic("ListParameterMeta.removeAt(number): unable to remove element at index {to_string(index)} (enumerated up until {to_string(i)})")
+	}
+	
+	clear() {
+		ctor()
+	}
+	
+	string to_string() {
+		string total = "["
+		
+		bool has_enumerated = false
+		ListParameterMetaEnumerator enumerator = enumerate()
+		while enumerator.has_next() {
+			if has_enumerated {
+				total = "{total}, {_to_string_ParameterMeta(enumerator.current)}"
+			}
+			else {
+				total = "{total}{_to_string_ParameterMeta(enumerator.current)}"
+				has_enumerated = true
+			}
+		}
+		
+		return "{total}]"
+	}
+	
+	bool equals(ListParameterMeta other) {
+		ListParameterMetaEnumerator enumerateThis = enumerate()
+		ListParameterMetaEnumerator enumerateThat = other.enumerate()
+		
+		do {
+			bool thisNext = enumerateThis.has_next()
+			bool thatNext = enumerateThat.has_next()
+			
+			if thisNext != thatNext return false
+			
+			// if there are no more items, quit
+			// we've verified that the two are the same so we don't need to check both
+			if !thisNext return true
+			
+			// they were both true so we can guarantee that there's an item
+			if !_equals_ParameterMeta(enumerateThis.current, enumerateThat.current) return false
+		} while(true)
+	}
+	
+	bool contains(ParameterMetaPredicate predicate) {
+		return index_of(predicate) != -1
+	}
+	
+	number index_of(ParameterMetaPredicate predicate) {
+		number i = 0
+		
+		ListParameterMetaEnumerator enumerator = enumerate()
+		while enumerator.has_next() {
+			if predicate.matches(enumerator.current) return i
+			i++
+		}
+		
+		return (-1)
+	}
+	
+	ParameterMeta at(number index) {
+		number i = 0
+		
+		ListParameterMetaEnumerator enumerator = enumerate()
+		while @operator_and(i <= index, enumerator.has_next()) {
+			if i == index return enumerator.current
+			i++
+		}
+		i--
+		
+		@panic("ParameterMeta ListParameterMeta.at(number): unable to find element at index {to_string(index)} (enumerated up until {to_string(i)})")
+	}
+	
+	insert(number index, ParameterMeta value) {
+		number i = 0
+		
+		if index == 0 {
+			_ListParameterMetaNode new_root = new _ListParameterMetaNode()
+			new_root.value(value)
+			new_root.next(_root)
+			_root = new_root
+			return
+		}
+		
+		ListParameterMetaEnumerator enumerator = enumerate()
+		while @operator_and(i <= index, enumerator.has_next()) {
+			if i == index {
+				_ListParameterMetaNode node = enumerator._current
+				
+				// set this node's previous entry to point to the next one
+				// we handled the case where i is 0, so we know we must have a previous node
+				_ListParameterMetaNode inject = new _ListParameterMetaNode()
+				inject.value(value)
+				inject.next(node)
+				inject.prev(node.safe_prev())
+				
+				node.safe_prev().next(inject)
+				
+				return
+			}
+			i++
+		}
+		
+		if i == index {
+			// we're inserting at the end - aka, adding
+			add(value)
+			return
+		}
+		
+		i--
+		
+		@panic("ListParameterMeta.insert(number, ParameterMeta): unable to insert element at index {to_string(index)} (enumerated up until {to_string(i)})")
+	}
+	
+	ListParameterMetaEnumerator enumerate() {
+		return new ListParameterMetaEnumerator(_root)
+	}
+	
+	_debug_print_structure() {
+		@println("_root: ")
+		_root._debug_print_structure("  ")
+	}
+}
+
+// ListParameterMetaEnumerator enumerator = list.enumerate()
+// while enumerator.has_next() {
+//     ParameterMeta next = enumerator.current
+// }
+
+class ListParameterMetaEnumerator
+{
+	ParameterMeta current
+	
+	bool _has_enumerated
+	_ListParameterMetaNode _current
+
+	ctor(_ListParameterMetaNode node_current) {
+		_has_enumerated = false
+		_current = node_current
+	}
+
+	bool has_next() {
+		if !_has_enumerated {
+			if _current.has_value {
+				current = _current.safe_value()
+				
+				_has_enumerated = true
+				return true
+			}
+			
+			return false
+		}
+		
+		if _current.has_next {
+			_current = _current.safe_next()
+			
+			if _current.has_value {
+				current = _current.safe_value()
+				return true
+			}
+		}
+		
+		return false
+	}
+}
+
+class _ListParameterMetaNode
+{
+	bool has_value
+	ParameterMeta value
+	
+	bool has_next
+	_ListParameterMetaNode next
+	
+	bool has_prev
+	_ListParameterMetaNode prev
+	
+	ctor() {
+		has_value = false
+		has_next = false
+		has_prev = false
+	}
+	
+	ParameterMeta safe_value() {
+		if !has_value {
+			@panic("ParameterMeta _ListParameterMetaNode.safe_value(): attempted to take value when no value present")
+		}
+		
+		return value
+	}
+	
+	_ListParameterMetaNode safe_next() {
+		if !has_next {
+			@panic("_ListParameterMetaNode _ListParameterMetaNode.safe_next(): attempted to take next when no next present")
+		}
+		
+		return next
+	}
+	
+	_ListParameterMetaNode safe_prev() {
+		if !has_prev {
+			@panic("_ListParameterMetaNode _ListParameterMetaNode.safe_prev(): attempted to take prev when no prev present")
+		}
+		
+		return prev
+	}
+	
+	value() {
+		has_value = false
+	}
+	
+	value(ParameterMeta new_value) {
+		has_value = true
+		value = new_value
+	}
+	
+	next() {
+		has_next = false
+	}
+	
+	next(_ListParameterMetaNode new_next) {
+		has_next = true
+		next = new_next
+	}
+	
+	prev() {
+		has_prev = false
+	}
+	
+	prev(_ListParameterMetaNode new_prev) {
+		has_prev = true
+		prev = new_prev
+	}
+	
+	_debug_print_structure(string tab) {
+		@println("{tab}- has_value: {to_string(has_value)}")
+		if has_value {
+			@println("{tab}  {new ListParameterMeta()._to_string_ParameterMeta(value)}")
+		}
+		
+		@println("{tab}- has_prev: {to_string(has_prev)}")
+		
+		@println("{tab}- has_next: {to_string(has_next)}")
+		if has_next {
+			next._debug_print_structure("{tab}  ")
+		}
+	}
+}

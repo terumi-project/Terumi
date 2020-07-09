@@ -126,4 +126,30 @@ class FunctionMeta
 		generics = param_generics
 		open_parenthesis = param_open_parenthesis
 	}
+	
+	bool equals(FunctionMeta other) {
+		bool has_type_equality = has_type == other.has_type
+		bool type_equality = type.equals(other.type)
+		bool name_equality = name.equals(other.name)
+		bool generics_equality = generics.equals(other.generics)
+		bool open_parenthesis_equality = open_parenthesis.equals(other.open_parenthesis)
+		
+		return @operator_and(
+			@operator_and(
+				@operator_and(
+					has_type_equality,
+					type_equality
+				),
+				@operator_and(
+					name_equality,
+					generics_equality
+				)
+			),
+			open_parenthesis_equality
+		)
+	}
+	
+	string to_string() {
+		return "string FunctionMeta.to_string(): not implemented"
+	}
 }

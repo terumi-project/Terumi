@@ -5,15 +5,20 @@ use compiler.parser.statements
 class Field
 {
 	bool is_readonly
-	Token name
-	LinkedParsedTypeList generics
+	ParsedType parsed_type
 	
-	bool is_private() return name.source.text.starts_with("_")
+	bool is_private() return parsed_type.name.source.starts_with("_")
 	
-	ctor(bool param_is_readonly, Token param_name, LinkedParsedTypeList param_generics) {
+	ctor(bool param_is_readonly, ParsedType param_parsed_type) {
 		is_readonly = param_is_readonly
-		name = param_name
-		generics = param_generics
+		parsed_type = param_parsed_type
+	}
+	
+	bool equals(Field other) {
+		return @operator_and(
+			is_readonly == other.is_readonly,
+			parsed_type.equals(other.parsed_type)
+		)
 	}
 }
 
@@ -25,6 +30,13 @@ class Function
 	ctor(FunctionHeader param_header, Statement param_body) {
 		header = param_header
 		body = param_body
+	}
+	
+	bool equals(Function other) {
+		return @operator_and(
+			header.equals(other.header),
+			body.equals(other.body)
+		)
 	}
 }
 
@@ -56,17 +68,36 @@ class Member
 		if (!is_function()) @panic("Function Member.unwrap_function(): attempt to unwrap a function that is not a function.")
 		return _function
 	}
+	
+	bool equals(Member other) {
+		if _type != other._type return false
+		
+		if is_field() {
+			return unwrap_field().equals(other.unwrap_field())
+		}
+		
+		if is_function() {
+			return unwrap_function().equals(other.unwrap_function())
+		}
+		
+		@panic("bool Member.equals(Member): unsupported path")
+	}
+	
+	string to_string() {
+		return "string Member.to_string(): unimplemented path"
+	}
 }
 
 class Class
 {
 	Token name
 	LinkedParsedTypeList generics
-	// manifestable member list
+	ListMember members
 	
-	ctor(Token param_name, LinkedParsedTypeList param_generics) {
+	ctor(Token param_name, LinkedParsedTypeList param_generics, ListMember param_members) {
 		name = param_name
 		generics = param_generics
+		members = param_members
 	}
 }
 
@@ -77,6 +108,10 @@ class FunctionHeader
 	
 	ctor(FunctionMeta param_meta) {
 		meta = param_meta
+	}
+	
+	bool equals(FunctionHeader other) {
+		return meta.equals(other.meta)
 	}
 }
 
@@ -108,11 +143,35 @@ class PhantomMember
 		if (!is_function_header()) @panic("FunctionHeader Member.unwrap_function(): attempt to unwrap a function header that is not a function header.")
 		return _function_header
 	}
+	
+	bool equals(PhantomMember other) {
+		if _type != other._type return false
+		
+		if is_field() {
+			return unwrap_field().equals(other.unwrap_field())
+		}
+		
+		if is_function_header() {
+			return unwrap_function_header().equals(other.unwrap_function_header())
+		}
+		
+		@panic("bool PhantomMember.equals(PhantomMember): non supported path")
+	}
+	
+	string to_string() {
+		return "string PhantomMember.to_string(): not implemented"
+	}
 }
 
 class Contract
 {
 	Token name
 	LinkedParsedTypeList generics
-	// member list - PhantomMember
+	ListPhantomMember members
+	
+	ctor(Token param_name, LinkedParsedTypeList param_generics, ListPhantomMember param_members) {
+		name = param_name
+		generics = param_generics
+		members = param_members
+	}
 }

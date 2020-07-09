@@ -31,22 +31,59 @@ ParseParameterMetaResult parse_parameter_meta(ContractLexer lexer)
 class ParseParameterMetaResult
 {
 	bool success
+	ParameterMeta parameter_meta
+	bool should_be_more
+	
+	// COMPAT
 	ParsedType type
 	Token name
-	
 	Token end
-	bool should_be_more
 
 	ctor(ParsedType param_type, Token param_name, Token param_end) {
 		success = true
+		should_be_more = param_end.is_special(",")
+		parameter_meta = new ParameterMeta(
+			param_type,
+			param_name,
+			param_end
+		)
 		type = param_type
 		name = param_name
 		end = param_end
-		should_be_more = end.is_special(",")
 	}
 	
 	ctor() {
 		success = false
 		should_be_more = false
+	}
+}
+
+class ParameterMeta
+{
+	ParsedType type
+	Token name
+	Token end
+
+	ctor(ParsedType param_type, Token param_name, Token param_end) {
+		type = param_type
+		name = param_name
+		end = param_end
+	}
+	
+	ctor() {
+	}
+	
+	bool equals(ParameterMeta other) {
+		return @operator_and(
+			@operator_and(
+				type.equals(other.type),
+				name.equals(other.name)
+			),
+			end.equals(other.end)
+		)
+	}
+	
+	string to_string() {
+		return "string ParameterMeta.to_string(): not implemented"
 	}
 }

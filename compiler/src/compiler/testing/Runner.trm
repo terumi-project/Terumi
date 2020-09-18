@@ -3,6 +3,7 @@ use terumi
 use compiler.testing.tests
 use compiler.testing.tests.expressions
 use compiler.testing.tests.statements
+use compiler.testing.tests.ast
 
 run_tests()
 {
@@ -40,7 +41,8 @@ the project is still in its infancy.
 	// runner.run(new ParseValueTests())
 	// runner.run(new ParseUnaryTests())
 	// runner.run(new ParseParentheticalTests())
-	runner.run(new ListTTests())
+	// runner.run(new ListTTests())
+	runner.run(new AstBuilderTests())
 	
 	@println("== TESTS == {to_string(runner._passed)} assertions passed, {to_string(runner._failed)} assertions failed")
 	@println(runner._log_pass)

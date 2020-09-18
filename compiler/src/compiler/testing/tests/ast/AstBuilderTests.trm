@@ -1,0 +1,24 @@
+use std
+use compiler.testing
+use compiler.lexer
+use compiler.parser.expressions
+use compiler.parser.ast
+
+class AstBuilderTests
+{
+	string test_group
+	ContractTestHelper runner
+
+	ctor() {
+		test_group = "AstBuilder"
+	}
+	
+	begin(string name) runner.begin(name)
+	assert(bool condition) runner.assert(condition)
+	
+	test(ContractTestHelper test_runner) {
+		runner = test_runner
+		
+		// TODO: add tests
+	}
+}
